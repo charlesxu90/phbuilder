@@ -2,6 +2,7 @@
 
 import shelve
 import os
+import configparser
 
 # UNIVERSE #####################################################################
 ################################################################################
@@ -245,15 +246,18 @@ def read_gro(name):
 
 def write_gro(name):
     with open(name, 'w') as file:
+        # Title.
         if has('d_title'):
             file.write("{}\n".format(get('d_title').strip()))
 
+        # Total number of atoms.
         total = 0
         for residue in get('d_residues'):
             for _ in residue.d_atoms:
                 total += 1
         file.write("{:>5d}\n".format(total))
 
+        # Atoms.
         total = 1
         for residue in get('d_residues'):
             for idx in range(0, len(residue.d_atoms)):
@@ -262,6 +266,7 @@ def write_gro(name):
                     total % 100000, residue.d_x[idx]/10, residue.d_y[idx]/10, residue.d_z[idx]/10))
                 total += 1
 
+        # Periodic box.
         if has('d_box'):
             cryst = get('d_box')
             file.write("{:>10.5f}{:>10.5f}{:>10.5f}\n".format(cryst.d_a/10, cryst.d_b/10, cryst.d_c/10))
@@ -288,5 +293,71 @@ def writestructure(name):
     else:
         error("writestructure", "Unknown file format specified. Formats are .pdb or .gro.")
 
+################################################################################
+
+# Stores the information of a lambda residue-type.
+class LambdaType:
+    def __init__(self, groupname, pKa, atoms, qqA, qqB, dvdl):
+        self.d_groupname = groupname
+        self.d_pKa       = pKa
+        self.d_atoms     = atoms
+        self.d_qqA       = qqA
+        self.d_qqB       = qqB
+        self.d_dvdl      = dvdl
+
+# Add a lambda residue-type to universe.
+def defineLambdaType(groupname, pKa, atoms, qqA, qqB, dvdl):
+    NewLambdaType = LambdaType(groupname, pKa, atoms, qqA, qqB, dvdl)
+    if has('ph_lambdaTypes'):
+        temp = get('ph_lambdaTypes')
+        
+        for entry in temp:
+            if entry.d_groupname == NewLambdaType.d_groupname:
+                update("defineLambdaType", "LambdaType {} is already defined in ph_lambdaTypes. Skipping...".format(NewLambdaType.d_groupname))
+                break
+        else:
+            temp.append(NewLambdaType)
+            add('ph_lambdaTypes', temp)
+    else:
+        add('ph_lambdaTypes', [NewLambdaType])
+
+def parseLambdaGroupTypes():
+    
+    # Convert string to list of floats.
+    def str2floatList(string):
+        return [float(val) for val in string.split(' ')]
+
+    # Convert string to list of strings.
+    def str2strList(string):
+        return string.split(' ')
+
+    parser = configparser.ConfigParser()
+    parser.read("lambdagrouptypes.dat")
+    
+    for sect in parser.sections():
+        
+        if (sect.strip() == "BUF"):
+            add('pH_BUF_dvdl', str2floatList(parser.get(sect, 'dvdl')))
+            continue
+
+        groupname = sect.strip()
+        pKa       = parser.getfloat(sect, 'pKa')
+        atoms     = str2strList(parser.get(sect, 'atoms'))
+        qqA       = str2floatList(parser.get(sect, 'qqA'))
+        qqB       = str2floatList(parser.get(sect, 'qqB'))
+        dvdl      = str2floatList(parser.get(sect, 'dvdl'))
+
+        # print(groupname)
+        # print(pKa)
+        # print(atoms)
+        # print(qqA)
+        # print(qqB)
+        # print(dvdl)
+
+        defineLambdaType(groupname, pKa, atoms, qqA, qqB, dvdl)
+
 # MAIN #########################################################################
 ################################################################################
+
+parseLambdaGroupTypes()
+inspect()
