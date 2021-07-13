@@ -1,6 +1,5 @@
 #!/bin/python3
 
-from protein import write
 import shelve
 import os
 
@@ -54,6 +53,10 @@ def update(tool, message):
 def warning(tool, message):
     print("{:18s} : WARNING - {:s}".format(tool, message))
 
+def error(tool, message):
+    print("{:18s} : ERROR - {:s} quiting...".format(tool, message))
+    quit()
+
 # STRUCTURE ####################################################################
 ################################################################################
 
@@ -66,6 +69,17 @@ class Residue:
         self.d_x       = x          # list      holds x-coordinates
         self.d_y       = y          # list      holds y-coordinates
         self.d_z       = z          # list      holds z-coordinates
+
+class Crystal:
+    def __init__(self, a, b, c, alpha, beta, gamma, space, Z):
+        self.d_a       = a          # Angstroms
+        self.d_b       = b          # Angstroms
+        self.d_c       = c          # Angstroms
+        self.d_alpha   = alpha      # degrees
+        self.d_beta    = beta       # degrees
+        self.d_gamma   = gamma      # degrees
+        self.d_space   = space      # Space group
+        self.d_Z       = Z          # Z value
 
 # Load a .pdb file into d_residues.
 def read_pdb(name, d_model=1, d_chain=[]):
@@ -93,7 +107,11 @@ def read_pdb(name, d_model=1, d_chain=[]):
 
             # Get periodic box information (if any).
             elif (line[0:6] == "CRYST1"):
-                d_box   = line[7:80].rstrip(); add('d_box', d_box)
+                # print("'{}'".format(line[ 6:15])); print("'{}'".format(line[15:24]))
+                # print("'{}'".format(line[24:33])); print("'{}'".format(line[33:40]))
+                # print("'{}'".format(line[40:47])); print("'{}'".format(line[47:54]))
+                # print("'{}'".format(line[55:66])); print("'{}'".format(line[66:70]))
+                add('d_box', Crystal(float(line[6:15]), float(line[15:24]), float(line[24:33]), float(line[33:40]), float(line[40:47]), float(line[47:54]), line[55:66], int(line[66:70])))
 
             # If our line is an ATOM,
             elif (line[0:6] == "ATOM  "):
@@ -153,21 +171,20 @@ def write_pdb(name):
             file.write("TITLE {0}\n".format(get('d_title')))
 
         if has('d_box'):
-            file.write("CRYST1{0}\n".format(get('d_box')))
+            cryst = get('d_box')
+            file.write("CRYST1{:>9.3f}{:>9.3f}{:>9.3f}{:>7.2f}{:>7.2f}{:>7.2f} {:11s}{:>4d}\n".format(cryst.d_a, cryst.d_b, cryst.d_c, cryst.d_alpha, cryst.d_beta, cryst.d_gamma, cryst.d_space, cryst.d_Z))
 
         file.write("MODEL {:8d}\n".format(get('d_model')))
 
         atomNumber = 1
         for residue in get('d_residues'):
             for idx in range(0, len(residue.d_atoms)):
-                file.write("{:6s}{:5d} {:^4s}{:1s}{:4s}{:1s}{:4d}{:1s}   {:8.3f}{:8.3f}{:8.3f}\n".format('ATOM', atomNumber, residue.d_atoms[idx], '', residue.d_resname, residue.d_chain, residue.d_resid, '', residue.d_x[idx], residue.d_y[idx], residue.d_z[idx]))
+                file.write("{:6s}{:5d} {:^4s}{:1s}{:4s}{:1s}{:4d}{:1s}   {:8.3f}{:8.3f}{:8.3f}\n".format('ATOM', atomNumber % 100000, residue.d_atoms[idx], '', residue.d_resname, residue.d_chain, residue.d_resid, '', residue.d_x[idx], residue.d_y[idx], residue.d_z[idx]))
                 atomNumber += 1
 
         file.write("TER\nENDMDL\n")
 
 def read_gro(name):
-    def parsePBC(line):
-        pass
 
     add('d_model', 1)
 
@@ -184,11 +201,18 @@ def read_gro(name):
 
     for idx in range(0, len(atomLines)):
 
+        # Title.
         if (idx == 0):
             add('d_title', atomLines[idx])
             continue
 
-        if (idx == 1 or idx == len(atomLines) - 1):
+        # Number of atoms.
+        if (idx == 1):
+            continue
+
+        # Periodic box information.
+        if (idx == len(atomLines) - 1):
+            add('d_box', Crystal(10*float(atomLines[idx][0:10]), 10*float(atomLines[idx][10:20]), 10*float(atomLines[idx][20:30]), 90, 90, 90, "P 1", 1))
             continue
 
         atom = atomLines[idx][11:15].strip()
@@ -235,18 +259,34 @@ def write_gro(name):
             for idx in range(0, len(residue.d_atoms)):
                 file.write("{:>5d}{:5s}{:>5s}{:>5d}{:>8.3f}{:>8.3f}{:>8.3f}\n".format(
                     residue.d_resid, residue.d_resname, residue.d_atoms[idx].strip(), 
-                    total, residue.d_x[idx]/10, residue.d_y[idx]/10, residue.d_z[idx]/10))
+                    total % 100000, residue.d_x[idx]/10, residue.d_y[idx]/10, residue.d_z[idx]/10))
                 total += 1
 
         if has('d_box'):
-            pass
+            cryst = get('d_box')
+            file.write("{:>10.5f}{:>10.5f}{:>10.5f}\n".format(cryst.d_a/10, cryst.d_b/10, cryst.d_c/10))
         else:
-            file.write("   0.00000   0.00000   0.00000")
+            file.write("{:>10.5f}{:>10.5f}{:>10.5f}\n".format(0.0, 0.0, 0.0))
+
+def loadstructure(name, model=1, chains=[]):
+    extension = os.path.splitext(name)[1]
+    
+    if (extension == ".pdb"):
+        read_pdb(name, d_model=model, d_chain=chains)
+    elif (extension == ".gro"):
+        read_gro(name)
+    else:
+        error("loadstructure", "Unknown file format specified. Formats are .pdb or .gro.")
+
+def writestructure(name):
+    extension = os.path.splitext(name)[1]
+
+    if (extension == ".pdb"):
+        write_pdb(name)
+    elif (extension == ".gro"):
+        write_gro(name)
+    else:
+        error("writestructure", "Unknown file format specified. Formats are .pdb or .gro.")
 
 # MAIN #########################################################################
 ################################################################################
-
-read_pdb("1cvo.pdb")
-write_gro("out.gro")
-
-inspect()
