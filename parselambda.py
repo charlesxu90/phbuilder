@@ -1,5 +1,14 @@
 import utility, configparser
-from classes import LambdaType
+
+# Stores the information for a lambda group type.
+class LambdaType:
+    def __init__(self, groupname, pKa, atoms, qqA, qqB, dvdl):
+        self.d_groupname = groupname
+        self.d_pKa       = pKa
+        self.d_atoms     = atoms
+        self.d_qqA       = qqA
+        self.d_qqB       = qqB
+        self.d_dvdl      = dvdl
 
 def parseLambdaGroupTypes():
 
