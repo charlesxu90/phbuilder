@@ -21,7 +21,7 @@ def parsecmdline():
                         required=True,
                         dest='mode',
                         action='store',
-                        choices=['all', 'list', 'interactive', 'none'],
+                        choices=['all', 'interactive', 'list'],
                         help='specify operationmode.')
 
     parser_1.add_argument('-o', '--output',
@@ -70,4 +70,4 @@ def parsecmdline():
     # User information.
     if (universe.get('d_verbosity') == 3):
         print("Parsed the following input from the command line:\n")
-        utils.inspect(); print()
+        universe.inspect(); print()
