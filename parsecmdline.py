@@ -1,6 +1,6 @@
 # PYTHON_ARGCOMPLETE_OK
 
-import argparse, argcomplete
+import argparse, argcomplete, utility
 
 def parsecmdline():
 
@@ -50,11 +50,24 @@ def parsecmdline():
 
     parser_1.set_defaults(target='gentopol')
 
-    parser_2 = subparsers.add_parser('addbuffers', help="blabla about addbuffers")
-    parser_2.set_defaults(target='addbuffers')
+    # parser_2 = subparsers.add_parser('addbuffers', help="blabla about addbuffers")
+    # parser_2.set_defaults(target='addbuffers')
 
-    parser_3 = subparsers.add_parser('genparams', help="blabla about genparams")
-    parser_3.set_defaults(target='genparams')
+    # parser_3 = subparsers.add_parser('genparams', help="blabla about genparams")
+    # parser_3.set_defaults(target='genparams')
 
-    argcomplete.autocomplete(parser)
-    CLI = parser.parse_args()
+    argcomplete.autocomplete(parser)    # Required for autocompleting using argcomplete.
+    CLI = parser.parse_args()           # Do the actual parsing.
+
+    # Add relevant parameters to the universe.
+    utility.add('d_target', CLI.target)
+    utility.add('d_verbosity', CLI.verbosity)
+    utility.add('d_file', CLI.file)
+    utility.add('d_output', CLI.output)
+    utility.add('ph_mode', CLI.mode)
+    utility.add('ph_restraincharge', CLI.restraincharge)
+
+    # User information.
+    if (utility.get('d_verbosity') == 3):
+        print("Parsed the following input from the command line:\n")
+        utility.inspect(); print()

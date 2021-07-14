@@ -3,11 +3,26 @@
 
 from parsecmdline import parsecmdline
 
+# Execute this as soon as possible because of the TAB autocomplete thing.
 parsecmdline()
 
+# Import the rest of the modules.
 from parselambda import parseLambdaGroupTypes
+from gentopol import gentopol
 import utility
 
-parseLambdaGroupTypes()
+target = utility.get('d_target')
 
-utility.inspect()
+if (target == "gentopol"):
+
+    # Parse lambdagrouptypes.dat and add the LambdaType objects to the universe.
+    parseLambdaGroupTypes()
+
+    # Run the gentopol subcommand.
+    gentopol()
+
+elif (target == "addbuffers"):
+    pass
+
+elif (target == "addparams"):
+    pass

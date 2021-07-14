@@ -2,17 +2,15 @@ import shelve
 
 # UNIVERSE #####################################################################################################################################################
 
-# Set/update variable to 
+# Set/update variable to universe
 def add(varName, value):
-    with shelve.open('universe') as shelf:
-        shelf[varName] = value
+    shelve.open('universe')[varName] = value
 
 # Check whether universe contains a certain varName
 def has(varName):
-    with shelve.open('universe') as shelf:
-        return varName in shelf
+    return varName in shelve.open('universe')
 
-# Retrieve variable from 
+# Retrieve variable from universe
 def get(varName):
     if has(varName):
         return shelve.open('universe')[varName]
@@ -22,7 +20,7 @@ def get(varName):
     add(varName, data)
     return data
 
-# Display all variables (name, data, type) stored in the 
+# Display all variables (name, data, type) stored in the universe
 def inspect():
     with shelve.open('universe') as shelf:
         # Determine longest valueName for formatting:
@@ -40,7 +38,7 @@ def inspect():
 
 # OUTPUT #######################################################################################################################################################
 
-# Print debug information for the user.
+# Prints debug information for the user.
 def pedantic(tool, message):
     if (get('d_verbosity') > 2):
         print("{:18s} : {:s}".format(tool, message))

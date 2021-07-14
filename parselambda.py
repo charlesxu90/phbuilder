@@ -1,9 +1,9 @@
-import utility
+import utility, configparser
 from classes import LambdaType
 
-import configparser
-
 def parseLambdaGroupTypes():
+
+    utility.pedantic('parseLambdaGroupTypes', 'parsing lambdagrouptypes.dat...\n')
 
     # Add a lambda residue-type to universe.
     def defineLambdaType(groupname, pKa, atoms, qqA, qqB, dvdl):
@@ -13,7 +13,7 @@ def parseLambdaGroupTypes():
             
             for entry in temp:
                 if entry.d_groupname == NewLambdaType.d_groupname:
-                    utility.warning("defineLambdaType", "LambdaType {} is already defined in ph_lambdaTypes. Skipping...".format(NewLambdaType.d_groupname))
+                    utility.warning("defineLambdaType", "LambdaType with groupname {} is already defined in ph_lambdaTypes. Skipping...".format(NewLambdaType.d_groupname))
                     break
             else:
                 temp.append(NewLambdaType)
@@ -35,7 +35,7 @@ def parseLambdaGroupTypes():
     for sect in parser.sections():
         
         if (sect.strip() == "BUF"):
-            utility.add('pH_BUF_dvdl', str2floatList(parser.get(sect, 'dvdl')))
+            utility.add('ph_BUF_dvdl', str2floatList(parser.get(sect, 'dvdl')))
             continue
 
         groupname = sect.strip()
@@ -46,13 +46,18 @@ def parseLambdaGroupTypes():
         dvdl      = str2floatList(parser.get(sect, 'dvdl'))
 
         if (len(groupname) != 4):
-            utility.error("parseLambdaGroupTypes", "Name of lambdagrouptype should be 4 letters")
-
-        # print(groupname)
-        # print(pKa)
-        # print(atoms)
-        # print(qqA)
-        # print(qqB)
-        # print(dvdl)
+            utility.error("parseLambdaGroupTypes", "groupname of LambdaType needs to have 4 letters")
 
         defineLambdaType(groupname, pKa, atoms, qqA, qqB, dvdl)
+
+    if (utility.get('d_verbosity') == 3):
+        for obj in utility.get('ph_lambdaTypes'):
+            print("groupname = {}".format(obj.d_groupname))
+            print("pKa       = {}".format(obj.d_pKa))
+            print("atoms     = {}".format(obj.d_atoms))
+            print("qqA       = {}".format(obj.d_qqA))
+            print("qqB       = {}".format(obj.d_qqB))
+            print("dvdl      = {}\n".format(obj.d_dvdl))
+
+        if (utility.has('ph_BUF_dvdl')):
+            print("BUF_dvdl  = {}\n".format(utility.get('ph_BUF_dvdl')))
