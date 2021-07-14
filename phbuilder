@@ -9,9 +9,9 @@ parsecmdline()
 # Import the rest of the modules.
 from parselambda import parseLambdaGroupTypes
 from gentopol import gentopol
-import utility
+import utility, universe
 
-target = utility.get('d_target')
+target = universe.get('d_target')
 
 if (target == "gentopol"):
 

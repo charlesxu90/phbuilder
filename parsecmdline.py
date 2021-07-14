@@ -1,6 +1,6 @@
 # PYTHON_ARGCOMPLETE_OK
 
-import argparse, argcomplete, utility
+import argparse, argcomplete, utility, universe
 
 def parsecmdline():
 
@@ -60,14 +60,14 @@ def parsecmdline():
     CLI = parser.parse_args()           # Do the actual parsing.
 
     # Add relevant parameters to the universe.
-    utility.add('d_target', CLI.target)
-    utility.add('d_verbosity', CLI.verbosity)
-    utility.add('d_file', CLI.file)
-    utility.add('d_output', CLI.output)
-    utility.add('ph_mode', CLI.mode)
-    utility.add('ph_restraincharge', CLI.restraincharge)
+    universe.add('d_target', CLI.target)
+    universe.add('d_verbosity', CLI.verbosity)
+    universe.add('d_file', CLI.file)
+    universe.add('d_output', CLI.output)
+    universe.add('ph_mode', CLI.mode)
+    universe.add('ph_restraincharge', CLI.restraincharge)
 
     # User information.
-    if (utility.get('d_verbosity') == 3):
+    if (universe.get('d_verbosity') == 3):
         print("Parsed the following input from the command line:\n")
         utility.inspect(); print()

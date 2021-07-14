@@ -1,4 +1,4 @@
-import utility, os
+import universe, os
 
 # Stores the information for a residue.
 class Residue:
@@ -55,11 +55,11 @@ def read_pdb(name):
 
             # Get title.
             if (line[0:6] == "TITLE "):
-                utility.add('d_title', line[7:80].strip())
+                universe.add('d_title', line[7:80].strip())
 
             # Get periodic box information (if any).
             elif (line[0:6] == "CRYST1"):
-                utility.add('d_box', Crystal(float(line[6:15]), float(line[15:24]), float(line[24:33]), float(line[33:40]), float(line[40:47]), float(line[47:54]), line[55:66], int(line[66:70])))
+                universe.add('d_box', Crystal(float(line[6:15]), float(line[15:24]), float(line[24:33]), float(line[33:40]), float(line[40:47]), float(line[47:54]), line[55:66], int(line[66:70])))
 
             # Get the ATOM lines.
             elif (line[0:6] == "ATOM  "):
@@ -105,22 +105,22 @@ def read_pdb(name):
             y     = []
             z     = []
 
-    # Add the list of Residues to utility.
-    utility.add('d_residues', d_residues)
+    # Add the list of Residues to universe.
+    universe.add('d_residues', d_residues)
 
 def write_pdb(name):
     with open(name, 'w') as file:
-        if utility.has('d_title'):
-            file.write("TITLE {0}\n".format(utility.get('d_title')))
+        if universe.has('d_title'):
+            file.write("TITLE {0}\n".format(universe.get('d_title')))
 
-        if utility.has('d_box'):
-            cryst = utility.get('d_box')
+        if universe.has('d_box'):
+            cryst = universe.get('d_box')
             file.write("CRYST1{:>9.3f}{:>9.3f}{:>9.3f}{:>7.2f}{:>7.2f}{:>7.2f} {:11s}{:>4d}\n".format(cryst.d_a, cryst.d_b, cryst.d_c, cryst.d_alpha, cryst.d_beta, cryst.d_gamma, cryst.d_space, cryst.d_Z))
 
         file.write("MODEL {:8d}\n".format(1))
 
         atomNumber = 1
-        for residue in utility.get('d_residues'):
+        for residue in universe.get('d_residues'):
             for idx in range(0, len(residue.d_atoms)):
                 
                 atom = residue.d_atoms[idx]
@@ -148,7 +148,7 @@ def read_gro(name):
 
         # Title.
         if (idx == 0):
-            utility.add('d_title', atomLines[idx])
+            universe.add('d_title', atomLines[idx])
             continue
 
         # Number of atoms.
@@ -157,7 +157,7 @@ def read_gro(name):
 
         # Periodic box information.
         if (idx == len(atomLines) - 1):
-            utility.add('d_box', Crystal(10*float(atomLines[idx][0:10]), 10*float(atomLines[idx][10:20]), 10*float(atomLines[idx][20:30]), 90, 90, 90, "P 1", 1))
+            universe.add('d_box', Crystal(10*float(atomLines[idx][0:10]), 10*float(atomLines[idx][10:20]), 10*float(atomLines[idx][20:30]), 90, 90, 90, "P 1", 1))
             continue
 
         atoms.append(atomLines[idx][11:15].strip())
@@ -181,25 +181,25 @@ def read_gro(name):
             y     = []
             z     = []
 
-    # Add the list of Residues to utility.
-    utility.add('d_residues', d_residues)
+    # Add the list of Residues to universe.
+    universe.add('d_residues', d_residues)
 
 def write_gro(name):
     with open(name, 'w') as file:
         # Title.
-        if utility.has('d_title'):
-            file.write("{}\n".format(utility.get('d_title').strip()))
+        if universe.has('d_title'):
+            file.write("{}\n".format(universe.get('d_title').strip()))
 
         # Total number of atoms.
         total = 0
-        for residue in utility.get('d_residues'):
+        for residue in universe.get('d_residues'):
             for _ in residue.d_atoms:
                 total += 1
         file.write("{:>5d}\n".format(total))
 
         # Atoms.
         total = 1
-        for residue in utility.get('d_residues'):
+        for residue in universe.get('d_residues'):
             for idx in range(0, len(residue.d_atoms)):
                 file.write("{:>5d}{:5s}{:>5s}{:>5d}{:>8.3f}{:>8.3f}{:>8.3f}\n".format(
                     residue.d_resid, residue.d_resname, residue.d_atoms[idx], 
@@ -207,8 +207,8 @@ def write_gro(name):
                 total += 1
 
         # Periodic box.
-        if utility.has('d_box'):
-            cryst = utility.get('d_box')
+        if universe.has('d_box'):
+            cryst = universe.get('d_box')
             file.write("{:>10.5f}{:>10.5f}{:>10.5f}\n".format(cryst.d_a/10, cryst.d_b/10, cryst.d_c/10))
         else:
             file.write("{:>10.5f}{:>10.5f}{:>10.5f}\n".format(0.0, 0.0, 0.0))

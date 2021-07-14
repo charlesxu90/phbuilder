@@ -1,4 +1,4 @@
-import utility, configparser
+import utility, universe, configparser
 
 # Stores the information for a lambda group type.
 class LambdaType:
@@ -17,8 +17,8 @@ def parseLambdaGroupTypes():
     # Add a lambda residue-type to universe.
     def defineLambdaType(groupname, pKa, atoms, qqA, qqB, dvdl):
         NewLambdaType = LambdaType(groupname, pKa, atoms, qqA, qqB, dvdl)
-        if utility.has('ph_lambdaTypes'):
-            temp = utility.get('ph_lambdaTypes')
+        if universe.has('ph_lambdaTypes'):
+            temp = universe.get('ph_lambdaTypes')
             
             for entry in temp:
                 if entry.d_groupname == NewLambdaType.d_groupname:
@@ -26,9 +26,9 @@ def parseLambdaGroupTypes():
                     break
             else:
                 temp.append(NewLambdaType)
-                utility.add('ph_lambdaTypes', temp)
+                universe.add('ph_lambdaTypes', temp)
         else:
-            utility.add('ph_lambdaTypes', [NewLambdaType])
+            universe.add('ph_lambdaTypes', [NewLambdaType])
 
     # Convert string to list of floats.
     def str2floatList(string):
@@ -44,7 +44,7 @@ def parseLambdaGroupTypes():
     for sect in parser.sections():
         
         if (sect.strip() == "BUF"):
-            utility.add('ph_BUF_dvdl', str2floatList(parser.get(sect, 'dvdl')))
+            universe.add('ph_BUF_dvdl', str2floatList(parser.get(sect, 'dvdl')))
             continue
 
         groupname = sect.strip()
@@ -59,8 +59,8 @@ def parseLambdaGroupTypes():
 
         defineLambdaType(groupname, pKa, atoms, qqA, qqB, dvdl)
 
-    if (utility.get('d_verbosity') == 3):
-        for obj in utility.get('ph_lambdaTypes'):
+    if (universe.get('d_verbosity') == 3):
+        for obj in universe.get('ph_lambdaTypes'):
             print("groupname = {}".format(obj.d_groupname))
             print("pKa       = {}".format(obj.d_pKa))
             print("atoms     = {}".format(obj.d_atoms))
@@ -68,5 +68,5 @@ def parseLambdaGroupTypes():
             print("qqB       = {}".format(obj.d_qqB))
             print("dvdl      = {}\n".format(obj.d_dvdl))
 
-        if (utility.has('ph_BUF_dvdl')):
-            print("BUF_dvdl  = {}\n".format(utility.get('ph_BUF_dvdl')))
+        if (universe.has('ph_BUF_dvdl')):
+            print("BUF_dvdl  = {}\n".format(universe.get('ph_BUF_dvdl')))
