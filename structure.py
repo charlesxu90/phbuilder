@@ -1,50 +1,73 @@
 import utility, os
-from classes import Residue, Crystal
+
+# Stores the information for a residue.
+class Residue:
+    def __init__(self, atoms, resname, chain, resid, x, y, z):
+        self.d_atoms   = atoms      # list      holds atom types
+        self.d_resname = resname    # string    holds residue name
+        self.d_chain   = chain      # string    holds chain name (A, B, etc.)
+        self.d_resid   = resid      # int       holds residue number
+        self.d_x       = x          # list      holds x-coordinates
+        self.d_y       = y          # list      holds y-coordinates
+        self.d_z       = z          # list      holds z-coordinates
+
+
+# Stores the information for the periodic box.
+class Crystal:
+    def __init__(self, a, b, c, alpha, beta, gamma, space, Z):
+        self.d_a       = a          # Angstroms
+        self.d_b       = b          # Angstroms
+        self.d_c       = c          # Angstroms
+        self.d_alpha   = alpha      # degrees
+        self.d_beta    = beta       # degrees
+        self.d_gamma   = gamma      # degrees
+        self.d_space   = space      # Space group
+        self.d_Z       = Z          # Z value
+
+# Loads structure (pdb/gro) into d_residues.
+def load(name):
+    extension = os.path.splitext(name)[1]
+    
+    if (extension == ".pdb"):
+        read_pdb(name)
+    
+    if (extension == ".gro"):
+        read_gro(name)
+
+# Writes d_residues to a structure (pdb/gro) file.
+def write(name):
+    extension = os.path.splitext(name)[1]
+
+    if (extension == ".pdb"):
+        write_pdb(name)
+    
+    if (extension == ".gro"):
+        write_gro(name)
 
 # Load a .pdb file into d_residues.
-def read_pdb(name, d_model=1, d_chain=[]):
-    
-    utility.add('d_model', d_model)
-    utility.add('d_chain', d_chain)
+def read_pdb(name):
 
     with open(name) as file:
 
-        correctModel = True
-        atomLines    = []
+        atomLines = []
 
         for line in file.readlines():
 
-            # Only import the specified MODEL number.
-            if (line[0:6] == "MODEL "):
-                if ("MODEL {:8d}".format(d_model) in line):
-                    correctModel = True
-                else:
-                    correctModel = False
-
             # Get title.
-            elif (line[0:6] == "TITLE "):
-                d_title = line[7:80].rstrip(); utility.add('d_title', d_title)
+            if (line[0:6] == "TITLE "):
+                utility.add('d_title', line[7:80].strip())
 
             # Get periodic box information (if any).
             elif (line[0:6] == "CRYST1"):
-                # print("'{}'".format(line[ 6:15])); print("'{}'".format(line[15:24]))
-                # print("'{}'".format(line[24:33])); print("'{}'".format(line[33:40]))
-                # print("'{}'".format(line[40:47])); print("'{}'".format(line[47:54]))
-                # print("'{}'".format(line[55:66])); print("'{}'".format(line[66:70]))
                 utility.add('d_box', Crystal(float(line[6:15]), float(line[15:24]), float(line[24:33]), float(line[33:40]), float(line[40:47]), float(line[47:54]), line[55:66], int(line[66:70])))
 
-            # If our line is an ATOM,
+            # Get the ATOM lines.
             elif (line[0:6] == "ATOM  "):
-                # and we are currently reading the correct MODEL,
-                if (correctModel):
-                    # and we want all the chains,
-                    if (d_chain == []):
-                        # then load the line:
-                        atomLines.append(line)
-                    # Or, if we want a selection of chains,
-                    elif (line[21:22] in d_chain):
-                        # load the selection:
-                        atomLines.append(line)
+                atomLines.append(line)
+
+            # Only import the first MODEL...
+            elif (line[0:6] == "ENDMDL"):
+                break
 
     # Loop through the atomLines and create a list of Residue objects.
 
@@ -57,7 +80,7 @@ def read_pdb(name, d_model=1, d_chain=[]):
 
     for idx in range(0, len(atomLines)):
 
-        atoms.append(atomLines[idx][12:16])
+        atoms.append(atomLines[idx][12:16].strip())
         x.append(float(atomLines[idx][30:38]))
         y.append(float(atomLines[idx][38:46]))
         z.append(float(atomLines[idx][46:54]))
@@ -94,19 +117,22 @@ def write_pdb(name):
             cryst = utility.get('d_box')
             file.write("CRYST1{:>9.3f}{:>9.3f}{:>9.3f}{:>7.2f}{:>7.2f}{:>7.2f} {:11s}{:>4d}\n".format(cryst.d_a, cryst.d_b, cryst.d_c, cryst.d_alpha, cryst.d_beta, cryst.d_gamma, cryst.d_space, cryst.d_Z))
 
-        file.write("MODEL {:8d}\n".format(utility.get('d_model')))
+        file.write("MODEL {:8d}\n".format(1))
 
         atomNumber = 1
         for residue in utility.get('d_residues'):
             for idx in range(0, len(residue.d_atoms)):
-                file.write("{:6s}{:5d} {:^4s}{:1s}{:4s}{:1s}{:4d}{:1s}   {:8.3f}{:8.3f}{:8.3f}\n".format('ATOM', atomNumber % 100000, residue.d_atoms[idx], '', residue.d_resname, residue.d_chain, residue.d_resid, '', residue.d_x[idx], residue.d_y[idx], residue.d_z[idx]))
+                
+                atom = residue.d_atoms[idx]
+                if len(atom) == 3:
+                    atom = ' ' + atom
+
+                file.write("{:6s}{:5d} {:^4s}{:1s}{:4s}{:1s}{:4d}{:1s}   {:8.3f}{:8.3f}{:8.3f}\n".format('ATOM', atomNumber % 100000, atom, '', residue.d_resname, residue.d_chain, residue.d_resid, '', residue.d_x[idx], residue.d_y[idx], residue.d_z[idx]))
                 atomNumber += 1
 
         file.write("TER\nENDMDL\n")
 
 def read_gro(name):
-
-    utility.add('d_model', 1)
 
     atomLines = open(name).read().splitlines()
 
@@ -134,11 +160,7 @@ def read_gro(name):
             utility.add('d_box', Crystal(10*float(atomLines[idx][0:10]), 10*float(atomLines[idx][10:20]), 10*float(atomLines[idx][20:30]), 90, 90, 90, "P 1", 1))
             continue
 
-        atom = atomLines[idx][11:15].strip()
-        if (len(atom) == 3): 
-            atom = ' ' + atom
-        atoms.append(atom)
-
+        atoms.append(atomLines[idx][11:15].strip())
         x.append(10 * float(atomLines[idx][20:28]))
         y.append(10 * float(atomLines[idx][28:36]))
         z.append(10 * float(atomLines[idx][36:44]))
@@ -180,7 +202,7 @@ def write_gro(name):
         for residue in utility.get('d_residues'):
             for idx in range(0, len(residue.d_atoms)):
                 file.write("{:>5d}{:5s}{:>5s}{:>5d}{:>8.3f}{:>8.3f}{:>8.3f}\n".format(
-                    residue.d_resid, residue.d_resname, residue.d_atoms[idx].strip(), 
+                    residue.d_resid, residue.d_resname, residue.d_atoms[idx], 
                     total % 100000, residue.d_x[idx]/10, residue.d_y[idx]/10, residue.d_z[idx]/10))
                 total += 1
 
@@ -190,23 +212,3 @@ def write_gro(name):
             file.write("{:>10.5f}{:>10.5f}{:>10.5f}\n".format(cryst.d_a/10, cryst.d_b/10, cryst.d_c/10))
         else:
             file.write("{:>10.5f}{:>10.5f}{:>10.5f}\n".format(0.0, 0.0, 0.0))
-
-def loadstructure(name, model=1, chains=[]):
-    extension = os.path.splitext(name)[1]
-    
-    if (extension == ".pdb"):
-        read_pdb(name, d_model=model, d_chain=chains)
-    elif (extension == ".gro"):
-        read_gro(name)
-    else:
-        utility.error("loadstructure", "Unknown file format specified. Formats are .pdb or .gro.")
-
-def writestructure(name):
-    extension = os.path.splitext(name)[1]
-
-    if (extension == ".pdb"):
-        write_pdb(name)
-    elif (extension == ".gro"):
-        write_gro(name)
-    else:
-        utility.error("writestructure", "Unknown file format specified. Formats are .pdb or .gro.")
