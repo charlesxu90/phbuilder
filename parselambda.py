@@ -1,4 +1,4 @@
-import utility, universe, configparser
+import utils, universe, configparser
 
 # Stores the information for a lambda group type.
 class LambdaType:
@@ -12,7 +12,7 @@ class LambdaType:
 
 def parseLambdaGroupTypes():
 
-    utility.pedantic('parseLambdaGroupTypes', 'parsing lambdagrouptypes.dat...\n')
+    utils.pedantic('parseLambdaGroupTypes', 'parsing lambdagrouptypes.dat...\n')
 
     # Add a lambda residue-type to universe.
     def defineLambdaType(groupname, pKa, atoms, qqA, qqB, dvdl):
@@ -22,7 +22,7 @@ def parseLambdaGroupTypes():
             
             for entry in temp:
                 if entry.d_groupname == NewLambdaType.d_groupname:
-                    utility.warning("defineLambdaType", "LambdaType with groupname {} is already defined in ph_lambdaTypes. Skipping...".format(NewLambdaType.d_groupname))
+                    utils.warning("defineLambdaType", "LambdaType with groupname {} is already defined in ph_lambdaTypes. Skipping...".format(NewLambdaType.d_groupname))
                     break
             else:
                 temp.append(NewLambdaType)
@@ -55,7 +55,7 @@ def parseLambdaGroupTypes():
         dvdl      = str2floatList(parser.get(sect, 'dvdl'))
 
         if (len(groupname) != 4):
-            utility.error("parseLambdaGroupTypes", "groupname of LambdaType needs to have 4 letters")
+            utils.error("parseLambdaGroupTypes", "groupname of LambdaType needs to have 4 letters")
 
         defineLambdaType(groupname, pKa, atoms, qqA, qqB, dvdl)
 

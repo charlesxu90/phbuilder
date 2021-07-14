@@ -9,7 +9,7 @@ parsecmdline()
 # Import the rest of the modules.
 from parselambda import parseLambdaGroupTypes
 from gentopol import gentopol
-import utility, universe
+import utils, universe
 
 target = universe.get('d_target')
 

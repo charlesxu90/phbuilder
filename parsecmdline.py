@@ -1,6 +1,6 @@
 # PYTHON_ARGCOMPLETE_OK
 
-import argparse, argcomplete, utility, universe
+import argparse, argcomplete, utils, universe
 
 def parsecmdline():
 
@@ -70,4 +70,4 @@ def parsecmdline():
     # User information.
     if (universe.get('d_verbosity') == 3):
         print("Parsed the following input from the command line:\n")
-        utility.inspect(); print()
+        utils.inspect(); print()
