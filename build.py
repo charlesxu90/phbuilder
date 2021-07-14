@@ -1,8 +1,12 @@
 #!/bin/python3
+# PYTHON_ARGCOMPLETE_OK
 
 import shelve
 import os
-import configparser
+import argparse, argcomplete    # For command-line parsing
+import configparser             # For parsing of lambdagrouptypes.dat
+
+os.system("echo removing universe...; rm -f universe")
 
 # UNIVERSE #####################################################################
 ################################################################################
@@ -198,7 +202,6 @@ def read_gro(name):
     x          = []
     y          = []
     z          = []
-    lastLine   = False
 
     for idx in range(0, len(atomLines)):
 
@@ -347,6 +350,9 @@ def parseLambdaGroupTypes():
         qqB       = str2floatList(parser.get(sect, 'qqB'))
         dvdl      = str2floatList(parser.get(sect, 'dvdl'))
 
+        if (len(groupname) != 4):
+            error("parseLambdaGroupTypes", "Name of lambdagrouptype should be 4 letters")
+
         # print(groupname)
         # print(pKa)
         # print(atoms)
@@ -359,5 +365,59 @@ def parseLambdaGroupTypes():
 # MAIN #########################################################################
 ################################################################################
 
-parseLambdaGroupTypes()
-inspect()
+parser = argparse.ArgumentParser(prog='phbuilder')
+subparsers = parser.add_subparsers(title='subcommands')
+
+parser_1 = subparsers.add_parser('gentopol')
+
+parser_1.add_argument('-f', '--file', 
+                      required=True,
+                      dest='file',
+                      action='store',
+                      help='specify structure file for input (.pdb/.gro)')
+
+parser_1.add_argument('-m', '--mode', 
+                      required=True,
+                      dest='mode',
+                      action='store',
+                      choices=['all', 'list', 'interactive', 'none'],
+                      help='specify operationmode.')
+
+parser_1.add_argument('-r', '--restraincharge', 
+                      required=False,
+                      dest='restraincharge',
+                      action='store',
+                      choices=['yes', 'no'],
+                      default='yes',
+                      help='restrains the charges using buffers')
+
+parser_1.add_argument('-o', '--output',
+                      required=False,
+                      dest='output',
+                      action='store',
+                      default='phprocessed.pdb',
+                      help='specify structure file for output (.pdb/.gro)')
+
+parser_1.set_defaults(target='gentopol')
+
+parser_2 = subparsers.add_parser('addbuffers')
+parser_2.set_defaults(target='addbuffers')
+
+parser_3 = subparsers.add_parser('genparams')
+parser_3.set_defaults(target='genparams')
+
+argcomplete.autocomplete(parser)
+CLI = parser.parse_args()
+
+try:
+    if (CLI.target == 'gentopol'):
+        loadstructure(name=CLI.file)
+        writestructure(name=CLI.output)
+except:
+    AttributeError
+
+# target = CLI.target
+# input  = CLI.file
+# mode   = CLI.mode
+
+print(vars(CLI))
