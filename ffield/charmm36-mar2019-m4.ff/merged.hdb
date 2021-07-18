@@ -51,6 +51,11 @@ ASPP	4
 1	5	HA	CA	N	C	CB
 2	6	HB	CB	CG	CA
 1	2	HD2 OD2 CG	CB
+ASPT    4
+1       1       HN      N       -C      CA
+1       5       HA      CA      N       C       CB
+2       6       HB      CB      CG      CA
+1       2       HD2 OD2 CG      CB
 ATP 11
 1   6   H5'  C5'  O5'  C4'
 1   6   H5'' C5'  C4'  O5'
@@ -159,6 +164,12 @@ GLUP	5
 2	6	HB	CB	CG	CA
 2	6	HG	CG	CD	CB
 1	2	HE2 OE2 CD	CG
+GLUT    5
+1       1       HN      N       -C      CA
+1       5       HA      CA      N       C       CB
+2       6       HB      CB      CG      CA
+2       6       HG      CG      CD      CB
+1       2       HE2 OE2 CD      CG
 GLY		2		
 1	1	HN	N	-C	CA
 2	6	HA	CA	C	N

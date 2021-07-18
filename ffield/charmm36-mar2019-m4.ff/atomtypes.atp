@@ -59,6 +59,7 @@ CC326A     12.01100 ; -C(sp3)H2 Carbon in THP (tetrahydropyran)
  CC33A     12.01100 ; -C(sp3)H3 Carbon (eq. CT3)
    CCL     12.01100 ; for POPS
     CD     12.01100 ; carbonyl C, pres aspp,glup,ct1
+   CDn     12.01100 ; carbonyl C, pres aspp,glup,ct1
    CE1     12.01100 ; for alkene; RHC=CR
    CE2     12.01100 ; for alkene; H2C=CR
   CEL1     12.01100 ; for alkene; RHC=CR
@@ -170,7 +171,9 @@ CG3RC1     12.01100 ; bridgehead in bicyclic systems containing at least one 5-m
    CST     12.01100 ; CO2 carbon
     CT     12.01100 ; aliphatic sp3 C, new LJ params, no hydrogens
    CT1     12.01100 ; aliphatic sp3 C for CH
+  CT1n     12.01100 ; aliphatic sp3 C for CH
    CT2     12.01100 ; aliphatic sp3 C for CH2
+  CT2n     12.01100 ; aliphatic sp3 C for CH2
   CT2A     12.01100 ; from CT2 (asp, glu, hsp chi1/chi2 fitting)
   CT2P     12.01100 ; (sp3)H2 Carbon in PNA backbone (eq. CT2)
    CT3     12.01100 ; aliphatic sp3 C for CH3
@@ -381,6 +384,7 @@ OG3C51     15.99940 ; 5-mem furanose ring oxygen (ether)
 OG3C61     15.99940 ; DIOX, dioxane, ether in 6-membered ring !SHOULD WE MERGE THIS WITH OG3R60???
 OG3R60     15.99940 ; O in 6-mem cyclic enol ether (PY01, PY02) or ester
    OH1     15.99900 ; hydroxyl oxygen
+  OH1n     15.99900 ; hydroxyl oxygen
    OHL     15.99940 ; Nucleic acid phosphate hydroxyl oxygen
     OM     15.99900 ; heme CO/O2 oxygen
    ON1     15.99940 ; Nucleic acid carbonyl oxygen

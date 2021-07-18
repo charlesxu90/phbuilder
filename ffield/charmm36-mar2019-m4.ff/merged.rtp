@@ -11648,6 +11648,42 @@
  [ cmap ]
 		-C		N		CA		C		+N
 
+[ ASPT ] ; titratable ASP
+ [ atoms ]
+		N		NH1		-0.47	0
+		HN		H		0.31	1
+		CA		CT1n	0.07	2
+		HA		HB1		0.09	3
+		CB		CT2n   -0.21	4 
+		HB1		HA2		0.09	5 
+		HB2		HA2		0.09	6 
+		CG		CDn		0.75	7 
+		OD1		OB	   -0.55	8 
+		OD2		OH1n   -0.61	9 
+		HD2		H		0.44	10 
+		C		C		0.51	11
+		O		O		-0.51	12
+ [ bonds ]
+		CB		CA
+		CG		CB
+		OD2		CG
+		OD2		HD2
+		N		HN
+		N		CA
+		C		CA
+		C		+N
+		CA		HA
+		CB		HB1
+		CB		HB2
+		O		C
+		CG		OD1
+ [ impropers ]
+		N		-C		CA		HN
+		C		CA		+N		O
+		CG		CB		OD2		OD1
+ [ cmap ]
+		-C		N		CA		C		+N
+
 [ ASP ] 
   [ atoms ]
 	    N   NH1   -0.470  0
@@ -53377,6 +53413,48 @@
 		CD		CG		OE2		OE1
  [ cmap ]
 		-C		N		CA		C		+N
+
+[ GLUT ] ; titratable GLU
+ [ atoms ]
+                N               NH1             -0.47   0
+                HN              H               0.31    1
+                CA              CT1n            0.07    2
+                HA              HB1             0.09    3
+                CB              CT2n           -0.18    4
+                HB1             HA2             0.09    5
+                HB2             HA2             0.09    6
+                CG              CT2n           -0.21    7
+                HG1             HA2             0.09    8
+                HG2             HA2             0.09    9
+                CD              CDn             0.75    10
+                OE1             OB             -0.55    11
+                OE2             OH1n           -0.61    12
+                HE2             H               0.44    13
+                C               C               0.51    14
+                O               O               -0.51   15
+ [ bonds ]
+                CB              CA
+                CG              CB
+                CD              CG
+                OE2             CD
+                OE2             HE2
+                N               HN
+                N               CA
+                C               CA
+                C               +N
+                CA              HA
+                CB              HB1
+                CB              HB2
+                CG              HG1
+                CG              HG2
+                O               C
+                CD              OE1
+ [ impropers ]
+                N               -C              CA              HN
+                C               CA              +N              O
+                CD              CG              OE2             OE1
+ [ cmap ]
+                -C              N               CA              C               +N
 
 [ GLU ] 
   [ atoms ]
