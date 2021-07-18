@@ -14,15 +14,22 @@ def gentopol():
         lambdaTypeBaseNames.append(lambdaType.d_groupname[0:3])
 
     # print("lambdaTypeNames", lambdaTypeNames)         # debug
-    # print("LambdaTypeBaseNames", lambdaTypeBaseNames) # debug
+    # print("LambdaTypeBaseNames", lambdaTypeBaseNames) # debugdd
 
     residues = universe.get('d_residues')
     
+    if (universe.get('ph_mode') == "list"):
+        list_resid = universe.get('ph_list_resid')
+
     for residue in residues:
         if (residue.d_resname)[0:3] in lambdaTypeBaseNames:
 
             if (universe.get('ph_mode') == "all"):
                 residue.d_resname = lambdaTypeNames[lambdaTypeBaseNames.index(residue.d_resname[0:3])]
+
+            if (universe.get('ph_mode') == "list"):
+                if (residue.d_resid in list_resid):
+                    residue.d_resname = lambdaTypeNames[lambdaTypeBaseNames.index(residue.d_resname[0:3])]
 
             if (universe.get('ph_mode') == "interactive"):
                 takeInput = True
@@ -45,7 +52,7 @@ def gentopol():
                     
                     else:
                         print("{} is not a valid option, please try again:\n".format(val))
-
+                    
     # Update d_residues and write output.
     universe.add('d_residues', residues)
     structure.write(universe.get('d_output'))

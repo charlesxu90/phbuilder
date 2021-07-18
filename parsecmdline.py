@@ -1,6 +1,6 @@
 # PYTHON_ARGCOMPLETE_OK
 
-import argparse, argcomplete, utils, universe
+import argparse, argcomplete, sys, universe, load
 
 def parsecmdline():
 
@@ -23,6 +23,12 @@ def parsecmdline():
                         action='store',
                         choices=['all', 'interactive', 'list'],
                         help='specify operationmode.')
+
+    parser_1.add_argument('-l', '--list',
+                        required=('list' in sys.argv),
+                        dest='list',
+                        action='store',
+                        help='specify list of residues to be protonated (only required with -m list)')
 
     parser_1.add_argument('-o', '--output',
                         required=False,
@@ -59,6 +65,9 @@ def parsecmdline():
     argcomplete.autocomplete(parser)    # Required for autocompleting using argcomplete.
     CLI = parser.parse_args()           # Do the actual parsing.
 
+    # print(vars(CLI))
+    # print(sys.argv)
+
     # Add relevant parameters to the universe.
     universe.add('d_target', CLI.target)
     universe.add('d_verbosity', CLI.verbosity)
@@ -66,6 +75,19 @@ def parsecmdline():
     universe.add('d_output', CLI.output)
     universe.add('ph_mode', CLI.mode)
     universe.add('ph_restraincharge', CLI.restraincharge)
+    universe.add('ph_list', CLI.list)
+
+    if (CLI.mode == "list"):
+        resid = []
+
+        for line in open(CLI.list).readlines():
+            resid.append(line.split()[0])
+
+        resid = [int(i) for i in resid]
+
+        universe.add('ph_list_resid', resid)
+
+        # print(resid)
 
     # User information.
     if (universe.get('d_verbosity') == 3):
