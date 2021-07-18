@@ -12,8 +12,6 @@ class LambdaType:
 
 def parseLambdaGroupTypesFile():
 
-    utils.pedantic('parseLambdaGroupTypes', 'parsing lambdagrouptypes.dat...\n')
-
     # Add a lambda residue-type to universe.
     def defineLambdaType(groupname, pKa, atoms, qqA, qqB, dvdl):
         NewLambdaType = LambdaType(groupname, pKa, atoms, qqA, qqB, dvdl)
@@ -22,7 +20,7 @@ def parseLambdaGroupTypesFile():
             
             for entry in temp:
                 if entry.d_groupname == NewLambdaType.d_groupname:
-                    utils.warning("defineLambdaType", "LambdaType with groupname {} is already defined in ph_lambdaTypes. Skipping...".format(NewLambdaType.d_groupname))
+                    utils.update("LambdaType with groupname {} is already defined in universe. Skipping...")
                     break
             else:
                 temp.append(NewLambdaType)
@@ -59,19 +57,22 @@ def parseLambdaGroupTypesFile():
         qqB       = str2floatList(parser.get(sect, 'qqB'))
         dvdl      = str2floatList(parser.get(sect, 'dvdl'))
 
-        if (len(groupname) != 4):
-            utils.error("parseLambdaGroupTypes", "groupname of LambdaType needs to have 4 letters")
+        if (len(groupname) < 2 or len(groupname) > 4):
+            utils.error("groupname of LambdaType needs to contain between 2 and 4 characters.")
 
         defineLambdaType(groupname, pKa, atoms, qqA, qqB, dvdl)
 
-    if (universe.get('d_verbosity') == 3):
-        for obj in universe.get('ph_lambdaTypes'):
-            print("groupname = {}".format(obj.d_groupname))
-            print("pKa       = {}".format(obj.d_pKa))
-            print("atoms     = {}".format(obj.d_atoms))
-            print("qqA       = {}".format(obj.d_qqA))
-            print("qqB       = {}".format(obj.d_qqB))
-            print("dvdl      = {}\n".format(obj.d_dvdl))
+    # User update.
+    utils.update("ffpath = {}".format(universe.get('d_modelFF')), 3)
+    utils.update("water  = {}".format(universe.get('d_modelwater')), 3)
 
-        if (universe.has('ph_BUF_dvdl')):
-            print("BUF_dvdl  = {}\n".format(universe.get('ph_BUF_dvdl')))
+    for obj in universe.get('ph_lambdaTypes'):
+        utils.update("groupname = {}".format(obj.d_groupname), 3)
+        utils.update("pKa       = {}".format(obj.d_pKa), 3)
+        utils.update("atoms     = {}".format(obj.d_atoms), 3)
+        utils.update("qqA       = {}".format(obj.d_qqA), 3)
+        utils.update("qqB       = {}".format(obj.d_qqB), 3)
+        utils.update("dvdl      = {}\n".format(obj.d_dvdl), 3)
+
+    if (universe.has('ph_BUF_dvdl')):
+        utils.update("BUF_dvdl  = {}\n".format(universe.get('ph_BUF_dvdl')), 3)

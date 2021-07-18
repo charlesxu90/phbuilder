@@ -11,18 +11,14 @@ from parselambda import parseLambdaGroupTypesFile
 from gentopol import gentopol
 import universe
 
-target = universe.get('d_target')
-
-if (target == "gentopol"):
-
-    # Parse lambdagrouptypes.dat and add the LambdaType objects to the universe.
+if (not universe.has('ph_lambdaTypes')):
     parseLambdaGroupTypesFile()
 
-    # Run the gentopol subcommand.
+if (universe.get('d_target') == "gentopol"):
     gentopol()
 
-elif (target == "addbuffers"):
+elif (universe.get('d_target') == "addbuffers"):
     pass
 
-elif (target == "addparams"):
+elif (universe.get('d_target') == "addparams"):
     pass

@@ -1,6 +1,6 @@
 # PYTHON_ARGCOMPLETE_OK
 
-import argparse, argcomplete, sys, universe
+import argparse, argcomplete, sys, universe, utils
 
 def parsecmdline():
 
@@ -30,7 +30,7 @@ def parsecmdline():
                         required=('list' in sys.argv),
                         dest='list',
                         action='store',
-                        help='specify list of residues to be protonated (only required with -m list)')
+                        help='specify list of resid(ue)s to be protonated (only required with -m list)')
 
     parser_1.add_argument('-o',
                         required=False,
@@ -44,7 +44,7 @@ def parsecmdline():
                         dest='options',
                         action='extend', 
                         nargs='+', 
-                        help="set additional flags for pdb2gmx (e.g. ignh ter)",
+                        help="set additional flags for pdb2gmx (e.g. ter)",
                         type=str)
 
     parser_1.add_argument('-v',
@@ -66,9 +66,6 @@ def parsecmdline():
 
     argcomplete.autocomplete(parser)    # Required for autocompleting using argcomplete.
     CLI = parser.parse_args()           # Do the actual parsing.
-
-    # print(vars(CLI))
-    # print(sys.argv)
 
     # Add relevant parameters to the universe.
     universe.add('d_target', CLI.target)
@@ -98,6 +95,5 @@ def parsecmdline():
         universe.add('d_options', string)
 
     # User information.
-    if (universe.get('d_verbosity') == 3):
-        print("Parsed the following input from the command line:\n")
-        universe.inspect(); print()
+    utils.update("Parsed the following input from the command line:", 3)
+    utils.update(vars(CLI), 3)
