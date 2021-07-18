@@ -1,6 +1,6 @@
 # PYTHON_ARGCOMPLETE_OK
 
-import argparse, argcomplete, sys, universe, load
+import argparse, argcomplete, sys, universe
 
 def parsecmdline():
 
@@ -11,41 +11,43 @@ def parsecmdline():
     parser_1 = subparsers.add_parser('gentopol', help="blabla about gentopol")
     required = parser_1.add_argument_group("required arguments")
 
-    required.add_argument('-f', '--file', 
+    required.add_argument('-f', 
                         required=True,
                         dest='file',
                         action='store',
-                        help='specify structure file for input (.pdb/.gro)')
+                        help='specify structure file for input (.pdb/.gro)', 
+                        )
 
-    required.add_argument('-m', '--mode', 
-                        required=True,
+    parser_1.add_argument('-m', 
+                        required=False,
                         dest='mode',
                         action='store',
+                        default='all',
                         choices=['all', 'interactive', 'list'],
                         help='specify operationmode.')
 
-    parser_1.add_argument('-l', '--list',
+    parser_1.add_argument('-l',
                         required=('list' in sys.argv),
                         dest='list',
                         action='store',
                         help='specify list of residues to be protonated (only required with -m list)')
 
-    parser_1.add_argument('-o', '--output',
+    parser_1.add_argument('-o',
                         required=False,
                         dest='output',
                         action='store',
                         default='phprocessed.pdb',
                         help='specify structure file for output (.pdb/.gro)')
 
-    parser_1.add_argument('-r', '--restraincharge', 
+    parser_1.add_argument('-pdb2gmx',
                         required=False,
-                        dest='restraincharge',
-                        action='store',
-                        choices=['yes', 'no'],
-                        default='yes',
-                        help='restrains the charges using buffers')
+                        dest='options',
+                        action='extend', 
+                        nargs='+', 
+                        help="set additional flags for pdb2gmx (e.g. ignh ter)",
+                        type=str)
 
-    parser_1.add_argument('-v', '--verbosity',
+    parser_1.add_argument('-v',
                         required=False,
                         dest='verbosity',
                         action='store',
@@ -74,7 +76,6 @@ def parsecmdline():
     universe.add('d_file', CLI.file)
     universe.add('d_output', CLI.output)
     universe.add('ph_mode', CLI.mode)
-    universe.add('ph_restraincharge', CLI.restraincharge)
     universe.add('ph_list', CLI.list)
 
     if (CLI.mode == "list"):
@@ -87,7 +88,14 @@ def parsecmdline():
 
         universe.add('ph_list_resid', resid)
 
-        # print(resid)
+    # Process the additional flags for pdb2gmx into one string.
+    if (CLI.options == None):
+        universe.add('d_options', ' ')
+    else:
+        string = ''
+        for val in CLI.options:
+            string = string + '-' + val + ' '
+        universe.add('d_options', string)
 
     # User information.
     if (universe.get('d_verbosity') == 3):
