@@ -7,7 +7,7 @@ from parsecmdline import parsecmdline
 parsecmdline()
 
 # Import the rest of the modules.
-from parselambda import parseLambdaGroupTypes
+from parselambda import parseLambdaGroupTypesFile
 from gentopol import gentopol
 import universe
 
@@ -16,7 +16,7 @@ target = universe.get('d_target')
 if (target == "gentopol"):
 
     # Parse lambdagrouptypes.dat and add the LambdaType objects to the universe.
-    parseLambdaGroupTypes()
+    parseLambdaGroupTypesFile()
 
     # Run the gentopol subcommand.
     gentopol()

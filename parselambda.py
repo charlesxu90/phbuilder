@@ -10,7 +10,7 @@ class LambdaType:
         self.d_qqB       = qqB
         self.d_dvdl      = dvdl
 
-def parseLambdaGroupTypes():
+def parseLambdaGroupTypesFile():
 
     utils.pedantic('parseLambdaGroupTypes', 'parsing lambdagrouptypes.dat...\n')
 
@@ -42,7 +42,12 @@ def parseLambdaGroupTypes():
     parser.read("lambdagrouptypes.dat")
     
     for sect in parser.sections():
-        
+
+        if (sect.strip() == "FORCEFIELD"):
+            universe.add('d_modelFF', parser.get(sect, 'path'))
+            universe.add('d_modelwater', parser.get(sect, 'water'))
+            continue
+
         if (sect.strip() == "BUF"):
             universe.add('ph_BUF_dvdl', str2floatList(parser.get(sect, 'dvdl')))
             continue

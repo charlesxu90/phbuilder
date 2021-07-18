@@ -1,3 +1,7 @@
+[ FORCEFIELD ]
+path  = /home/anton/GIT/rex/ffield/charmm36-mar2019-m4.ff
+water = tip3p
+
 [ ASPT ]
 pKa   = 3.65
 atoms = CB CG OD1 OD2 HD2
