@@ -1,6 +1,6 @@
 # PYTHON_ARGCOMPLETE_OK
 
-import argparse, argcomplete, sys, universe, utils
+import argparse, argcomplete, universe, utils
 
 def parsecmdline():
 
@@ -17,27 +17,6 @@ def parsecmdline():
                         action='store',
                         help='specify structure file for input (.pdb/.gro)')
 
-    parser_1.add_argument('-inter',
-                        required=False,
-                        dest='inter',
-                        action='store_const',
-                        const=1,
-                        help='Interactively select which residues to make protonatable')
-
-    # parser_1.add_argument('-m', 
-    #                     required=False,
-    #                     dest='mode',
-    #                     action='store',
-    #                     default='all',
-    #                     choices=['all', 'interactive', 'list'],
-    #                     help='specify operationmode.')
-
-    parser_1.add_argument('-list',
-                        required=False,
-                        dest='list',
-                        action='store',
-                        help='specify list of resid(ue)s to be considered')
-
     parser_1.add_argument('-o',
                         required=False,
                         dest='output',
@@ -45,13 +24,18 @@ def parsecmdline():
                         default='phprocessed.pdb',
                         help='specify structure file for output (.pdb/.gro)')
 
-    # parser_1.add_argument('-pdb2gmx',
-    #                     required=False,
-    #                     dest='options',
-    #                     action='extend', 
-    #                     nargs='+', 
-    #                     help="set additional flags for pdb2gmx (e.g. ter)",
-    #                     type=str)
+    parser_1.add_argument('-inter',
+                        required=False,
+                        dest='inter',
+                        action='store_const',
+                        const=1,
+                        help='Interactively select which residues to make protonatable')
+
+    parser_1.add_argument('-list',
+                        required=False,
+                        dest='list',
+                        action='store',
+                        help='specify list of resid(ue)s to be considered')
 
     parser_1.add_argument('-v',
                         required=False,
@@ -78,10 +62,10 @@ def parsecmdline():
     universe.add('d_file', CLI.file)
     universe.add('d_output', CLI.output)
     universe.add('d_verbosity', CLI.verbosity)
-    
+
     if (CLI.inter != None):
         universe.add('ph_inter', True)
-    
+
     if (CLI.list != None):
         resid = []
 
@@ -91,16 +75,7 @@ def parsecmdline():
         resid = [int(i) for i in resid]
 
         universe.add('ph_list_resid', resid)
-    
-    # Process the additional flags for pdb2gmx into one string.
-    # if (CLI.options == None):
-    #     universe.add('d_options', ' ')
-    # else:
-    #     string = ''
-    #     for val in CLI.options:
-    #         string = string + '-' + val + ' '
-    #     universe.add('d_options', string)
 
-    # # User information.
-    utils.update("Parsed the following input from the command line:", 3)
-    utils.update(vars(CLI), 3)
+    # User information.
+    utils.update("Parsed the following input from the command line:")
+    utils.update(vars(CLI))
