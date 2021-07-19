@@ -1,4 +1,4 @@
-import universe, os
+import os, universe, utils
 
 # Stores the information for a residue.
 class Residue:
@@ -26,21 +26,25 @@ class Crystal:
 
 # Loads structure (pdb/gro) into d_residues.
 def load(name):
+    utils.update("Reading structure from {}...".format(name))
+
     extension = os.path.splitext(name)[1]
-    
+
     if (extension == ".pdb"):
         read_pdb(name)
-    
+
     if (extension == ".gro"):
         read_gro(name)
 
 # Writes d_residues to a structure (pdb/gro) file.
 def write(name):
+    utils.update("Writing structure to {}...".format(name))
+
     extension = os.path.splitext(name)[1]
 
     if (extension == ".pdb"):
         write_pdb(name)
-    
+
     if (extension == ".gro"):
         write_gro(name)
 
@@ -111,7 +115,7 @@ def read_pdb(name):
 def write_pdb(name):
     with open(name, 'w') as file:
         if universe.has('d_title'):
-            file.write("TITLE {0}\n".format(universe.get('d_title')))
+            file.write("TITLE     {0}\n".format(universe.get('d_title')))
 
         if universe.has('d_box'):
             cryst = universe.get('d_box')
