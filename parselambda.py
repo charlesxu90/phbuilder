@@ -63,8 +63,8 @@ def parseLambdaGroupTypesFile():
         defineLambdaType(groupname, pKa, atoms, qqA, qqB, dvdl)
 
     # User update.
-    utils.update("ffpath = {}".format(universe.get('d_modelFF')), 3)
-    utils.update("water  = {}".format(universe.get('d_modelwater')), 3)
+    utils.update("ffpath    = {}".format(universe.get('d_modelFF')), 3)
+    utils.update("water     = {}".format(universe.get('d_modelwater')), 3)
 
     for obj in universe.get('ph_lambdaTypes'):
         utils.update("groupname = {}".format(obj.d_groupname), 3)

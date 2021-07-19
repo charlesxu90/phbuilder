@@ -9,16 +9,20 @@ parsecmdline()
 # Import the rest of the modules.
 from parselambda import parseLambdaGroupTypesFile
 from gentopol import gentopol
-import universe
+import universe, utils
 
 if (not universe.has('ph_lambdaTypes')):
+    utils.update("Parsing lambdagrouptypes.dat...")
     parseLambdaGroupTypesFile()
+else:
+    utils.update("Already parsed lambdagrouptypes.dat previously...")
 
 if (universe.get('d_target') == "gentopol"):
+    utils.update("Running gentopol...")
     gentopol()
 
 elif (universe.get('d_target') == "addbuffers"):
-    pass
+    utils.update("Running addbuffers...")
 
 elif (universe.get('d_target') == "addparams"):
-    pass
+    utils.update("Running addparams...")
