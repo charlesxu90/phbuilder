@@ -58,9 +58,10 @@ def parsecmdline():
                         help='specify structure file for input (.pdb/.gro)')
 
     required2.add_argument('-p', 
-                        required=True,
+                        required=False,
                         dest='topol',
                         action='store',
+                        default='topol.top',
                         help='specify topology file for input (.top)')
 
     parser_2.add_argument('-o',
@@ -69,6 +70,13 @@ def parsecmdline():
                         action='store',
                         default='phbuffers.pdb',
                         help='specify structure file for output (.pdb/.gro)')
+
+    parser_2.add_argument('-solname',
+                        required=False,
+                        dest='solname',
+                        action='store',
+                        default='SOL',
+                        help='specify name of solvent molecule')
 
     parser_2.add_argument('-bufmargin',
                         required=False,
@@ -129,11 +137,16 @@ def parsecmdline():
 
     # If we run addbuffers...
     elif (CLI.target == 'addbuffers'):
+        # Either required or has a default value
         universe.add('d_file', CLI.file)
         universe.add('d_topol', CLI.topol)
         universe.add('d_output', CLI.output)
-        universe.add('d_bufmargin', CLI.bufmargin)
-        universe.add('d_nbufs', CLI.nbufs)
+        universe.add('ph_solname', CLI.solname)
+        universe.add('ph_bufmargin', CLI.bufmargin)
+
+        # Optional
+        if (CLI.nbufs != None):
+            universe.add('ph_nbufs', CLI.nbufs)
 
     # If we run genparams...
     elif (CLI.target == 'genparams'):
