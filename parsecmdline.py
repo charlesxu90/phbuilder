@@ -103,17 +103,20 @@ def parsecmdline():
     argcomplete.autocomplete(parser)    # Required for autocompleting using argcomplete.
     CLI = parser.parse_args()           # Do the actual parsing.
 
-    # Add universal parameters to the universe.
+    # Add universal parameters to the universe (these are used by all three targets).
     universe.add('d_target', CLI.target)
     universe.add('d_verbosity', CLI.verbosity)
     
+    # If we run gentopol...
     if (CLI.target == 'gentopol'):
         universe.add('d_file', CLI.file)
         universe.add('d_output', CLI.output)
 
+        # Process whether the -inter flag was or wasn't set.
         if (CLI.inter != None):
             universe.add('ph_inter', True)
 
+        # Process whether the -list flag was or wasn't set.
         if (CLI.list != None):
             resid = []
 
@@ -124,6 +127,7 @@ def parsecmdline():
 
             universe.add('ph_list_resid', resid)
 
+    # If we run addbuffers...
     elif (CLI.target == 'addbuffers'):
         universe.add('d_file', CLI.file)
         universe.add('d_topol', CLI.topol)
@@ -131,6 +135,7 @@ def parsecmdline():
         universe.add('d_bufmargin', CLI.bufmargin)
         universe.add('d_nbufs', CLI.nbufs)
 
+    # If we run genparams...
     elif (CLI.target == 'genparams'):
         pass
 
