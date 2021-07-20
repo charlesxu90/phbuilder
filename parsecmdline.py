@@ -8,10 +8,10 @@ def parsecmdline():
 
     subparsers = parser.add_subparsers(title='subcommands', description="description of subparsers?", required=False)
 
-    parser_1 = subparsers.add_parser('gentopol', help="blabla about gentopol")
-    required = parser_1.add_argument_group("required arguments")
+    parser_1  = subparsers.add_parser('gentopol', help="blabla about gentopol")
+    required1 = parser_1.add_argument_group("required arguments")
 
-    required.add_argument('-f', 
+    required1.add_argument('-f', 
                         required=True,
                         dest='file',
                         action='store',
@@ -48,33 +48,91 @@ def parsecmdline():
 
     parser_1.set_defaults(target='gentopol')
 
-    # parser_2 = subparsers.add_parser('addbuffers', help="blabla about addbuffers")
-    # parser_2.set_defaults(target='addbuffers')
+    parser_2  = subparsers.add_parser('addbuffers', help="blabla about addbuffers")
+    required2 = parser_2.add_argument_group("required arguments")
 
-    # parser_3 = subparsers.add_parser('genparams', help="blabla about genparams")
-    # parser_3.set_defaults(target='genparams')
+    required2.add_argument('-f', 
+                        required=True,
+                        dest='file',
+                        action='store',
+                        help='specify structure file for input (.pdb/.gro)')
+
+    required2.add_argument('-p', 
+                        required=True,
+                        dest='topol',
+                        action='store',
+                        help='specify topology file for input (.top)')
+
+    parser_2.add_argument('-o',
+                        required=False,
+                        dest='output',
+                        action='store',
+                        default='phbuffers.pdb',
+                        help='specify structure file for output (.pdb/.gro)')
+
+    parser_2.add_argument('-bufmargin',
+                        required=False,
+                        dest='bufmargin',
+                        action='store',
+                        default=2.0,
+                        help='specify minimum distance between buffers and protein',
+                        type=float)
+
+    parser_2.add_argument('-nbufs',
+                        required=False,
+                        dest='nbufs',
+                        action='store',
+                        help='specify number of buffer molecules',
+                        type=int)
+
+    parser_2.add_argument('-v',
+                        required=False,
+                        dest='verbosity',
+                        action='store',
+                        default=2,
+                        choices=[0, 1, 2, 3],
+                        help='set verbosity. 0 : supress all output, 1 only warnings and errors, 2 default, 3 more verbose',
+                        type=int)
+
+    parser_2.set_defaults(target='addbuffers')
+
+    parser_3  = subparsers.add_parser('genparams', help="blabla about genparams")
+    required3 = parser_3.add_argument_group("required arguments")
+    parser_3.set_defaults(target='genparams')
 
     argcomplete.autocomplete(parser)    # Required for autocompleting using argcomplete.
     CLI = parser.parse_args()           # Do the actual parsing.
 
-    # Add relevant parameters to the universe.
+    # Add universal parameters to the universe.
     universe.add('d_target', CLI.target)
-    universe.add('d_file', CLI.file)
-    universe.add('d_output', CLI.output)
     universe.add('d_verbosity', CLI.verbosity)
+    
+    if (CLI.target == 'gentopol'):
+        universe.add('d_file', CLI.file)
+        universe.add('d_output', CLI.output)
 
-    if (CLI.inter != None):
-        universe.add('ph_inter', True)
+        if (CLI.inter != None):
+            universe.add('ph_inter', True)
 
-    if (CLI.list != None):
-        resid = []
+        if (CLI.list != None):
+            resid = []
 
-        for line in open(CLI.list).readlines():
-            resid.append(line.split()[0])
+            for line in open(CLI.list).readlines():
+                resid.append(line.split()[0])
 
-        resid = [int(i) for i in resid]
+            resid = [int(i) for i in resid]
 
-        universe.add('ph_list_resid', resid)
+            universe.add('ph_list_resid', resid)
+
+    elif (CLI.target == 'addbuffers'):
+        universe.add('d_file', CLI.file)
+        universe.add('d_topol', CLI.topol)
+        universe.add('d_output', CLI.output)
+        universe.add('d_bufmargin', CLI.bufmargin)
+        universe.add('d_nbufs', CLI.nbufs)
+
+    elif (CLI.target == 'genparams'):
+        pass
 
     # User information.
     utils.update("Parsed the following input from the command line:")
