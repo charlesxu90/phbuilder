@@ -2,8 +2,9 @@ import utils, universe, configparser
 
 # Stores the information for a lambda group type.
 class LambdaType:
-    def __init__(self, groupname, pKa, atoms, qqA, qqB, dvdl):
+    def __init__(self, groupname, incl, pKa, atoms, qqA, qqB, dvdl):
         self.d_groupname = groupname
+        self.d_incl      = incl
         self.d_pKa       = pKa
         self.d_atoms     = atoms
         self.d_qqA       = qqA
@@ -14,10 +15,10 @@ class LambdaType:
 def parseLambdaGroupTypesFile():
 
     # Add a lambda residue-type to universe.
-    def defineLambdaType(groupname, pKa, atoms, qqA, qqB, dvdl):
+    def defineLambdaType(groupname, incl, pKa, atoms, qqA, qqB, dvdl):
 
         # Create a temporary LambdaType object.
-        NewLambdaType = LambdaType(groupname, pKa, atoms, qqA, qqB, dvdl)
+        NewLambdaType = LambdaType(groupname, incl, pKa, atoms, qqA, qqB, dvdl)
         
         # If a list of LambdaType objects (ph_lambdaTypes) is already present in the universe,
         # then check whether a LambdaType with the same groupname is already stored.
@@ -60,6 +61,7 @@ def parseLambdaGroupTypesFile():
 
         groupname = sect.strip()
         pKa       = parser.getfloat(sect, 'pKa')
+        incl      = str2strList(parser.get(sect, 'incl'))
         atoms     = str2strList(parser.get(sect, 'atoms'))
         qqA       = str2floatList(parser.get(sect, 'qqA'))
         qqB       = str2floatList(parser.get(sect, 'qqB'))
@@ -70,7 +72,7 @@ def parseLambdaGroupTypesFile():
             utils.error("groupname of LambdaType needs to contain between 2 and 4 characters.")
 
         # Call function that constructs the LambdaType object and adds it to universe.
-        defineLambdaType(groupname, pKa, atoms, qqA, qqB, dvdl)
+        defineLambdaType(groupname, incl, pKa, atoms, qqA, qqB, dvdl)
 
     # User update.
     utils.update("ffpath    = {}".format(universe.get('d_modelFF')))
@@ -78,6 +80,7 @@ def parseLambdaGroupTypesFile():
 
     for obj in universe.get('ph_lambdaTypes'):
         utils.update("groupname = {}".format(obj.d_groupname))
+        utils.update("incl      = {}".format(obj.d_incl))
         utils.update("pKa       = {}".format(obj.d_pKa))
         utils.update("atoms     = {}".format(obj.d_atoms))
         utils.update("qqA       = {}".format(obj.d_qqA))

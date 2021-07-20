@@ -3,7 +3,7 @@ path  = /home/anton/GIT/rex/ffield/charmm36-mar2019-m4.ff
 water = tip3p
 
 [ ASPT ]
-inc   = [ASP1, ASPH, ASPP, ASPT, ASH]
+incl  = ASP ASP1 ASPH ASPP ASH
 pKa   = 3.65
 atoms = CB CG OD1 OD2 HD2
 qqA   = -0.21 0.75 -0.55 -0.61 0.44
@@ -11,6 +11,7 @@ qqB   = -0.28 0.62 -0.76 -0.76 0.00
 dvdl  = 44.621 -554.27 -146.03 278.55 -144.28 -54.078
 
 [ GLUT ]
+incl  = GLU GLUH GLUP
 pKa   = 4.25
 atoms = CG CD OE1 OE2 HE2
 qqA   = -0.21 0.75 -0.55 -0.61 0.44

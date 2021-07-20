@@ -7,14 +7,26 @@ def gentopol():
     # Load the structure into d_residues.
     structure.load(universe.get('d_file'))
 
-    lambdaTypeNames     = [] # Stores e.g. ASPT, XY
-    lambdaTypeBaseNames = [] # Stores e.g. ASP, X
+    # List of titratable names, e.g. [ASPT, GLUT].
+    lambdaTypeNames = [] 
+    
+    # List of lists of all the incl names for the LambdaTypes,
+    # e.g. [[ASP1, ASPH, ASPP, ASH], [GLU, GLUH, GLUP]].
+    residuesToBeConsidered = []
 
     for lambdaType in universe.get('ph_lambdaTypes'):
         lambdaTypeNames.append(lambdaType.d_groupname)
-        lambdaTypeBaseNames.append(lambdaType.d_groupname[:-1])
+        residuesToBeConsidered.append(lambdaType.d_incl)
 
-    # Load residues here as references do not work for shelve module.
+    # Checks whether the resname is in any of the lists of targets.
+    # If found, return index of said list. If not found, return None.
+    def isTarget(resname):
+        for idx in range(0, len(residuesToBeConsidered)):
+            if resname in residuesToBeConsidered[idx]:
+                return idx
+        return None
+
+    # Load residues here as changing by reference does not work for stuff stored in shelve.
     residues = universe.get('d_residues')
 
     # If a list of specific residues was specified, load it.
@@ -28,10 +40,19 @@ def gentopol():
     # Loop through the residue objects.
     for residue in residues:
 
-        # If we find a residue that was specified to be protontable...
-        if (residue.d_resname in lambdaTypeBaseNames):
+        # This will either be None if the residue does not have to be considered 
+        # (i.e. it doesn't belong to any incl group), or it will have the index of 
+        # the incl grou it belongs to.
+        index = isTarget(residue.d_resname)
+        
+        # If we find a residue that was specified to be titratable...
+        if (index != None):
+            
+            # Original name of the residue before we change it. We store this
+            # here because we'll need it later for a user update.
+            origName = residue.d_resname
 
-            # If -list was set AND the current resid is not in list, continue to next residue in loop.
+            # If -list was set AND the current resid is not in list, continue to next residue in loop above.
             if universe.has('ph_list_resid') and (residue.d_resid not in list_resid):
                 continue
 
@@ -43,17 +64,17 @@ def gentopol():
 
                 while (takeInput):
 
-                    val = input("phbuilder : Choose what to do with residue {}-{} in chain {}:\nphbuilder : 0. Keep current (static) protonation state\nphbuilder : 1. Make dynamically protonatable (change name to {})\nphbuilder : Type a number: ".format(
+                    val = input("phbuilder : Choose what to do with residue {}-{} in chain {}:\nphbuilder : 0. Keep current (static) protonation state\nphbuilder : 1. Make titratable (change name to {})\nphbuilder : Type a number: ".format(
                         residue.d_resname,
                         residue.d_resid,
                         residue.d_chain,
-                        lambdaTypeNames[lambdaTypeBaseNames.index(residue.d_resname)]))
+                        lambdaTypeNames[index]))
 
                     if (val == '0'):
                         takeInput = False
 
                     elif (val == '1'):
-                        residue.d_resname = lambdaTypeNames[lambdaTypeBaseNames.index(residue.d_resname)]
+                        residue.d_resname = lambdaTypeNames[index]
                         takeInput = False
 
                     else:
@@ -63,8 +84,8 @@ def gentopol():
                 # End of input handling
 
             else: # If -inter was not set, just protonate everything automatically.
-                residue.d_resname = lambdaTypeNames[lambdaTypeBaseNames.index(residue.d_resname)]
-                utils.update("Made residue {}-{} in chain {} dynamically protonatable (changed name to {})".format(residue.d_resname[:-1], residue.d_resid, residue.d_chain, residue.d_resname))
+                residue.d_resname = lambdaTypeNames[index]
+                utils.update("Made residue {}-{} in chain {} titratable (changed name to {})".format(origName, residue.d_resid, residue.d_chain, residue.d_resname))
 
             continue # Otherwise code below is executed for the same residue we just changed.
 
@@ -82,22 +103,28 @@ def gentopol():
                 takeInput = True
 
                 while (takeInput):
+                    
+                    # Some user updates:
+                    utils.update("Choose what to do with residue {}-{} in chain {}:".format(residue.d_resname, residue.d_resid, residue.d_chain))
+                    utils.update("0. Keep titratable (do not change name)")
+                    
+                    for idx in range(0, len(residuesToBeConsidered[lambdaTypeNames.index(residue.d_resname)])):
+                        utils.update("{}. change name to {} (no longer titratable)".format(idx + 1, residuesToBeConsidered[lambdaTypeNames.index(residue.d_resname)][idx]))
 
-                    val = input("phbuilder : Choose what to do with residue {}-{} in chain {}:\nphbuilder : 0. Make protonation state static (change name to {})\nphbuilder : 1. Keep dynamically protonatable\nphbuilder : Type a number: ".format(
-                        residue.d_resname,
-                        residue.d_resid,
-                        residue.d_chain,
-                        lambdaTypeBaseNames[lambdaTypeNames.index(residue.d_resname)]))
+                    val = eval(input("Type a number: "))
 
-                    if (val == '0'):
-                        residue.d_resname = lambdaTypeBaseNames[lambdaTypeNames.index(residue.d_resname)]
-                        takeInput = False
-
-                    elif (val == '1'):
-                        takeInput = False
-
+                    # Handle incorrect input:
+                    if (type(val) != int or val not in range(0, len(residuesToBeConsidered[lambdaTypeNames.index(residue.d_resname)]))):
+                        utils.update("{} is not a valid option, please try again:\n".format(val))
+                        continue
                     else:
-                        print("{} is not a valid option, please try again:\n".format(val))
+                        takeInput = False
+
+                    # Process the specified option:
+                    if (val == 0):
+                        continue
+                    else:
+                        residue.d_resname = residuesToBeConsidered[lambdaTypeNames.index(residue.d_resname)][val-1]
 
                     print()
                 # End of input handling
@@ -158,25 +185,27 @@ def gentopol():
 
     takeInput = True
     while (takeInput):
-
+        
+        # Prompt user for input:
         val = input("phbuilder : Choose whether to:\nphbuilder : 0. Do nothing\nphbuilder : 1. Run\nphbuilder : 2. Add additional flags (https://manual.gromacs.org/documentation/current/onlinehelp/gmx-pdb2gmx.html)\nphbuilder : Type a number: ")
 
+        # Handle incorrect input:
         if val not in ['0', '1', '2']:
             utils.update("{} is not a valid option, please try again:\n".format(val))
             continue
         else:
             takeInput = False
 
+        # Take additional flags:
         if (val == '2'):
             flags = input("phbuilder : Enter flags: ")
         else:
             flags = ''
 
+        # Run pdb2gmx:
         if (val in ['1', '2']):
             utils.update("Calling GROMACS ({}/gmx)...\n".format(os.environ.get("GMXBIN")))
             os.system("gmx pdb2gmx -f {0} -o {0} -ff {1} -water {2} -ignh {3}".format(universe.get('d_output'), d_modelFF, d_modelwater, flags)) # Do this with gmxapi in the future?
 
-    # PART V - WRAPUP
-
-    structure.load(universe.get('d_output')) # Update d_residues.
-    utils.update("Finished generating topology for constant-pH.")
+            structure.load(universe.get('d_output')) # Update d_residues.
+            utils.update("Finished generating topology for constant-pH.")
