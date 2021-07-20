@@ -153,7 +153,7 @@ def gentopol():
 
     # Part III - CHECK WHETHER PDB2GMX KNOWS WHAT TO DO WITH THE INPUT
 
-    utils.update("\nChecking if every residue name is present in ./residuetypes.dat...")
+    utils.update("\nChecking if every residue type is present in ./residuetypes.dat...")
 
     restypes = []
     for val in open('residuetypes.dat').readlines():
@@ -166,17 +166,30 @@ def gentopol():
 
     good = True
     for val in list(set(unknownResidues)):
-        utils.update("WARNING - residue {} in {} was not found in ./residuetypes.dat".format(val, universe.get('d_file')))
+        utils.update("\nWARNING - residue type {} in {} wasn't found".format(val, universe.get('d_file')))
+        utils.update("in ./residuetypes.dat associated with {}".format(universe.get('d_modelFF')))
+        utils.update("Would you like to add {} to ./residuetypes.dat?".format(val))
+        utils.update("This requires the correct topology for {} to be present in the .rtp file of {}".format(val, universe.get('d_modelFF')))
+        utils.update("If this is not the case, pdb2gmx will not be able to properly process your structure.")
+        utils.update("See also https://manual.gromacs.org/current/how-to/topology.html")
+        
+        utils.update("0. Do nothing")
+        utils.update("1. Add {} to ./residuetypes.dat".format(val))
+        inpt = input("Type a number: ")
+        
+        if (inpt == '1'):
+            open('./residuetypes.dat', 'a').write("{} Other\n".format(val))
+
         good = False
 
     if good:
         utils.update("everything seems OK.")
-    else:
-        utils.update("pdb2gmx will not be able to properly process your structure. You need to either: ")
-        utils.update("1. Update the path to your force field in lambdagrouptypes.dat")
-        utils.update("2. Modify your force field to accomodate the unknown residue type")
-        utils.update("3. Cut out the unknown parts of your structure, run pdb2gmx, and then paste those")
-        utils.update("   parts back (whilst manually updating your #includes in topol.top accordingly)")
+    # else:
+        # utils.update("pdb2gmx will not be able to properly process your structure. You need to either: ")
+        # utils.update("1. Update the path to your force field in lambdagrouptypes.dat")
+        # utils.update("2. Modify your force field to accomodate the unknown residue type")
+        # utils.update("3. Cut out the unknown parts of your structure, run pdb2gmx, and then paste those")
+        # utils.update("   parts back (whilst manually updating your #includes in topol.top accordingly)")
 
     utils.update("\nRecommended pdb2gmx command:")
     utils.update("gmx pdb2gmx -f {0} -o {0} -ff {1} -water {2} -ignh".format(universe.get('d_output'), d_modelFF, d_modelwater))
