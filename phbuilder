@@ -10,6 +10,8 @@ parsecmdline()
 from parselambda import parseLambdaGroupTypesFile
 from gentopol import gentopol
 from addbuffers import addbuffers
+from genparams import genparams
+
 import universe, utils
 
 if (not universe.has('ph_lambdaTypes')):
@@ -26,5 +28,6 @@ elif (universe.get('d_target') == "addbuffers"):
     utils.update("Running addbuffers...")
     addbuffers()
 
-elif (universe.get('d_target') == "addparams"):
+elif (universe.get('d_target') == "genparams"):
     utils.update("Running addparams...")
+    genparams()
