@@ -5,4 +5,5 @@ rm -f residuetypes.dat universe phprocessed.pdb
 
 rm -f \#*
 rm -f *.top *.gro *.itp
-rm -f mdout.mdp
+rm -f mdout.mdp builder.log
+rm -f *.ndx *.mdp
