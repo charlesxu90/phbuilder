@@ -175,6 +175,7 @@ CG3RC1     12.01100 ; bridgehead in bicyclic systems containing at least one 5-m
    CT2     12.01100 ; aliphatic sp3 C for CH2
   CT2n     12.01100 ; aliphatic sp3 C for CH2
   CT2A     12.01100 ; from CT2 (asp, glu, hsp chi1/chi2 fitting)
+ CT2An     12.01100 ; from CT2 (asp, glu, hsp chi1/chi2 fitting)
   CT2P     12.01100 ; (sp3)H2 Carbon in PNA backbone (eq. CT2)
    CT3     12.01100 ; aliphatic sp3 C for CH3
   CTD1     12.01100 ; added for D-amino acids
@@ -437,6 +438,7 @@ SG2R50     32.06000 ; THIP, thiophene
     SL     32.06000 ; Sulfate sulfur
     SM     32.06000 ; sulfur C-S-S-C type
    SOD     22.98977 ; Sodium Ion
+   BUF     30.00000 ; Buffer Ion
     SS     32.06000 ; thiolate sulfur
     ZN     65.37000 ; zinc (II) cation
    MGA	   24.30500 ; Updated Mg2+	  

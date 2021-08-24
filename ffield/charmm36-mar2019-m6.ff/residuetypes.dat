@@ -22,7 +22,6 @@ GLN  	Protein
 GLU  	Protein
 GLUH 	Protein
 GLUP    Protein
-GLUT    Protein
 GLH	Protein
 GLY	Protein
 HIS 	Protein
@@ -36,13 +35,11 @@ HISP 	Protein
 HSD	Protein
 HSE	Protein
 HSP	Protein
-HSPT    Protein
 HYP  	Protein
 ILE  	Protein
 LEU  	Protein
 LSN	Protein
 LYS  	Protein
-LYST    Protein
 LYSH 	Protein
 MELEU	Protein
 MET  	Protein

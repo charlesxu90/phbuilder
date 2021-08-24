@@ -22,6 +22,19 @@
 [ delete ]
  HN
 
+; Titratable NH3+
+; Created by Pavel Buslaev
+[ NH3T ]
+[ replace ]
+ N       N       NH3     14.0070 -0.30
+ CA  CA  CT1     12.011   0.21
+ HA  HA  HB1     1.008    0.10
+[ Add ]
+ 3       4       H               N               CA              C
+         HC  1.008       0.33    -1
+[ delete ]
+ HN
+
 [ PRO-NH2+ ]
 [ replace ]
  N	 N	   NP	14.0070 -0.07

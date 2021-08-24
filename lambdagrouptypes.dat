@@ -1,5 +1,5 @@
 [ FORCEFIELD ]
-path  = /home/anton/GIT/rex/ffield/charmm36-mar2019-m4.ff
+path  = /home/anton/GIT/rex/ffield/charmm36-mar2019-m6.ff
 water = tip3p
 
 [ ASPT ]

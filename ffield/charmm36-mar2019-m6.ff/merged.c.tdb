@@ -29,6 +29,23 @@
 [ impropers ]
  C	CA	OT2 OT1
 
+; CHARMM C-ter titratable
+' Created by Pavel Buslaev
+[ COOHT ]
+[ replace ]
+ C              C       CDn     12.011   0.72
+ O              OT1 OB  15.9994 -0.55
+ OXT    OT2 OH1n 15.9994 -0.61
+[ add ]
+ 2      8       OT      C       CA      N
+        OB      15.9994 -0.55   -1
+ 1      2       HT2 OT2 C       CA
+        H       1.008   0.44    -1
+[ replace ]
+ OT2    OT2 OH1n         15.9994 -0.61
+[ impropers ]
+ C      CA      OT2 OT1
+
 ; Created by Michel Cuendet.
 [ CT2 ]
 [ replace ]

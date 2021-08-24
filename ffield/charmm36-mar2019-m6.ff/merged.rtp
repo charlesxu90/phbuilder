@@ -56285,6 +56285,56 @@
   [ cmap ]
 	   -C     N    CA     C    +N
 
+[ HSPT ]
+  [ atoms ]
+            N   NH1   -0.470  0
+           HN     H    0.310  1
+           CA  CT1n    0.070  2
+           HA   HB1    0.090  3
+           CB CT2An   -0.050  4
+          HB1   HA2    0.090  5
+          HB2   HA2    0.090  6
+          CD2  CPH1    0.190  7
+          HD2   HR1    0.130  8
+           CG  CPH1    0.190  9
+          NE2   NR3   -0.510 10
+          HE2     H    0.440 11
+          ND1   NR3   -0.510 12
+          HD1     H    0.440 13
+          CE1  CPH2    0.320 14
+          HE1   HR2    0.180 15
+            C     C    0.510 16
+            O     O   -0.510 17
+  [ bonds ]
+           CB    CA
+           CG    CB
+          ND1    CG
+          CE1   ND1
+          NE2   CD2
+            N    HN
+            N    CA
+            C    CA
+            C    +N
+           CA    HA
+           CB   HB1
+           CB   HB2
+          ND1   HD1
+          NE2   HE2
+          CD2   HD2
+          CE1   HE1
+            O     C
+          CD2    CG
+          NE2   CE1
+  [ impropers ]
+          ND1    CG   CE1   HD1
+          ND1   CE1    CG   HD1
+          NE2   CD2   CE1   HE2
+          NE2   CE1   CD2   HE2
+            N    -C    CA    HN
+            C    CA    +N     O
+  [ cmap ]
+           -C     N    CA     C    +N
+
 [ HTA ]
   [ atoms ]
 	   O1   OCL   -0.760  0
@@ -66376,6 +66426,59 @@
 	    C    CA    +N     O
   [ cmap ]
 	   -C     N    CA     C    +N
+
+[ LYST ]
+  [ atoms ]
+            N   NH1   -0.470  0
+           HN     H    0.310  1
+           CA   CT1    0.070  2
+           HA   HB1    0.090  3
+           CB   CT2   -0.180  4
+          HB1   HA2    0.090  5
+          HB2   HA2    0.090  6
+           CG   CT2   -0.180  7
+          HG1   HA2    0.090  8
+          HG2   HA2    0.090  9
+           CD   CT2   -0.180 10
+          HD1   HA2    0.090 11
+          HD2   HA2    0.090 12
+           CE   CT2    0.210 13
+          HE1   HA2    0.050 14
+          HE2   HA2    0.050 15
+           NZ   NH3   -0.300 16
+          HZ1    HC    0.330 17
+          HZ2    HC    0.330 18
+          HZ3    HC    0.330 19
+            C     C    0.510 20
+            O     O   -0.510 21
+  [ bonds ]
+           CB    CA
+           CG    CB
+           CD    CG
+           CE    CD
+           NZ    CE
+            N    HN
+            N    CA
+            C    CA
+            C    +N
+           CA    HA
+           CB   HB1
+           CB   HB2
+           CG   HG1
+           CG   HG2
+           CD   HD1
+           CD   HD2
+           CE   HE1
+           CE   HE2
+           NZ   HZ1
+           NZ   HZ2
+           NZ   HZ3
+            O     C
+  [ impropers ]
+            N    -C    CA    HN
+            C    CA    +N     O
+  [ cmap ]
+           -C     N    CA     C    +N
 
 [ M1G ]
   [ atoms ]
