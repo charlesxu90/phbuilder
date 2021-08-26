@@ -54,7 +54,7 @@ def addbuffers():
     os.system("gmx genion -s dummy.tpr -p {} -o {} -pname {} -np {} -rmin {} << EOF\n{}\nEOF".format(
         universe.get('d_topol'),
         universe.get('d_output'),
-        'NA', 
+        'BUF', 
         tits, 
         universe.get('ph_bufmargin'),
         universe.get('ph_solname')))
