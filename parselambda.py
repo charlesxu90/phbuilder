@@ -3,13 +3,13 @@ import utils, universe, configparser
 # Stores the information for a lambda group type.
 class LambdaType:
     def __init__(self, groupname, incl, pKa, atoms, qqA, qqB, dvdl):
-        self.d_groupname = groupname
-        self.d_incl      = incl
-        self.d_pKa       = pKa
-        self.d_atoms     = atoms
-        self.d_qqA       = qqA
-        self.d_qqB       = qqB
-        self.d_dvdl      = dvdl
+        self.d_groupname = groupname    # str
+        self.d_incl      = incl         # list
+        self.d_pKa       = pKa          # list  (previously str)
+        self.d_atoms     = atoms        # list
+        self.d_qqA       = qqA          # list
+        self.d_qqB       = qqB          # list of lists (previously list)
+        self.d_dvdl      = dvdl         # list of lists (previously list)
 
 # Parses lambdagrouptypes.dat.
 def parseLambdaGroupTypesFile():
@@ -58,23 +58,45 @@ def parseLambdaGroupTypesFile():
         if (sect.strip() == "BUF"):
             universe.add('ph_BUF_dvdl', str2floatList(parser.get(sect, 'dvdl')))
             continue
+        
+        # Parse groupname
+        groupname = sect.strip()[0:4]
+        
+        # Parse incl
+        incl = str2strList(parser.get(sect, 'incl'))
 
-        groupname = sect.strip()
-        pKa       = parser.getfloat(sect, 'pKa')
-        incl      = str2strList(parser.get(sect, 'incl'))
-        atoms     = str2strList(parser.get(sect, 'atoms'))
-        qqA       = str2floatList(parser.get(sect, 'qqA'))
-        qqB       = str2floatList(parser.get(sect, 'qqB'))
-        dvdl      = str2floatList(parser.get(sect, 'dvdl'))
+        # Parse atoms
+        atoms = str2strList(parser.get(sect, 'atoms'))
 
-        # Sanitize input of groupname.
+        # Parse qqA
+        qqA = str2floatList(parser.get(sect, 'qqA'))
+
+        pKa  = []
+        qqB  = []
+        dvdl = []
+        for idx in range(1, 11): # Max 10 multistates
+            try:
+                # Parse pKa(s)
+                pKa.append(parser.get(sect, 'pKA_{}'.format(idx)))
+
+                # Parse qqB(s)
+                qqB.append(str2floatList(parser.get(sect, 'qqB_{}'.format(idx))))
+
+                # Parse dvdl(s)
+                dvdl.append(str2floatList(parser.get(sect, 'dvdl_{}'.format(idx))))
+            except:
+                break
+
+        # SANITIZE INPUT
+
         if (len(groupname) < 2 or len(groupname) > 4):
             utils.error("groupname of LambdaType needs to contain between 2 and 4 characters.")
 
         # Call function that constructs the LambdaType object and adds it to universe.
         defineLambdaType(groupname, incl, pKa, atoms, qqA, qqB, dvdl)
 
-    # User update.
+    # USER UPDATE
+
     utils.update("ffpath    = {}".format(universe.get('d_modelFF')))
     utils.update("water     = {}".format(universe.get('d_modelwater')))
 
