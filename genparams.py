@@ -161,10 +161,6 @@ def genparams():
 
             for idx in range(0, len(LambdaType.d_pKa)):
                 writeBlock(number,
-            writeBlock(number, 
-                writeBlock(number,
-                           LambdaType.d_groupname,
-                       LambdaType.d_groupname, 
                            LambdaType.d_groupname,
                            LambdaType.d_dvdl[idx][::-1],
                            LambdaType.d_pKa[idx],
@@ -181,15 +177,26 @@ def genparams():
 
     # If we do charge restraining, we additionally need the block for the buffer.
     if restrainCharge:
-        writeBlock(number, 'BUF', universe.get('ph_BUF_dvdl')[::-1], 0, 0, [1.0], [0.0], False, 0)
+        writeBlock(number, 'BUF', universe.get('ph_BUF_dvdl')[::-1], 0, 0, [0.3], [-0.3], False, 0)
 
     # PART 3 - WRITE LAMBDA GROUPS
     
+    def writeResBlock(number, name, QQinitial):
+        addParam('lambda-dynamics-atom-set{}-name'.format(number), name)
+        addParam('lambda-dynamics-atom-set{}-index-group-name'.format(number), 'LAMBDA{}'.format(number))
+        addParam('lambda-dynamics-atom-set{}-initial-lambda'.format(number), to_string(QQinitial, 1))
+
+        if restrainCharge:
+            addParam('lambda-dynamics-atom-set{}-charge-restraint-group-index'.format(number), 1)
+
+        if (name == 'BUF'):
+            addParam('lambda-dynamics-atom-set{}-buffer-residue'.format(number), 'yes')
+            addParam('lambda-dynamics-atom-set{}-buffer-residue-multiplier'.format(number), buffersFoundinProtein)
+
+        file.write('\n')
+
     number = 1
     for groupname in LambdasFoundinProtein:
-
-        addParam('lambda-dynamics-atom-set{}-name'.format(number), groupname)
-        addParam('lambda-dynamics-atom-set{}-index-group-name'.format(number), 'LAMBDA{}'.format(number))
 
         LambdaType = [obj for obj in LambdaTypes if obj.d_groupname == groupname][0]
         QQinitial  = [1]
@@ -197,18 +204,11 @@ def genparams():
         for idx in range(1, len(LambdaType.d_pKa)):
             QQinitial.append(0)
 
-        addParam('lambda-dynamics-atom-set{}-initial-lambda'.format(number), to_string(QQinitial, 1))
-
-        if restrainCharge:
-            addParam('lambda-dynamics-atom-set{}-charge-restraint-group-index'.format(number), 1)
-
-        if (groupname == 'BUF'):
-            addParam('lambda-dynamics-atom-set{}-buffer-residue'.format(number), 'yes')
-            addParam('lambda-dynamics-atom-set{}-buffer-residue-multiplier'.format(number), buffersFoundinProtein)
-
-        file.write('\n')
-
+        writeResBlock(number, groupname, QQinitial)
         number += 1
+
+    if restrainCharge:
+        writeResBlock(number, 'BUF', [0.5])
 
     file.close() # MD.mdp
 
