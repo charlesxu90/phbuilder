@@ -14,9 +14,9 @@ def genparams():
     LambdaTypes = universe.get('ph_lambdaTypes')
 
     # List of groupnames of the LambdaTypes specified in lambdagrouptypes.dat.
-    LamdaTypeNames = []
+    LambdaTypeNames = []
     for LambdaType in LambdaTypes:
-        LamdaTypeNames.append(LambdaType.d_groupname)
+        LambdaTypeNames.append(LambdaType.d_groupname)
 
     # Check whether we have any titratable residues in the structure, and also
     # check whether we have any buffers.
@@ -24,7 +24,7 @@ def genparams():
     restrainCharge = False
 
     for residue in residues:
-        if residue.d_resname in LamdaTypeNames:
+        if residue.d_resname in LambdaTypeNames:
             anyTitratables = True
 
         elif residue.d_resname == 'BUF':
@@ -33,11 +33,21 @@ def genparams():
         if anyTitratables and restrainCharge:
             break
 
+    # Check whether we have any multistates
+    anyMultistates = False
+    for LambdaType in LambdaTypes:
+        if len(LambdaType.d_pKa) > 1:
+            anyMultistates = True
+            break
+
     if not anyTitratables:
         utils.error("No titratable residues detected")
 
     if not restrainCharge:
         utils.update("No buffer(s) found. Will not use charge restraining...")
+
+    if not anyMultistates:
+        utils.update("No multistate lambdagrouptypes detected...")
 
     # If no .mdp file was specified on the command line, generate our default one:
     if universe.get('d_mdp') == None:
@@ -70,6 +80,10 @@ def genparams():
     if restrainCharge:
         addParam('lambda-dynamics-charge-constraints', 'yes')
 
+    # If we use multistate...
+    if anyMultistates:
+        addParam('lambda-dynamics-multistate-constraints', 'yes')
+
     # We need to count how many titratable residues in total we have in the
     # protein. For this we compile a list LambdasFoundinProtein.
     LambdasFoundinProtein = [] # (e.g ASPT ASPT GLUT ASPT GLUT ASPT...)
@@ -78,7 +92,7 @@ def genparams():
     buffersFoundinProtein = 0
 
     for residue in residues:
-        if residue.d_resname in LamdaTypeNames:
+        if residue.d_resname in LambdaTypeNames:
             LambdasFoundinProtein.append(residue.d_resname)
 
         # Also in this loop we count how many buffer ions we have.
@@ -92,13 +106,21 @@ def genparams():
     # in the actual protein.
     LambdaTypeNamesFoundinProtein = list(set(LambdasFoundinProtein)) # (e.g ASPT GLUT)
 
-    # If we use the charge leveling scheme "charge-restraining" (2) we also have
-    # the BUF residue-type as well as one extra lambda group containing all the BUFs.
+    # Because we now also have multistate, we need to check for every 
+    # LambdaTypeNameFoundinProtein how many states is has, instead of simply 
+    # using len(LambdaTypeNamesFoundinProtein) as we did previously.
+    typeCount = 0
+    for name in LambdaTypeNamesFoundinProtein:
+        LambdaType = [obj for obj in LambdaTypes if obj.d_groupname == name][0]
+        typeCount += len(LambdaType.d_pKa)
+
+    # If we use charge-restraining we also have he BUF residue-type, as well as 
+    # one extra lambda group containing all the BUFs.
     if restrainCharge:
-        addParam('lambda-dynamics-number-lambda-group-types', len(LambdaTypeNamesFoundinProtein) + 1)
+        addParam('lambda-dynamics-number-lambda-group-types', typeCount + 1)
         addParam('lambda-dynamics-number-atom-collections', len(LambdasFoundinProtein) + 1)
     else:
-        addParam('lambda-dynamics-number-lambda-group-types', len(LambdaTypeNamesFoundinProtein))
+        addParam('lambda-dynamics-number-lambda-group-types', typeCount)
         addParam('lambda-dynamics-number-atom-collections', len(LambdasFoundinProtein))
 
     file.write('\n')
@@ -106,71 +128,87 @@ def genparams():
     # PART 2 - WRITE LAMBDA GROUP TYPES
     
     # Convert a list to a string
-    def to_string(Input):
+    def to_string(Input, round):
         string = ""
         for element in Input:
-            string += "{:.3f} ".format(element)
+            string += "{0:.{arg}f} ".format(element, arg=round)
         return string
 
     # Writes the lambda group type block
-    def writeBlock(number, name, dvdl, pKa, barrierE, qqA, qqB):
+    def writeBlock(number, name, dvdl, pKa, barrierE, qqA, qqB, multistate, constraintgroupidx):
         addParam('lambda-dynamics-group-type{}-name'.format(number), name)
-        addParam('lambda-dynamics-group-type{}-dvdl-coefficients'.format(number), to_string(dvdl))
+        addParam('lambda-dynamics-group-type{}-dvdl-coefficients'.format(number), to_string(dvdl, 3))
         addParam('lambda-dynamics-group-type{}-reference-pka'.format(number), pKa)
         addParam('lambda-dynamics-group-type{}-barrier'.format(number), barrierE)
-        addParam('lambda-dynamics-group-type{}-charges-state-A'.format(number), to_string(qqA))
-        addParam('lambda-dynamics-group-type{}-charges-state-B'.format(number), to_string(qqB))
+        addParam('lambda-dynamics-group-type{}-charges-state-A'.format(number), to_string(qqA, 2))
+        addParam('lambda-dynamics-group-type{}-charges-state-B'.format(number), to_string(qqB, 2))
+
+        if multistate:
+            addParam('lambda-dynamics-group-type{}-multi-state-constraint-group-index'.format(number), constraintgroupidx)
+
         file.write('\n')
 
     number = 1
+    constraintgroupidx = 1
     # We loop over the object itself instead of the d_groupname as we need all
     # the information in the object.
     for LambdaType in LambdaTypes:
         # This if-statement prevents writing a block when there are no residues 
         # of this type in the protein.
         if (LambdaType.d_groupname in LambdaTypeNamesFoundinProtein):
+
+            multistate = len(LambdaType.d_pKa) > 1
+
+            for idx in range(0, len(LambdaType.d_pKa)):
+                writeBlock(number,
             writeBlock(number, 
+                writeBlock(number,
+                           LambdaType.d_groupname,
                        LambdaType.d_groupname, 
-                       LambdaType.d_dvdl[::-1],
-                       LambdaType.d_pKa,
-                       universe.get('ph_dwpE'),
-                       LambdaType.d_qqA,
-                       LambdaType.d_qqB)
-            number += 1
+                           LambdaType.d_groupname,
+                           LambdaType.d_dvdl[idx][::-1],
+                           LambdaType.d_pKa[idx],
+                           universe.get('ph_dwpE'),
+                           LambdaType.d_qqA,
+                           LambdaType.d_qqB[idx],
+                           multistate,
+                           constraintgroupidx)
+
+                number += 1
+
+        if multistate:
+            constraintgroupidx += 1
 
     # If we do charge restraining, we additionally need the block for the buffer.
-    if (restrainCharge):
-        writeBlock(number,
-                   'BUF',
-                   universe.get('ph_BUF_dvdl')[::-1],
-                   0,
-                   0,
-                   [1.0],
-                   [0.0])
+    if restrainCharge:
+        writeBlock(number, 'BUF', universe.get('ph_BUF_dvdl')[::-1], 0, 0, [1.0], [0.0], False, 0)
 
     # PART 3 - WRITE LAMBDA GROUPS
-   
-    def writeResBlock(number, name, indexName):
-        addParam('lambda-dynamics-atom-set{}-name'.format(number), name)
-        addParam('lambda-dynamics-atom-set{}-index-group-name'.format(number), indexName)
-        addParam('lambda-dynamics-atom-set{}-initial-lambda'.format(number), 0.5)
+    
+    number = 1
+    for groupname in LambdasFoundinProtein:
+
+        addParam('lambda-dynamics-atom-set{}-name'.format(number), groupname)
+        addParam('lambda-dynamics-atom-set{}-index-group-name'.format(number), 'LAMBDA{}'.format(number))
+
+        LambdaType = [obj for obj in LambdaTypes if obj.d_groupname == groupname][0]
+        QQinitial  = [1]
+
+        for idx in range(1, len(LambdaType.d_pKa)):
+            QQinitial.append(0)
+
+        addParam('lambda-dynamics-atom-set{}-initial-lambda'.format(number), to_string(QQinitial, 1))
 
         if restrainCharge:
             addParam('lambda-dynamics-atom-set{}-charge-restraint-group-index'.format(number), 1)
 
-        if (name == 'BUF'):
+        if (groupname == 'BUF'):
             addParam('lambda-dynamics-atom-set{}-buffer-residue'.format(number), 'yes')
             addParam('lambda-dynamics-atom-set{}-buffer-residue-multiplier'.format(number), buffersFoundinProtein)
 
         file.write('\n')
 
-    number = 1
-    for groupname in LambdasFoundinProtein:
-        writeResBlock(number, groupname, 'LAMBDA{}'.format(number))
         number += 1
-
-    if (restrainCharge):
-        writeResBlock(number, 'BUF', 'LAMBDA{}'.format(len(LambdasFoundinProtein) + 1))
 
     file.close() # MD.mdp
 
