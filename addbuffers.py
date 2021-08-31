@@ -11,39 +11,52 @@ def addbuffers():
     # Load d_residues here for speedup as we need it in multiple loops.
     residues = universe.get('d_residues')
 
+    # Perform some basic checks for PBC box, solvent, and titratable groups.
+    foundPBC         = universe.has('d_box')
+    foundSolvent     = False
+    foundTitratables = False
+
+    LambdaTypeNames = []
+    for LambdaType in universe.get('ph_lambdaTypes'):
+        LambdaTypeNames.append(LambdaType.d_groupname)
+
+    for residue in residues:
+        
+        if residue.d_resname == universe.get('ph_solname'):
+            foundSolvent = True
+        
+        elif residue.d_resname in LambdaTypeNames:
+            foundTitratables = True
+
+        if foundSolvent and foundTitratables:
+            break
+
     # Error if no periodic box was found
-    if not universe.has('d_box'):
+    if not foundPBC:
         utils.error("{} doesn't have a periodic box! Did you forget to add one?".format(universe.get('d_file')))
 
     # Error if no solvent was found
-    foundSolvent = False
-    for residue in residues:
-        if residue.d_resname == universe.get('ph_solname'):
-            foundSolvent = True
-            break
-
     if not foundSolvent:
         utils.error("{} doesn't seem to have any {} molecules! Did you forget to add solvent?".format(universe.get('d_file'), universe.get('ph_solname')))
 
+    # Error if no titratable residues were found
+    if not foundTitratables:
+        utils.error("{} doesn't seem to have any titratable groups! Did you forget to run gentopol?".format(universe.get('d_file'), universe.get('ph_solname')))
+
     # if nbufs wasn't manually set, count the number of titratable residues.
     if not universe.has('ph_nbufs'):
-        # Compile list of lambdaType groupnames
-        lambdaTypeNames = []
-        for lambdaType in universe.get('ph_lambdaTypes'):
-            lambdaTypeNames.append(lambdaType.d_groupname)
-
         # Count number of titratable residues
         titratables = 0
         for residue in residues:
-            if residue.d_resname in lambdaTypeNames:
+            if residue.d_resname in LambdaTypeNames:
                 titratables += 1
 
-        titratables = int(np.ceil(titratables / maxChargeOnBuffer)) # Worst case scenario.
-        utils.update("Counted {0} titratable residues, will add {0} buffer(s)...".format(titratables))
+        nbufs = int(np.ceil(titratables / maxChargeOnBuffer)) # Worst case scenario.
+        utils.update("Counted {0} titratable residues, will add ceil({0}/{1}) = {2} buffer(s)...".format(titratables, maxChargeOnBuffer, nbufs))
 
     else:
-        titratables = universe.get('ph_nbufs')
-        utils.update("Will add {} buffer(s)...".format(titratables))
+        nbufs = universe.get('ph_nbufs')
+        utils.update("Will add {} buffer(s) (per user request)...".format(nbufs))
 
     # PART II - RUN GMX GENION TO REPLACE SOLVENT MOLECULES WITH BUFFER
 
@@ -58,7 +71,7 @@ def addbuffers():
         universe.get('d_topol'),
         universe.get('d_output'),
         'BUF', 
-        titratables, 
+        nbufs,
         universe.get('ph_solname')))
 
     # PART III - WRAPUP
@@ -75,7 +88,7 @@ def addbuffers():
         if residue.d_resname == 'BUF':
             BUFcount += 1
     
-    if BUFcount == titratables:
-        utils.update("Succesfully added {} buffer molecule(s)".format(BUFcount))
+    if BUFcount == nbufs:
+        utils.update("Succesfully added {} buffer molecule(s)...".format(BUFcount))
     else:
         utils.update("Only added {}/{} buffer molecules! Try increasing box size...")
