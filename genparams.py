@@ -33,21 +33,11 @@ def genparams():
         if anyTitratables and restrainCharge:
             break
 
-    # Check whether we have any multistates
-    anyMultistates = False
-    for LambdaType in LambdaTypes:
-        if len(LambdaType.d_pKa) > 1:
-            anyMultistates = True
-            break
-
     if not anyTitratables:
         utils.error("No titratable residues detected")
 
     if not restrainCharge:
         utils.update("No buffer(s) found. Will not use charge restraining...")
-
-    if not anyMultistates:
-        utils.update("No multistate lambdagrouptypes detected...")
 
     # If no .mdp file was specified on the command line, generate our default one:
     if universe.get('d_mdp') == None:
@@ -80,10 +70,6 @@ def genparams():
     if restrainCharge:
         addParam('lambda-dynamics-charge-constraints', 'yes')
 
-    # If we use multistate...
-    if anyMultistates:
-        addParam('lambda-dynamics-multistate-constraints', 'yes')
-
     # We need to count how many titratable residues in total we have in the
     # protein. For this we compile a list LambdasFoundinProtein.
     LambdasFoundinProtein = [] # (e.g ASPT ASPT GLUT ASPT GLUT ASPT...)
@@ -105,6 +91,13 @@ def genparams():
     # that are not only in lambdagrouptypes.dat, but ALSO found at least once 
     # in the actual protein.
     LambdaTypeNamesFoundinProtein = list(set(LambdasFoundinProtein)) # (e.g ASPT GLUT)
+
+    # If we not only have multistate LambdaResidueTypes defined in the .dat file,
+    # but we also have detected such a LambdaResidueType in the actual protein,
+    # we'll need to turn on multistate:
+    for LambdaType in LambdaTypes:
+        if len(LambdaType.d_pKa) > 1 and LambdaType.d_groupname in LambdaTypeNamesFoundinProtein:
+            addParam('lambda-dynamics-multistate-constraints', 'yes')
 
     # Because we now also have multistate, we need to check for every 
     # LambdaTypeNameFoundinProtein how many states is has, instead of simply 
