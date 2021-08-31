@@ -78,14 +78,6 @@ def parsecmdline():
                         default='SOL',
                         help='specify name of solvent molecule.')
 
-    parser_2.add_argument('-bufmargin',
-                        required=False,
-                        dest='bufmargin',
-                        action='store',
-                        default=2.0,
-                        help='specify minimum distance between buffers and protein.',
-                        type=float)
-
     parser_2.add_argument('-nbufs',
                         required=False,
                         dest='nbufs',
@@ -216,7 +208,6 @@ def parsecmdline():
         universe.add('d_topol', CLI.topol)
         universe.add('d_output', CLI.output)
         universe.add('ph_solname', CLI.solname)
-        universe.add('ph_bufmargin', CLI.bufmargin)
 
         # Optional
         if (CLI.nbufs != None):

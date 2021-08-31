@@ -1,4 +1,4 @@
-import os, structure, universe, utils
+import os, numpy as np, structure, universe, utils
 
 def addbuffers():
     # PART I - PREP
@@ -31,16 +31,17 @@ def addbuffers():
             lambdaTypeNames.append(lambdaType.d_groupname)
 
         # Count number of titratable residues
-        tits = 0
+        titratables = 0
         for residue in residues:
             if residue.d_resname in lambdaTypeNames:
-                tits += 1
+                titratables += 1
 
-        utils.update("Counted {0} titratable residues, will add {0} buffer(s)...".format(tits))
+        titratables = int(np.ceil(titratables/0.3)) # worst case scenario
+        utils.update("Counted {0} titratable residues, will add {0} buffer(s)...".format(titratables))
 
     else:
-        tits = universe.get('ph_nbufs')
-        utils.update("Will add {} buffer(s)...".format(tits))
+        titratables = universe.get('ph_nbufs')
+        utils.update("Will add {} buffer(s)...".format(titratables))
 
     # PART II - RUN GMX GENION TO REPLACE SOLVENT MOLECULES WITH BUFFER
 
@@ -51,16 +52,15 @@ def addbuffers():
     os.system("gmx grompp -f dummy.mdp -c {} -p {} -o dummy.tpr".format(universe.get('d_file'), universe.get('d_topol')))
 
     # Run gxm genion to replace some solvent molecules with buffers
-    os.system("gmx genion -s dummy.tpr -p {} -o {} -pname {} -np {} -rmin {} << EOF\n{}\nEOF".format(
+    os.system("gmx genion -s dummy.tpr -p {} -o {} -pname {} -np {} << EOF\n{}\nEOF".format(
         universe.get('d_topol'),
         universe.get('d_output'),
         'BUF', 
-        tits, 
-        universe.get('ph_bufmargin'),
+        titratables, 
         universe.get('ph_solname')))
 
     # PART III - WRAPUP
-    utils.update("Succesfully added {} buffer molecule(s)".format(tits))
+    utils.update("Succesfully added {} buffer molecule(s)".format(titratables))
 
     # Remove dummy files
     os.remove('dummy.tpr'); os.remove('dummy.mdp')

@@ -42,7 +42,7 @@ def genparams():
     # If no .mdp file was specified on the command line, generate our default one:
     if universe.get('d_mdp') == None:
         utils.update('No .mdp file was specified. Creating a default MD.mdp file...')
-        mdp.gen_mdp('MD', 50000, 5000, restrainCharge)
+        mdp.gen_mdp('MD', 50000, 5000)
         universe.add('d_mdp', 'MD.mdp')
 
     # If no .ndx file was specified on the command line, generate our default one:
@@ -170,10 +170,41 @@ def genparams():
 
     # If we do charge restraining, we additionally need the block for the buffer.
     if restrainCharge:
-        writeBlock(number, 'BUF', universe.get('ph_BUF_dvdl')[::-1], 0, 0, [0.3], [-0.3], False, 0)
+        qqA = universe.get('ph_BUF_range')[0]
+        qqB = universe.get('ph_BUF_range')[1]
+        writeBlock(number, 'BUF', universe.get('ph_BUF_dvdl')[::-1], 0, 0, [qqA], [qqB], False, 0)
 
     # PART 3 - WRITE LAMBDA GROUPS
     
+    # GOAL : set the initial lambdas such that every titratable group and every
+    # buffer has q = 0 at t = 0.
+    
+    # This function evaluates (the sums of) d_qqA and d_qqB and based on this
+    # returns the initial values such that the titratable site is neutral.
+    def determineLambdaInits(qqA, qqB):
+        if len(qqB) > 1:    # We can ignore qqA in the multistate case. Instead
+            inits = []      # we compile a list  of sums of the qqB states and 
+            sums  = []      # set the state with the lowest abs val charge to 1
+            for lst in qqB: # and the rest to 0.
+                sums.append(abs(sum(lst)))
+
+            for idx in range(0, len(qqB)):
+                inits.append(idx == sums.index(min(sums)))
+            
+            return inits
+
+        # In the 2state case, we simply pick the smallest abs val of the sum,
+        # OR if the charges are opposite, the neutral charge will be in the
+        # middle, which will then corresponds to lambda = 0.5.
+        else:
+            sumA = abs(sum(qqA))
+            sumB = abs(sum(qqB[0]))
+            
+            if sumA == -sumB:
+                return [0.5]
+            else:
+                return [float(sumA > sumB)]
+
     def writeResBlock(number, name, QQinitial):
         addParam('lambda-dynamics-atom-set{}-name'.format(number), name)
         addParam('lambda-dynamics-atom-set{}-index-group-name'.format(number), 'LAMBDA{}'.format(number))
@@ -192,16 +223,15 @@ def genparams():
     for groupname in LambdasFoundinProtein:
 
         LambdaType = [obj for obj in LambdaTypes if obj.d_groupname == groupname][0]
-        QQinitial  = [1]
-
-        for idx in range(1, len(LambdaType.d_pKa)):
-            QQinitial.append(0)
+        QQinitial  = determineLambdaInits(LambdaType.d_qqA, LambdaType.d_qqB)
 
         writeResBlock(number, groupname, QQinitial)
         number += 1
 
     if restrainCharge:
-        writeResBlock(number, 'BUF', [0.5])
+        BUFrange   = universe.get('ph_BUF_range')
+        QQinitial  = determineLambdaInits([BUFrange[0]], [[BUFrange[1]]])
+        writeResBlock(number, 'BUF', QQinitial)
 
     file.close() # MD.mdp
 

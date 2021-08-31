@@ -57,6 +57,7 @@ def parseLambdaGroupTypesFile():
 
         if (sect.strip() == "BUF"):
             universe.add('ph_BUF_dvdl', str2floatList(parser.get(sect, 'dvdl')))
+            universe.add('ph_BUF_range', str2floatList(parser.get(sect, 'range')))
             continue
         
         # Parse groupname

@@ -1,7 +1,7 @@
 firstLine = True # For formatting of title
 
 # Write a default .mdp file
-def gen_mdp(Type, nsteps, nstxout, restrainCharge):
+def gen_mdp(Type, nsteps, nstxout):
 
     # Sanitize input for Type
     if (Type not in ['EM', 'NVT', 'NPT', 'MD']):
@@ -27,17 +27,10 @@ def gen_mdp(Type, nsteps, nstxout, restrainCharge):
             file.write("{:20s} = {:13s} ; {:13s}\n".format(name, str(value), comment))
 
     # POSITION RESTRAINTS
-    
-    if Type in ['EM', 'MD'] and restrainCharge:
-        addTitle('Position restraints')
-        addParam('define', '-DPOSRES_BUF', 'Position restrain buffer(s).')
 
     if Type in ['NVT', 'NPT']:
         addTitle('Position restraints')
-        if restrainCharge:
-            addParam('define', '-DPOSRES -DPOSRES_BUF', 'Position restrain protein and buffer(s).')
-        else:
-            addParam('define', '-DPOSRES', 'Position restrain protein.')
+        addParam('define', '-DPOSRES', 'Position restrain protein.')
 
     # RUN CONTROL
 
@@ -55,14 +48,6 @@ def gen_mdp(Type, nsteps, nstxout, restrainCharge):
         addParam('dt', dt, 'Time step (ps).')
 
     addParam('nsteps', nsteps, "{:.1f} ns.".format((dt * nsteps)/1000.0))
-
-    # CENTER OF MASS MOTION REMOVAL (USE WHEN WE HAVE BUFFERS)
-
-    if (Type in ['MD'] and restrainCharge):
-        addParam('comm-mode', 'Linear-acceleration-correction', 'Remove COM velocity and correct COM positions.')
-        addParam('comm-grps', 'Protein Non-Protein')
-        addParam("nstcomm", 10, 'Frequence for COM motion removal.')
-        addParam("nstcalcenergy", 10, 'Required as nstcomm is otherwise set to nstcalcenergy.')
 
     # OUTPUT
 
