@@ -1,6 +1,8 @@
 import os, numpy as np, structure, universe, utils
 
 def addbuffers():
+    maxChargeOnBuffer = 0.3
+    
     # PART I - PREP
 
     # Load the input structure into d_residues.
@@ -36,7 +38,7 @@ def addbuffers():
             if residue.d_resname in lambdaTypeNames:
                 titratables += 1
 
-        titratables = int(np.ceil(titratables/0.3)) # worst case scenario
+        titratables = int(np.ceil(titratables / maxChargeOnBuffer)) # Worst case scenario.
         utils.update("Counted {0} titratable residues, will add {0} buffer(s)...".format(titratables))
 
     else:
@@ -49,10 +51,10 @@ def addbuffers():
     open('dummy.mdp', 'w').close()
 
     # Run gmx grompp to create a .tpr file for gmx genion
-    os.system("gmx grompp -f dummy.mdp -c {} -p {} -o dummy.tpr".format(universe.get('d_file'), universe.get('d_topol')))
+    os.system("gmx grompp -f dummy.mdp -c {} -p {} -o dummy.tpr >> builder.log 2>&1".format(universe.get('d_file'), universe.get('d_topol')))
 
     # Run gxm genion to replace some solvent molecules with buffers
-    os.system("gmx genion -s dummy.tpr -p {} -o {} -pname {} -np {} << EOF\n{}\nEOF".format(
+    os.system("gmx genion -s dummy.tpr -p {} -o {} -pname {} -np {} >> builder.log 2>&1 << EOF\n{}\nEOF".format(
         universe.get('d_topol'),
         universe.get('d_output'),
         'BUF', 
@@ -60,10 +62,20 @@ def addbuffers():
         universe.get('ph_solname')))
 
     # PART III - WRAPUP
-    utils.update("Succesfully added {} buffer molecule(s)".format(titratables))
-
+    
     # Remove dummy files
     os.remove('dummy.tpr'); os.remove('dummy.mdp')
-
+    
     # Update d_residues in universe
     structure.load(universe.get('d_output'))
+
+    # Check whether the required number of buffers was added
+    BUFcount = 0
+    for residue in universe.get('d_residues'):
+        if residue.d_resname == 'BUF':
+            BUFcount += 1
+    
+    if BUFcount == titratables:
+        utils.update("Succesfully added {} buffer molecule(s)".format(BUFcount))
+    else:
+        utils.update("Only added {}/{} buffer molecules! Try increasing box size...")
