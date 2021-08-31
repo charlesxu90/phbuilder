@@ -34,7 +34,7 @@ def genparams():
             break
 
     if not anyTitratables:
-        utils.error("No titratable residues detected")
+        utils.error("No titratable residues detected!")
 
     if not restrainCharge:
         utils.update("No buffer(s) found. Will not use charge restraining...")
