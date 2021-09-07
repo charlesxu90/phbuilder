@@ -1,7 +1,26 @@
 import os, structure, universe, utils
 
 def gentopol():
+    # Part I - COPY FORCE FIELD AND RESIDUETYPES.DAT TO WORKING DIR
+
+    d_modelFF    = universe.get('d_modelFF')
+    d_modelwater = universe.get('d_modelwater')
+
+    tail, head = os.path.split(d_modelFF)
+
+    os.system("cp -r {} {}/residuetypes.dat .".format(d_modelFF, tail))
+
+    utils.update('Force field path stuff: ')
+    utils.update('full-path    = {}'.format(d_modelFF))
+    utils.update('tail-path    = {}'.format(tail))
+    utils.update('residuetypes = {}/residuetypes.dat'.format(tail))
+    utils.update('head-path    = {}'.format(head))
+
+    d_modelFF = head[0:len(head)-3]
+    utils.update('ffield name  = {}'.format(d_modelFF))
+    
     # PART I - MODIFIY THE STRUCTURE FILE AND WRITE
+
     utils.update("Modifying structure file...")
 
     # Load the structure into d_residues.
@@ -129,76 +148,77 @@ def gentopol():
                     print()
                 # End of input handling
 
-    # Update d_residues and write output.
+    # Update d_residues.
     universe.add('d_residues', residues)
+
+    # Write structure.
     structure.write(universe.get('d_output'))
 
-    # Part II - COPY FORCE FIELD AND RESIDUETYPES.DAT TO WORKING DIR
+    # PART III - HANDLE UNKNOWN STRUCTURE TYPES
 
-    d_modelFF    = universe.get('d_modelFF')
-    d_modelwater = universe.get('d_modelwater')
+    utils.update("Checking if every residue type is present in residuetypes.dat...")
 
-    tail, head = os.path.split(d_modelFF)
-
-    os.system("cp -r {} {}/residuetypes.dat .".format(d_modelFF, tail))
-
-    utils.update('Force field path stuff: ')
-    utils.update('full-path    = {}'.format(d_modelFF))
-    utils.update('tail-path    = {}'.format(tail))
-    utils.update('residuetypes = {}/residuetypes.dat'.format(tail))
-    utils.update('head-path    = {}'.format(head))
-
-    d_modelFF = head[0:len(head)-3]
-    utils.update('ffield name  = {}'.format(d_modelFF))
-
-    # Part III - CHECK WHETHER PDB2GMX KNOWS WHAT TO DO WITH THE INPUT
-
-    utils.update("\nChecking if every residue type is present in ./residuetypes.dat...")
-
-    restypes = []
+    # Load residuetypes.dat into list
+    residueTypes = []
     for val in open('residuetypes.dat').readlines():
-        restypes.append(val.split()[0])
+        residueTypes.append(val.split()[0])
 
+    # Compile lists of the unknown residue(s)(types)
     unknownResidues = []
+    unknownResTypeNames = []
     for residue in universe.get('d_residues'):
-        if residue.d_resname not in restypes:
-            unknownResidues.append(residue.d_resname)
+        
+        if residue.d_resname not in residueTypes:
+            unknownResidues.append(residue)
 
+            if residue.d_resname not in unknownResTypeNames:
+                unknownResTypeNames.append(residue.d_resname)
+
+    pathList = []   # Loop through the unknown residue types and add them to 
+    skipList = []   # skipList and (the manually specified path to) pathList.
     good = True
-    for val in list(set(unknownResidues)):
-        utils.update("\nWARNING - residue type {} in {} wasn't found".format(val, universe.get('d_file')))
-        utils.update("in ./residuetypes.dat associated with {}".format(universe.get('d_modelFF')))
-        utils.update("Would you like to add {} to ./residuetypes.dat?".format(val))
-        utils.update("This requires the correct topology for {} to be present in the .rtp file of {}".format(val, universe.get('d_modelFF')))
-        utils.update("If this is not the case, pdb2gmx will not be able to properly process your structure.")
-        utils.update("See also https://manual.gromacs.org/current/how-to/topology.html")
-        
-        utils.update("0. Do nothing")
-        utils.update("1. Add {} to ./residuetypes.dat".format(val))
-        inpt = input("Type a number: ")
-        
-        if (inpt == '1'):
-            open('./residuetypes.dat', 'a').write("{} Other\n".format(val))
+    for val in unknownResTypeNames:
+        utils.update("WARNING - residue type {} in {} wasn't found in residuetypes.dat associated with {}".format(val, universe.get('d_file'), universe.get('d_modelFF')))
+        path = input("phbuilder : Please specify path to .itp file (e.g. /path/to/some.itp): ")
 
+        skipList.append(val)
+        pathList.append(path)
         good = False
+
+        utils.update("Set path for residue type {} to {}...".format(val, path))
 
     if good:
         utils.update("everything seems OK.")
-    # else:
-        # utils.update("pdb2gmx will not be able to properly process your structure. You need to either: ")
-        # utils.update("1. Update the path to your force field in lambdagrouptypes.dat")
-        # utils.update("2. Modify your force field to accomodate the unknown residue type")
-        # utils.update("3. Cut out the unknown parts of your structure, run pdb2gmx, and then paste those")
-        # utils.update("   parts back (whilst manually updating your #includes in topol.top accordingly)")
+
+    # If pathList is not empty, i.e. if we had at least one unknown residue
+    if pathList:
+
+        # Create a list knownResidues containing only the known residues
+        knownResidues = []
+        for residue in residues:
+            if residue.d_resname not in skipList:
+                knownResidues.append(residue)
+
+        # Update d_residues in universe with knownResidues
+        universe.add('d_residues', knownResidues)
+
+        # Write temporary .pdb containing only the known residues
+        someTempName = 'pdb2gmxtemp.pdb'
+        structure.write(someTempName)
+
+        # Update value of d_output (so that pdb2gmx is called on the temporary 
+        # structure), and backup the final output name as specified by user.
+        universe.add('d_output_orig', universe.get('d_output'))
+        universe.add('d_output', someTempName)
+
+    # PART IV - RUN PDB2GMX AND ASK USER FOR INPUT ABOUT IT 
 
     utils.update("\nRecommended pdb2gmx command:")
     utils.update("gmx pdb2gmx -f {0} -o {0} -ff {1} -water {2} -ignh".format(universe.get('d_output'), d_modelFF, d_modelwater))
 
-    # PART IV - RUN PDB2GMX AND ASK USER FOR INPUT ABOUT IT 
-
     takeInput = True
     while (takeInput):
-        
+
         # Prompt user for input:
         val = input("phbuilder : Choose whether to:\nphbuilder : 0. Do nothing\nphbuilder : 1. Run\nphbuilder : 2. Add additional flags (https://manual.gromacs.org/documentation/current/onlinehelp/gmx-pdb2gmx.html)\nphbuilder : Type a number: ")
 
@@ -218,7 +238,66 @@ def gentopol():
         # Run pdb2gmx:
         if (val in ['1', '2']):
             utils.update("Calling GROMACS ({}/gmx)...\n".format(os.environ.get("GMXBIN")))
-            os.system("gmx pdb2gmx -f {0} -o {0} -ff {1} -water {2} -ignh {3}".format(universe.get('d_output'), d_modelFF, d_modelwater, flags)) # Do this with gmxapi in the future?
+            os.system("gmx pdb2gmx -f {0} -o {0} -ff {1} -water {2} -ignh {3}".format(universe.get('d_output'), d_modelFF, d_modelwater, flags))
 
-            structure.load(universe.get('d_output')) # Update d_residues.
-            utils.update("Finished generating topology for constant-pH.")
+    # PART V - MERGE THE .PDB FILES
+    
+    # If pathList is not empty, i.e. if we had at least one unknown residue:
+    if pathList:
+        # Load the structure output of pdb2gmx (update d_residues in universe)
+        structure.load(someTempName)
+
+        # Merge the processed structure of good residues with unknown residues
+        mergedResidues = universe.get('d_residues') + unknownResidues
+
+        # Update d_residues in universe
+        universe.add('d_residues', mergedResidues)
+
+        # Write the final structure
+        structure.write(universe.get('d_output_orig'))
+
+    # PART VI - MERGE THE TOPOLOGIES
+
+    # Write manually specified files to topol.top
+    def add_mol(itpfname, comment, molname=None, molcount=None):
+        # Get the contents of current topol.top.
+        topList = []
+        with open("topol.top") as file:
+            for line in file.readlines():
+                topList.append(line)
+
+        # Add the .itp file (line saying: #include "blabla.itp")
+        with open("topol.top", 'w') as file:
+            try:
+                for line in range(0, len(topList)):
+                    file.write(topList[line])
+
+                    if "[ system ]\n" == topList[line + 1]:
+                        file.write("; {0}\n".format(comment))
+                        file.write("#include \"{0}\"\n\n".format(itpfname))
+
+            except IndexError:
+                pass
+
+        # if molcount not present, add it, otherwise do nothing.
+            if molname != None and molcount != None and molname not in topList[-1]:
+                file.write("{0}\t\t\t{1}\n".format(molname, molcount))
+
+    # If pathList is not empty, i.e. if we had at least one unknown residue:
+    if pathList:
+        # Remove temporary .pdb file
+        os.remove(someTempName)
+
+        # Loop through the unknown residue types
+        for idx in range(0, len(skipList)):
+
+            # For each one, count how many there are
+            count = 0
+            for residue in residues:
+                if residue.d_resname == skipList[idx]:
+                    count += 1
+
+            # Add manually to topol.top
+            add_mol(pathList[idx], "Include topology for {}".format(skipList[idx]), skipList[idx], count)
+
+    utils.update("Finished generating topology for constant-pH.")
