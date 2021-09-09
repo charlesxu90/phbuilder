@@ -195,7 +195,10 @@ def glicphstates(fileName, pdbName, pH, nstOut):
         'GLUT-222' : 1,
         'GLUT-243' : 0,
         'GLUT-272' : 1,
-        'GLUT-282' : 1
+        'GLUT-282' : 1,
+        'HSPT-127' : 1,
+        'HSPT-235' : 1,
+        'HSPT-277' : 0
     }
 
     nury2010 = { # this is also cheng2010, calimet2013
@@ -232,7 +235,10 @@ def glicphstates(fileName, pdbName, pH, nstOut):
         'GLUT-222' : 1,
         'GLUT-243' : 0,
         'GLUT-272' : 1,
-        'GLUT-282' : 1
+        'GLUT-282' : 1,
+        'HSPT-127' : 1,
+        'HSPT-235' : 1,
+        'HSPT-277' : 0
     }
 
     fritsch2011 = {
@@ -269,7 +275,10 @@ def glicphstates(fileName, pdbName, pH, nstOut):
         'GLUT-222' : 1,
         'GLUT-243' : 0,
         'GLUT-272' : 0,
-        'GLUT-282' : 0
+        'GLUT-282' : 0,
+        'HSPT-127' : 0,
+        'HSPT-235' : 1,
+        'HSPT-277' : 1
     }
 
     lev2017 = {
@@ -306,7 +315,10 @@ def glicphstates(fileName, pdbName, pH, nstOut):
         'GLUT-222' : 1,
         'GLUT-243' : 0,
         'GLUT-272' : 1,
-        'GLUT-282' : 1
+        'GLUT-282' : 1,
+        'HSPT-127' : 0,
+        'HSPT-235' : 1,
+        'HSPT-277' : 1
     }
 
     nemecz2017 = { # also Hu2018
@@ -343,7 +355,10 @@ def glicphstates(fileName, pdbName, pH, nstOut):
         'GLUT-222' : 0,
         'GLUT-243' : 0,
         'GLUT-272' : 1,
-        'GLUT-282' : 1
+        'GLUT-282' : 1,
+        'HSPT-127' : 1,
+        'HSPT-235' : 1,
+        'HSPT-277' : 0
     }
 
     ullman = { # unpublished
@@ -380,7 +395,10 @@ def glicphstates(fileName, pdbName, pH, nstOut):
         'GLUT-222' : 1,
         'GLUT-243' : 0,
         'GLUT-272' : 0,
-        'GLUT-282' : 1
+        'GLUT-282' : 1,
+        'HSPT-127' : 0,
+        'HSPT-235' : 1,
+        'HSPT-277' : 1
     }
 
     # DIRECTORY STRUCTURE ######################################################
