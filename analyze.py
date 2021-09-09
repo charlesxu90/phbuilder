@@ -401,126 +401,203 @@ def glicphstates(fileName, pdbName, pH, nstOut):
         'HSPT-277' : 1
     }
 
-    # DIRECTORY STRUCTURE ######################################################
-    dirname = "lambdaplots" 
+    # DIRECTORY STRUCTURE
+
+    dirname = "lambdaplots"
     if not os.path.isdir(dirname):
         os.mkdir(dirname)
     else:
         os.system("rm -f {0}/*.png {0}/*.pdf".format(dirname))
 
-    # GET THE RESIDUE NUMBER, NAME, AND CHAIN OF ALL PROTO RESIDUES ############
+    # CREATE LAMBDA PLOT FOR EVERY INDIVIDUAL PROTONATABLE RESIDUE
+
     structure.load(fileName)
-    residues = universe.get('d_residues')
 
-    resnameList = []
-    residList   = []
-    chainList   = []
-    for residue in residues:
-        if residue.d_resname in ["ASPT", "GLUT"]:
-            resnameList.append(residue.d_resname)
-            residList.append(residue.d_resid)
-            chainList.append(residue.d_chain)
+    print('Writing individual lambda plots...')
 
-    # CREATE LAMBDA PLOT FOR EVERY INDIVIDUAL PROTONATABLE RESIDUE #############
+    idx = 1
+    # Loop through the residues
+    for residue in universe.get('d_residues'):
+        # If it's an ASPT or GLUT...
+        if residue.d_resname in ['ASPT', 'GLUT']:
+            # User update
+            print('processing lambda_{}.dat...'.format(idx), end='\r')
+            
+            # Load the relevant columns
+            t = loadCol('lambda_{0}.dat'.format(idx), 1)
+            x = loadCol("lambda_{0}.dat".format(idx), 2)
 
-    # Loop through all the lambdas:
-    for idx in range(1, len(resnameList) + 1):
+            # Create the actual plot
+            plt.plot(t, x, linewidth=0.5)
 
-        plt.figure(figsize=(8, 6))
-
-        # Update user
-        print("plotting {}/{}".format(idx, len(resnameList)), end='\r')
-        
-        # Load columns from .dat files
-        t = loadCol("lambda_{0}.dat".format(idx), 1)
-        x = loadCol("lambda_{0}.dat".format(idx), 2)
-        
-        # If we had a crash, then the last line may not have been completely written.
-        if len(t) > len(x):
-            t.pop()
-        elif len(t) < len(x):
-            x.pop()
-
-        plt.plot(t, x, linewidth=0.5)
-
-        # Title
-        plt.title("{0}-{1} in chain {2} in {3}.pdb\npH={4}, nstlambda={5}, deprotonation={6:.2f}".format(
-            resnameList[idx - 1],
-            residList[idx - 1],
-            chainList[idx - 1],
-            pdbName,
-            pH,
-            nstOut,
-            titrate("lambda_{}.dat".format(idx))
-        ))
-
-        # Axes and stuff
-        plt.ylim(-0.1, 1.1)
-        plt.xlabel("Time (ps)")
-        plt.ticklabel_format(axis='x', style='sci', scilimits=(0, 3))
-        plt.ylabel(r"$\lambda$-coordinate")
-        plt.grid()
-
-        # Save.
-        fileName = "{}/{}_{}-{:03d}".format(dirname, chainList[idx-1], resnameList[idx-1], residList[idx-1])
-        # plt.savefig("{}.pdf".format(fileName)); os.system("pdfcrop {0}.pdf {0}.pdf >> /dev/null 2>&1".format(fileName))
-        plt.savefig("{}.png".format(fileName))
-
-        # clf = clear the entire current figure. close = closes a window.
-        plt.clf(); plt.close()
-
-    # CREATE HISTOGRAM PLOTS FOR COMBINED PROTO STATE OF ALL FIVE CHAINS #######
-    number_of_chains   = len(set(chainList))
-    residues_per_chain = int(len(resnameList) / number_of_chains)
-    
-    for ii in range(1, residues_per_chain + 1):
-        data = []        
-        for jj in range(0, number_of_chains):
-            print(ii + residues_per_chain * jj, end=' ')
-            # data += (loadCol('lambda_{}.dat'.format(ii + residues_per_chain * jj), 2, 49713, 124320))
-            data += (loadCol('lambda_{}.dat'.format(ii + residues_per_chain * jj), 2))
-        print()
-
-        # PLOTTING STUFF #######################################################
-
-        plt.figure(figsize=(8, 6))
-        plt.hist(data, density=True, bins=200)
-        
-        # Title
-        plt.title("{0}-{1} (all chains) in {2}.pdb\npH={3}, nstlambda={4}, deprotonation={5:.2f}".format(
-            resnameList[ii-1],
-            residList[ii-1],
-            pdbName,
-            pH,
-            nstOut,
-            titrate("lambda_{}.dat".format(ii))
-            # expVals40["{0}-{1}".format(resnameList[ii-1], residList[ii-1])]
+            # Title
+            plt.title("{0}-{1} in chain {2} in {3}\npH={4}, nstlambda={5}, deprotonation={6:.2f}".format(
+                residue.d_resname,
+                residue.d_resid,
+                residue.d_chain,
+                pdbName,
+                pH,
+                nstOut,
+                titrate("lambda_{}.dat".format(idx))
             ))
 
-        # Axes and stuff
-        plt.axis([-0.1, 1.1, -0.1, 12])
-        plt.xlabel(r"$\lambda$-coordinate")
-        plt.ticklabel_format(axis='x', style='sci', scilimits=(0, 3))
-        plt.grid()
+            # Axes and stuff
+            plt.ylim(-0.1, 1.1)
+            plt.xlabel("Time (ps)")
+            plt.ticklabel_format(axis='x', style='sci', scilimits=(0, 3))
+            plt.ylabel(r"$\lambda$-coordinate")
+            plt.grid()
 
-        # Add green vertical line indicating experimental value
-        plt.vlines(x=biophys["{0}-{1}".format(resnameList[ii-1], residList[ii-1])], ymin=0, ymax=12, color='r', linewidth=4.0, label="biophysics.se/Prevost2012 = {}".format(biophys["{0}-{1}".format(resnameList[ii-1], residList[ii-1])]))
-        plt.vlines(x=nury2010["{0}-{1}".format(resnameList[ii-1], residList[ii-1])], ymin=0, ymax=10, color='g', linewidth=4.0, label="Nury2010/Cheng2010/Calimet2013 = {}".format(nury2010["{0}-{1}".format(resnameList[ii-1], residList[ii-1])]))
-        plt.vlines(x=fritsch2011["{0}-{1}".format(resnameList[ii-1], residList[ii-1])], ymin=0, ymax=8, color='b', linewidth=4.0, label="Fritsch2011 = {}".format(fritsch2011["{0}-{1}".format(resnameList[ii-1], residList[ii-1])]))
-        plt.vlines(x=lev2017["{0}-{1}".format(resnameList[ii-1], residList[ii-1])], ymin=0, ymax=6, color='c', linewidth=4.0, label="Lev2017 = {}".format(lev2017["{0}-{1}".format(resnameList[ii-1], residList[ii-1])]))
-        plt.vlines(x=nemecz2017["{0}-{1}".format(resnameList[ii-1], residList[ii-1])], ymin=0, ymax=4, color = 'm', linewidth=4.0, label="Nemecz2017/Hu2018 = {}".format(nemecz2017["{0}-{1}".format(resnameList[ii-1], residList[ii-1])]))
-        plt.vlines(x=ullman["{0}-{1}".format(resnameList[ii-1], residList[ii-1])], ymin=0, ymax=2, color='y', linewidth=4.0, label="Ullman (unpublished) = {}".format(ullman["{0}-{1}".format(resnameList[ii-1], residList[ii-1])]))
+            # Save as .png
+            plt.savefig("{}/{}_{}-{:03d}.png".format(dirname, residue.d_chain, residue.d_resname, residue.d_resid))
 
-        plt.legend()
-        # Save and clear
-        fileName = "{}/hist_{}-{:03d}".format(dirname, resnameList[ii-1], residList[ii-1])
-        # plt.savefig("{}.pdf".format(fileName)); os.system("pdfcrop {0}.pdf {0}.pdf >> /dev/null 2>&1".format(fileName))
-        plt.savefig('{}.png'.format(fileName))
-        plt.clf(); plt.close()
+            # Clear: clf = clear the entire current figure. close = closes a window
+            plt.clf(); plt.close()
 
-################################################################################
+            # Increment the lambda_xxx.dat number.
+            idx += 1
 
-# compareLambdaFiles(['lambda_1.dat', 'lambda_2.dat', 'lambda_3.dat', 'lambda_7.dat'])
-# compareLambdaFiles(['lambda_4.dat', 'lambda_5.dat', 'lambda_6.dat', 'lambda_7.dat'])
-# compareLambdaFiles(['lambda_1.dat', 'lambda_2.dat', 'lambda_3.dat', 'lambda_4.dat', 'lambda_5.dat', 'lambda_6.dat', 'lambda_7.dat'])
-# compareLambdaFiles(['lambda_1.dat', 'lambda_2.dat', 'lambda_3.dat', 'lambda_216.dat'])
+        elif residue.d_resname == 'HSPT':
+            # We want 3 different lines in the plot, so loop over 3:
+            for val in range(0, 3):
+                # User update
+                print('processing lambda_{}.dat...'.format(idx + val), end='\r')
+
+                # Load the relevant columns
+                t = loadCol('lambda_{0}.dat'.format(idx + val), 1)
+                x = loadCol("lambda_{0}.dat".format(idx + val), 2)
+
+                # Create the actual plot
+                plt.plot(t, x, linewidth=0.5, label='state {}'.format(val + 1))
+
+            # Title
+            plt.title("{}-{} in chain {} in {}\npH={}, nstlambda={}, deprotonation={:.2f}".format(
+                residue.d_resname,
+                residue.d_resid,
+                residue.d_chain,
+                pdbName,
+                pH,
+                nstOut,
+                titrate("lambda_{}.dat".format(idx))
+            ))
+
+            # Axes and stuff
+            plt.ylim(-0.1, 1.1)
+            plt.xlabel("Time (ps)")
+            plt.ticklabel_format(axis='x', style='sci', scilimits=(0, 3))
+            plt.ylabel(r"$\lambda$-coordinate")
+            plt.grid()
+            plt.legend()
+
+            # Save as .png
+            plt.savefig("{}/{}_{}-{:03d}.png".format(dirname, residue.d_chain, residue.d_resname, residue.d_resid))
+
+            # Clear: clf = clear the entire current figure. close = closes a window
+            plt.clf(); plt.close()
+
+            idx += 3
+
+    print('Finished writing individual plots')
+
+    # CREATE HISTOGRAM PLOTS FOR COMBINED PROTO STATE OF ALL FIVE CHAINS
+
+    # GATHER DATA
+
+    numChains = 5
+    resPerChain = 43    # 215 / 5
+
+    print('Loading data for writing the histograms...')
+
+    dataList = []
+    for ii in range(1, resPerChain + 1):
+        data = []
+        for jj in range(0, numChains):
+            data += (loadCol('lambda_{}.dat'.format(ii + resPerChain * jj), 2))
+        dataList.append(data)
+
+    # PERFORM HISTOGRAM PLOTTING
+
+    idx = 0
+    for residue in universe.get('d_residues'):
+        if residue.d_chain == 'A':
+
+            if residue.d_resname in ['ASPT', 'GLUT']:
+                print('Plotting {}/{}'.format(idx + 1, resPerChain), end='\r')
+
+                plt.figure(figsize=(8, 6))
+                plt.hist(dataList[idx], density=True, bins=200)
+
+                # Title
+                plt.title("{0}-{1} (all chains) in {2}.pdb\npH={3}, nstlambda={4}, deprotonation={5:.2f}".format(
+                    residue.d_resname,
+                    residue.d_resid,
+                    pdbName,
+                    pH,
+                    nstOut,
+                    titrate("lambda_{}.dat".format(ii))
+                    ))
+
+                # Axes and stuff
+                plt.axis([-0.1, 1.1, -0.1, 12])
+                plt.xlabel(r"$\lambda$-coordinate")
+                plt.ticklabel_format(axis='x', style='sci', scilimits=(0, 3))
+                plt.grid()
+
+                # Add green vertical line indicating experimental value
+                plt.vlines(x=biophys["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=12, color='r', linewidth=4.0, label="biophysics.se/Prevost2012 = {}".format(biophys["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                plt.vlines(x=nury2010["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=10, color='g', linewidth=4.0, label="Nury2010/Cheng2010/Calimet2013 = {}".format(nury2010["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                plt.vlines(x=fritsch2011["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=8, color='b', linewidth=4.0, label="Fritsch2011 = {}".format(fritsch2011["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                plt.vlines(x=lev2017["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=6, color='c', linewidth=4.0, label="Lev2017 = {}".format(lev2017["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                plt.vlines(x=nemecz2017["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=4, color = 'm', linewidth=4.0, label="Nemecz2017/Hu2018 = {}".format(nemecz2017["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                plt.vlines(x=ullman["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=2, color='y', linewidth=4.0, label="Ullman (unpublished) = {}".format(ullman["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                plt.legend()
+                
+                # Save and clear
+                plt.savefig('{}/hist_{}-{:03d}.png'.format(dirname, residue.d_resname, residue.d_resid))
+                plt.clf(); plt.close()
+
+                idx += 1
+
+            elif residue.d_resname == 'HSPT':
+                plt.figure(figsize=(8, 6))
+
+                # We want 3 different lines in the plot, so loop over 3:                
+                for val in range(0, 3):
+                    # User update
+                    print('Plotting {}/{}'.format(idx + val + 1, resPerChain), end='\r')
+
+                    # Create the acutal plot                    
+                    plt.hist(dataList[idx + val], density=True, bins=200, label='state {}'.format(val + 1), histtype='step')
+
+                # Title
+                plt.title("{0}-{1} (all chains) in {2}.pdb\npH={3}, nstlambda={4}, deprotonation={5:.2f}".format(
+                    residue.d_resname,
+                    residue.d_resid,
+                    pdbName,
+                    pH,
+                    nstOut,
+                    titrate("lambda_{}.dat".format(ii))
+                    ))
+
+                # Axes and stuff
+                plt.axis([-0.1, 1.1, -0.1, 12])
+                plt.xlabel(r"$\lambda$-coordinate")
+                plt.ticklabel_format(axis='x', style='sci', scilimits=(0, 3))
+                plt.grid()
+
+                # Add green vertical line indicating experimental value
+                plt.vlines(x=biophys["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=12, color='r', linewidth=4.0, label="biophysics.se/Prevost2012 = {}".format(biophys["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                plt.vlines(x=nury2010["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=10, color='g', linewidth=4.0, label="Nury2010/Cheng2010/Calimet2013 = {}".format(nury2010["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                plt.vlines(x=fritsch2011["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=8, color='b', linewidth=4.0, label="Fritsch2011 = {}".format(fritsch2011["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                plt.vlines(x=lev2017["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=6, color='c', linewidth=4.0, label="Lev2017 = {}".format(lev2017["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                plt.vlines(x=nemecz2017["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=4, color = 'm', linewidth=4.0, label="Nemecz2017/Hu2018 = {}".format(nemecz2017["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                plt.vlines(x=ullman["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=2, color='y', linewidth=4.0, label="Ullman (unpublished) = {}".format(ullman["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                plt.legend()
+                
+                # Save and clear
+                plt.savefig('{}/hist_{}-{:03d}.png'.format(dirname, residue.d_resname, residue.d_resid))
+                plt.clf(); plt.close()
+
+                idx += 3
+
+    print('Finished writing histograms')
