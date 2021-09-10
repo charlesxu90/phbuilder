@@ -128,21 +128,19 @@ def genparams():
         return string
 
     # Writes the lambda group type block
-    def writeBlock(number, name, dvdl, pKa, barrierE, qqA, qqB, multistate, constraintgroupidx):
+    def writeLambdaGroupTypeBlock(number, name, multistates, qqA, qqB, pKa, dvdl):
         addParam('lambda-dynamics-group-type{}-name'.format(number), name)
-        addParam('lambda-dynamics-group-type{}-dvdl-coefficients'.format(number), to_string(dvdl, 3))
-        addParam('lambda-dynamics-group-type{}-reference-pka'.format(number), pKa)
-        addParam('lambda-dynamics-group-type{}-barrier'.format(number), barrierE)
-        addParam('lambda-dynamics-group-type{}-charges-state-A'.format(number), to_string(qqA, 2))
-        addParam('lambda-dynamics-group-type{}-charges-state-B'.format(number), to_string(qqB, 2))
+        addParam('lambda-dynamics-group-type{}-n-states'.format(number), multistates)
+        addParam('lambda-dynamics-group-type{}-state-0-charges'.format(number), to_string(qqA, 2))
 
-        if multistate:
-            addParam('lambda-dynamics-group-type{}-multi-state-constraint-group-index'.format(number), constraintgroupidx)
+        for idx in range(1, multistates + 1):
+            addParam('lambda-dynamics-group-type{}-state-{}-charges'.format(number, idx), to_string(qqB[idx-1], 2))
+            addParam('lambda-dynamics-group-type{}-state-{}-reference-pka'.format(number, idx), pKa[idx-1])
+            addParam('lambda-dynamics-group-type{}-state-{}-dvdl-coefficients'.format(number, idx), to_string(dvdl[idx-1], 3))
 
         file.write('\n')
 
     number = 1
-    constraintgroupidx = 1
     # We loop over the object itself instead of the d_groupname as we need all
     # the information in the object.
     for LambdaType in LambdaTypes:
@@ -150,29 +148,32 @@ def genparams():
         # of this type in the protein.
         if (LambdaType.d_groupname in LambdaTypeNamesFoundinProtein):
 
-            multistate = len(LambdaType.d_pKa) > 1
-
-            for idx in range(0, len(LambdaType.d_pKa)):
-                writeBlock(number,
-                           LambdaType.d_groupname,
-                           LambdaType.d_dvdl[idx][::-1],
-                           LambdaType.d_pKa[idx],
-                           universe.get('ph_dwpE'),
-                           LambdaType.d_qqA,
-                           LambdaType.d_qqB[idx],
-                           multistate,
-                           constraintgroupidx)
-
-                number += 1
-
-        if multistate:
-            constraintgroupidx += 1
+            writeLambdaGroupTypeBlock(
+                number,
+                LambdaType.d_groupname,
+                len(LambdaType.d_pKa),
+                LambdaType.d_qqA,
+                LambdaType.d_qqB,
+                LambdaType.d_pKa,
+                LambdaType.d_dvdl
+            )
+            
+            number += 1
 
     # If we do charge restraining, we additionally need the block for the buffer.
     if restrainCharge:
         qqA = universe.get('ph_BUF_range')[0]
         qqB = universe.get('ph_BUF_range')[1]
-        writeBlock(number, 'BUF', universe.get('ph_BUF_dvdl')[::-1], 0, 0, [qqA], [qqB], False, 0)
+        
+        writeLambdaGroupTypeBlock(
+            number,
+            'BUF',
+            1,
+            [1.0],
+            [[0.0]],
+            [0],
+            [universe.get('ph_BUF_dvdl')]
+        )
 
     # PART 3 - WRITE LAMBDA GROUPS
     
@@ -205,10 +206,11 @@ def genparams():
             else:
                 return [float(sumA > sumB)]
 
-    def writeResBlock(number, name, QQinitial):
+    def writeResBlock(number, name, QQinitial, Edwp):
         addParam('lambda-dynamics-atom-set{}-name'.format(number), name)
         addParam('lambda-dynamics-atom-set{}-index-group-name'.format(number), 'LAMBDA{}'.format(number))
         addParam('lambda-dynamics-atom-set{}-initial-lambda'.format(number), to_string(QQinitial, 1))
+        addParam('lambda-dynamics-atom-set{}-barrier'.format(number), Edwp)
 
         if restrainCharge:
             addParam('lambda-dynamics-atom-set{}-charge-restraint-group-index'.format(number), 1)
@@ -225,13 +227,13 @@ def genparams():
         LambdaType = [obj for obj in LambdaTypes if obj.d_groupname == groupname][0]
         QQinitial  = determineLambdaInits(LambdaType.d_qqA, LambdaType.d_qqB)
 
-        writeResBlock(number, groupname, QQinitial)
+        writeResBlock(number, groupname, QQinitial, universe.get('ph_dwpE'))
         number += 1
 
     if restrainCharge:
         BUFrange   = universe.get('ph_BUF_range')
         QQinitial  = determineLambdaInits([BUFrange[0]], [[BUFrange[1]]])
-        writeResBlock(number, 'BUF', QQinitial)
+        writeResBlock(number, 'BUF', QQinitial, 0.0)
 
     file.close() # MD.mdp
 
