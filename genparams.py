@@ -222,13 +222,24 @@ def genparams():
         file.write('\n')
 
     number = 1
-    for groupname in LambdasFoundinProtein:
+    for residue in residues:
+        if residue.d_resname in LambdaTypeNamesFoundinProtein:
+            LambdaType = [obj for obj in LambdaTypes if obj.d_groupname == residue.d_resname][0]
+            QQinitial  = determineLambdaInits(LambdaType.d_qqA, LambdaType.d_qqB)
+    
+            # This interactive handler is OK for now.
+            if universe.has('ph_inter') and universe.get('ph_inter'):
+                Edwp = input("phbuilder : set bias barrier (kJ/mol) for {}-{} in chain {} (or enter for default (= {})): ".format(residue.d_resname, residue.d_resid, residue.d_chain, universe.get('ph_dwpE')))
+                if Edwp == '':
+                    Edwp = universe.get('ph_dwpE')
+                else:
+                    Edwp = float(Edwp)
+            else:
+                Edwp = universe.get('ph_dwpE')
+            
+            writeResBlock(number, residue.d_resname, QQinitial, Edwp)
 
-        LambdaType = [obj for obj in LambdaTypes if obj.d_groupname == groupname][0]
-        QQinitial  = determineLambdaInits(LambdaType.d_qqA, LambdaType.d_qqB)
-
-        writeResBlock(number, groupname, QQinitial, universe.get('ph_dwpE'))
-        number += 1
+            number += 1
 
     if restrainCharge:
         BUFrange   = universe.get('ph_BUF_range')
