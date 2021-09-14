@@ -125,9 +125,17 @@ def genparams():
         addParam('lambda-dynamics-group-type{}-n-states'.format(number), multistates)
         addParam('lambda-dynamics-group-type{}-state-0-charges'.format(number), to_string(qqA, 2))
 
+
         for idx in range(1, multistates + 1):
+            # When we have a multistate lambdagrouptype, one of the pKas should 
+            # be equal to the simulation-pH. This is done by setting this pKa 
+            # to zero in the lambdagrouptypes.dat file.
+            pKaNew = pKa[idx-1]
+            if multistates > 1 and float(pKaNew) == 0.0:
+                pKaNew = universe.get('ph_ph')
+
             addParam('lambda-dynamics-group-type{}-state-{}-charges'.format(number, idx), to_string(qqB[idx-1], 2))
-            addParam('lambda-dynamics-group-type{}-state-{}-reference-pka'.format(number, idx), pKa[idx-1])
+            addParam('lambda-dynamics-group-type{}-state-{}-reference-pka'.format(number, idx), pKaNew)
             addParam('lambda-dynamics-group-type{}-state-{}-dvdl-coefficients'.format(number, idx), to_string(dvdl[idx-1], 3))
 
         file.write('\n')
@@ -226,6 +234,7 @@ def genparams():
                     Edwp = universe.get('ph_dwpE')
                 else:
                     Edwp = float(Edwp)
+                    # print("Setting custom Edwp ({}) for residue {}-{} in chain {} (LAMBDA{})".format(Edwp, residue.d_resname, residue.d_resid, residue.d_chain, number))
             else:
                 Edwp = universe.get('ph_dwpE')
 
