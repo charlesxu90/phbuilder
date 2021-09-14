@@ -73,7 +73,7 @@ def genparams():
     # We need to count how many titratable residues in total we have in the
     # protein. For this we compile a list LambdasFoundinProtein.
     LambdasFoundinProtein = [] # (e.g ASPT ASPT GLUT ASPT GLUT ASPT...)
-    
+
     # Stores the number of buffer atoms/ions.
     buffersFoundinProtein = 0
 
@@ -99,27 +99,19 @@ def genparams():
         if len(LambdaType.d_pKa) > 1 and LambdaType.d_groupname in LambdaTypeNamesFoundinProtein:
             addParam('lambda-dynamics-multistate-constraints', 'yes')
 
-    # Because we now also have multistate, we need to check for every 
-    # LambdaTypeNameFoundinProtein how many states is has, instead of simply 
-    # using len(LambdaTypeNamesFoundinProtein) as we did previously.
-    typeCount = 0
-    for name in LambdaTypeNamesFoundinProtein:
-        LambdaType = [obj for obj in LambdaTypes if obj.d_groupname == name][0]
-        typeCount += len(LambdaType.d_pKa)
-
     # If we use charge-restraining we also have he BUF residue-type, as well as 
     # one extra lambda group containing all the BUFs.
     if restrainCharge:
-        addParam('lambda-dynamics-number-lambda-group-types', typeCount + 1)
+        addParam('lambda-dynamics-number-lambda-group-types', len(LambdaTypeNamesFoundinProtein) + 1)
         addParam('lambda-dynamics-number-atom-collections', len(LambdasFoundinProtein) + 1)
     else:
-        addParam('lambda-dynamics-number-lambda-group-types', typeCount)
+        addParam('lambda-dynamics-number-lambda-group-types', len(LambdaTypeNamesFoundinProtein))
         addParam('lambda-dynamics-number-atom-collections', len(LambdasFoundinProtein))
 
     file.write('\n')
 
     # PART 2 - WRITE LAMBDA GROUP TYPES
-    
+
     # Convert a list to a string
     def to_string(Input, round):
         string = ""
@@ -157,14 +149,14 @@ def genparams():
                 LambdaType.d_pKa,
                 LambdaType.d_dvdl
             )
-            
+
             number += 1
 
     # If we do charge restraining, we additionally need the block for the buffer.
     if restrainCharge:
         qqA = universe.get('ph_BUF_range')[0]
         qqB = universe.get('ph_BUF_range')[1]
-        
+
         writeLambdaGroupTypeBlock(
             number,
             'BUF',
@@ -176,10 +168,10 @@ def genparams():
         )
 
     # PART 3 - WRITE LAMBDA GROUPS
-    
+
     # GOAL : set the initial lambdas such that every titratable group and every
     # buffer has q = 0 at t = 0.
-    
+
     # This function evaluates (the sums of) d_qqA and d_qqB and based on this
     # returns the initial values such that the titratable site is neutral.
     def determineLambdaInits(qqA, qqB):
@@ -191,7 +183,7 @@ def genparams():
 
             for idx in range(0, len(qqB)):
                 inits.append(idx == sums.index(min(sums)))
-            
+
             return inits
 
         # In the 2state case, we simply pick the smallest abs val of the sum,
@@ -226,7 +218,7 @@ def genparams():
         if residue.d_resname in LambdaTypeNamesFoundinProtein:
             LambdaType = [obj for obj in LambdaTypes if obj.d_groupname == residue.d_resname][0]
             QQinitial  = determineLambdaInits(LambdaType.d_qqA, LambdaType.d_qqB)
-    
+
             # This interactive handler is OK for now.
             if universe.has('ph_inter') and universe.get('ph_inter'):
                 Edwp = input("phbuilder : set bias barrier (kJ/mol) for {}-{} in chain {} (or enter for default (= {})): ".format(residue.d_resname, residue.d_resid, residue.d_chain, universe.get('ph_dwpE')))
@@ -236,7 +228,7 @@ def genparams():
                     Edwp = float(Edwp)
             else:
                 Edwp = universe.get('ph_dwpE')
-            
+
             writeResBlock(number, residue.d_resname, QQinitial, Edwp)
 
             number += 1
@@ -279,7 +271,7 @@ def genparams():
                     atomIndexList.append(atomCount)
 
                 atomCount += 1
-            
+
             # Write the lambda index group and increment groupnumber
             writeTheGroup(groupNumber, atomIndexList)
             groupNumber += 1
