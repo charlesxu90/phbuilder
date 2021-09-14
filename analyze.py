@@ -161,7 +161,7 @@ def plotlambda(fileName, plotHSPT=True, plotBUF=False):
     plt.grid()
     plt.show()
 
-def glicphstates(fileName, pdbName, pH, nstOut):
+def glicphstates(fileName, pdbName, pH, nstOut, dump=0):
     # EXPERIMENTAL DATA ON PROTONATION STATES AT VARIOUS PH ####################
     biophys = { # also prevost2012
         'ASPT-13'  : 1,
@@ -417,6 +417,9 @@ def glicphstates(fileName, pdbName, pH, nstOut):
 
     print('Writing individual lambda plots...')
 
+    lines = int((1000 * dump) / (0.002 * nstOut))
+    print("Will skip first {} ns (= {} lines)".format(dump, lines))
+
     idx = 1
     # Loop through the residues
     for residue in universe.get('d_residues'):
@@ -426,8 +429,8 @@ def glicphstates(fileName, pdbName, pH, nstOut):
             print('processing lambda_{}.dat...'.format(idx), end='\r')
             
             # Load the relevant columns
-            t = loadCol('lambda_{0}.dat'.format(idx), 1)
-            x = loadCol("lambda_{0}.dat".format(idx), 2)
+            t = loadCol('lambda_{0}.dat'.format(idx), 1)[lines:]
+            x = loadCol("lambda_{0}.dat".format(idx), 2)[lines:]
 
             # Create the actual plot
             plt.plot(t, x, linewidth=0.5)
@@ -466,8 +469,8 @@ def glicphstates(fileName, pdbName, pH, nstOut):
                 print('processing lambda_{}.dat...'.format(idx + val), end='\r')
 
                 # Load the relevant columns
-                t = loadCol('lambda_{0}.dat'.format(idx + val), 1)
-                x = loadCol("lambda_{0}.dat".format(idx + val), 2)
+                t = loadCol('lambda_{0}.dat'.format(idx + val), 1)[lines:]
+                x = loadCol("lambda_{0}.dat".format(idx + val), 2)[lines:]
 
                 # Create the actual plot
                 plt.plot(t, x, linewidth=0.5, label='state {}'.format(val + 1))
@@ -514,7 +517,7 @@ def glicphstates(fileName, pdbName, pH, nstOut):
     for ii in range(1, resPerChain + 1):
         data = []
         for jj in range(0, numChains):
-            data += (loadCol('lambda_{}.dat'.format(ii + resPerChain * jj), 2))
+            data += loadCol('lambda_{}.dat'.format(ii + resPerChain * jj), 2)[lines:]
         dataList.append(data)
 
     # PERFORM HISTOGRAM PLOTTING
@@ -604,7 +607,7 @@ def glicphstates(fileName, pdbName, pH, nstOut):
 
     print('Finished writing histograms')
 
-def inverseboltzmann(fileName, resid, barrierE):
+def inverseboltzmann(fileName, resid):
 
     def barrier(l):     
         k = 4.7431      # Coded this for nothing: this is only at 7.5!
@@ -637,13 +640,14 @@ def inverseboltzmann(fileName, resid, barrierE):
         if residue.d_chain == 'A':
             if residue.d_resid == resid:
                 for jj in range(0, numChains):
-                    data += (loadCol('lambda_{}.dat'.format(idx + resPerChain * jj), 2))
+                    print("loading lambda_{}.dat...".format(idx + resPerChain * jj))
+                    data += loadCol('lambda_{}.dat'.format(idx + resPerChain * jj), 2)[50000:]
                 break
 
             if residue.d_resname in ['ASPT', 'GLUT']:
                 idx += 1
 
-            elif residue.d_resname == 'ASPT':
+            elif residue.d_resname == 'HSPT':
                 idx += 3
 
     # GET THE HISTOGRAM AND CORRESPONDING LAMBDA LISTS
