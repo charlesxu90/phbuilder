@@ -1,6 +1,6 @@
 # PYTHON_ARGCOMPLETE_OK
 
-import argparse, argcomplete, universe, utils
+import argparse, argcomplete
 
 def parsecmdline():
 
@@ -177,57 +177,4 @@ def parsecmdline():
     argcomplete.autocomplete(parser)    # Required for autocompleting using argcomplete.
     CLI = parser.parse_args()           # Do the actual parsing.
 
-    # Add universal parameters to the universe (these are used by all three targets).
-    universe.add('d_target', CLI.target)
-    universe.add('d_verbosity', CLI.verbosity)
-    
-    # If we run gentopol...
-    if (CLI.target == 'gentopol'):
-        universe.add('d_file', CLI.file)
-        universe.add('d_output', CLI.output)
-
-        # Process whether the -inter flag was or wasn't set.
-        if (CLI.inter != None):
-            universe.add('ph_inter', True)
-
-        # Process whether the -list flag was or wasn't set.
-        if (CLI.list != None):
-            resid = []
-
-            for line in open(CLI.list).readlines():
-                resid.append(line.split()[0])
-
-            resid = [int(i) for i in resid]
-
-            universe.add('ph_list_resid', resid)
-
-    # If we run addbuffers...
-    elif (CLI.target == 'addbuffers'):
-        # Either required or has a default value
-        universe.add('d_file', CLI.file)
-        universe.add('d_topol', CLI.topol)
-        universe.add('d_output', CLI.output)
-        universe.add('ph_solname', CLI.solname)
-
-        # Optional
-        if (CLI.nbufs != None):
-            universe.add('ph_nbufs', CLI.nbufs)
-
-    # If we run genparams...
-    elif (CLI.target == 'genparams'):
-        universe.add('d_file', CLI.file)
-        universe.add('d_mdp', CLI.mdp)
-        universe.add('d_ndx', CLI.ndx)
-        universe.add('ph_ph', CLI.ph)
-        universe.add('ph_nstout', CLI.nstout)
-        universe.add('ph_dwpE', CLI.dwpE)
-        universe.add('ph_lmass', CLI.lmass)
-        universe.add('ph_ltau', CLI.ltau)
-
-        # Process whether the -inter flag was or wasn't set
-        if (CLI.inter != None):
-            universe.add('ph_inter', True)
-
-    # User information.
-    utils.update("Parsed the following input from the command line:")
-    utils.update(vars(CLI))
+    return CLI

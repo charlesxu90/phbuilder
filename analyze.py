@@ -4,7 +4,7 @@ import os
 import numpy as np
 import math
 import matplotlib.pyplot as plt
-import structure, universe
+from structure import Structure
 
 def loadCol(fileName, col, start=0, stop=0):
     data = []
@@ -125,10 +125,10 @@ def compareLambdaFiles(namelist):
     plt.show()
 
 def plotlambda(fileName, plotHSPT=True, plotBUF=False):
-    structure.load(fileName)
+    pdb = Structure(fileName)
 
     idx = 1
-    for residue in universe.get('d_residues'):
+    for residue in pdb.d_residues:
         if residue.d_resname in ['ASPT', 'GLUT']:
             t = loadCol('lambda_{0}.dat'.format(idx), 1)
             x = loadCol("lambda_{0}.dat".format(idx), 2)
@@ -413,7 +413,7 @@ def glicphstates(fileName, pdbName, pH, nstOut, dump=0):
 
     # CREATE LAMBDA PLOT FOR EVERY INDIVIDUAL PROTONATABLE RESIDUE
 
-    structure.load(fileName)
+    pdb = Structure(fileName)
 
     print('Writing individual lambda plots...')
 
@@ -422,7 +422,7 @@ def glicphstates(fileName, pdbName, pH, nstOut, dump=0):
 
     idx = 1
     # Loop through the residues
-    for residue in universe.get('d_residues'):
+    for residue in pdb.d_residues:
         # If it's an ASPT or GLUT...
         if residue.d_resname in ['ASPT', 'GLUT']:
             # User update
@@ -523,7 +523,7 @@ def glicphstates(fileName, pdbName, pH, nstOut, dump=0):
     # PERFORM HISTOGRAM PLOTTING
 
     idx = 0
-    for residue in universe.get('d_residues'):
+    for residue in pdb.d_residues:
         if residue.d_chain == 'A':
 
             if residue.d_resname in ['ASPT', 'GLUT']:
@@ -632,11 +632,11 @@ def inverseboltzmann(fileName, resid):
 
     # GET THE DATA
 
-    structure.load(fileName)
+    pdb = Structure(fileName)
 
     idx = 1
     data = []
-    for residue in universe.get('d_residues'):
+    for residue in pdb.d_residues:
         if residue.d_chain == 'A':
             if residue.d_resid == resid:
                 for jj in range(0, numChains):
