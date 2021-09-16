@@ -41,7 +41,7 @@ def addbuffers():
 
     # Error if no titratable residues were found
     if not foundTitratables:
-        utils.error("{} doesn't seem to have any titratable groups! Did you forget to run gentopol?".format(universe.get('d_file'), universe.get('ph_solname')))
+        utils.update("WARNING - {} doesn't seem to have any titratable groups! Did you forget to run gentopol?".format(universe.get('d_file'), universe.get('ph_solname')))
 
     # if nbufs wasn't manually set, count the number of titratable residues.
     if not universe.has('ph_nbufs'):
