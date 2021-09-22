@@ -19,7 +19,7 @@ qqB_1  = -0.28 0.62 -0.76 -0.76 0.00
 dvdl_1 = 59.636 -429.770 514.370 -204.910 -558.210 27.157
 
 [ HSPT ]
-incl   = HIS HISH
+incl   = HIS HSD HISH 
 atoms  = CB CD2 HD2 CG NE2 HE2 ND1 HD1 CE1 HE1
 qqA    = 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00
 pKa_1  = 0.0
