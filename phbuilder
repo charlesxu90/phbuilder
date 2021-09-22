@@ -431,6 +431,8 @@ class phbuilder(Structure):
             if (val in ['1', '2']):
                 self.update("Calling GROMACS ({}/gmx)...\n".format(os.environ.get("GMXBIN")))
                 os.system("gmx pdb2gmx -f {0} -o {0} -ff {1} -water {2} -ignh {3}".format(self.d_output, self.d_modelFF, self.d_modelwater, flags))
+            if (val == '0'):
+                return
 
         # PART V - MERGE THE .PDB FILES
         
