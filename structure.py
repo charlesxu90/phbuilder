@@ -25,10 +25,6 @@ class Crystal:
 
 class Structure:
     def __init__(self, name):
-        self.d_title                  # string            holds title
-        self.d_box                    # Crystal           holds PBC information
-        self.d_residues               # List of Residues  holds Residue objects
-
         extension = os.path.splitext(name)[1]
         
         if (extension == ".pdb"):
