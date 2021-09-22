@@ -1,10 +1,10 @@
 firstLine = True # For formatting of title
 
 # Write a default .mdp file
-def gen_mdp(Type, nsteps, nstxout):
+def gen_mdp(Type, nsteps, nstxout, membrane=False):
 
     # Sanitize input for Type
-    if (Type not in ['EM', 'NVT', 'NPT', 'MD']):
+    if Type not in ['EM', 'NVT', 'NPT', 'MD']:
         raise Exception("Unknown .mdp Type specified. Types are: EM, NVT, NPT, MD.")
 
     # Open file
@@ -21,7 +21,7 @@ def gen_mdp(Type, nsteps, nstxout):
 
     # Formatting function for parameters
     def addParam(name, value, comment=''):
-        if (comment == ''):
+        if comment == '':
             file.write("{:20s} = {:13s}\n".format(name, str(value)))
         else:
             file.write("{:20s} = {:13s} ; {:13s}\n".format(name, str(value), comment))
@@ -36,13 +36,13 @@ def gen_mdp(Type, nsteps, nstxout):
 
     addTitle("Run control")
 
-    if (Type in ['EM']):
+    if Type in ['EM']:
         dt = 0.01
         addParam('integrator', 'steep', 'Use steep for EM.')
         addParam('emtol', 1000, 'Stop when max force < 1000 kJ/mol/nm.')
         addParam('emstep', dt, 'Time step (ps).')
 
-    if (Type in ['NVT', 'NPT', 'MD']):
+    if Type in ['NVT', 'NPT', 'MD']:
         dt = 0.002
         addParam('integrator', 'md')
         addParam('dt', dt, 'Time step (ps).')
@@ -61,7 +61,7 @@ def gen_mdp(Type, nsteps, nstxout):
 
     # BONDED
 
-    if (Type in ['NVT', 'NPT', 'MD']):
+    if Type in ['NVT', 'NPT', 'MD']:
         addTitle("Bond parameters")
         addParam('constraints', 'h-bonds', 'Constrain H-bond vibrations.')
         addParam('constraint_algorithm', 'lincs', 'Holonomic constraints.')
@@ -85,7 +85,7 @@ def gen_mdp(Type, nsteps, nstxout):
 
     # TEMPERATURE COUPLING
 
-    if (Type in ['NVT', 'NPT', 'MD']):
+    if Type in ['NVT', 'NPT', 'MD']:
         addTitle("Temperature coupling")
         addParam('tcoupl', 'v-rescale')
         addParam('tc-grps', 'SYSTEM')
@@ -93,23 +93,27 @@ def gen_mdp(Type, nsteps, nstxout):
         addParam('ref-t', 300, 'Reference temperature (K).')
 
     # PRESSURE COUPLING
-    
-    if (Type in ['NPT', 'MD']):
+
+    if Type in ['NPT', 'MD']:
         addTitle('Pressure coupling')
-        
-        if (Type in ['NPT']):
-            addParam('pcoupl', 'Berendsen', 'Use Berendsen for NPT.')
+        addParam('pcoupl', 'C-rescale', 'Use C-rescale barostat.')
+
+        if membrane:
+            addParam('pcoupltype', 'semiisotropic', 'Different scaling in z-direction (for membranes).')
+            addParam('tau_p', 5.0, 'Coupling strength.')
+            addParam('ref_p', '1.0 1.0', 'Reference pressure (bar).')
+            addParam('compressibility', '4.5e-05 4.5e-05', 'Isothermal compressbility of water.')
         else:
-            addParam('pcoupl', 'Parrinello-Rahman')
-        
-        addParam('pcoupltype', 'isotropic', 'Uniform scaling of box.')
-        addParam('tau_p', 5.0, 'Coupling strength.')
-        addParam('ref_p', 1.0, 'Reference pressure (bar).')
-        addParam('compressibility', 4.5e-5, 'Isothermal compressbility of water.')
-        addParam('refcoord_scaling', 'all', 'Required with position restraints.')
+            addParam('pcoupltype', 'isotropic', 'Uniform scaling of box.')
+            addParam('tau_p', 5.0, 'Coupling strength.')
+            addParam('ref_p', 1.0, 'Reference pressure (bar).')
+            addParam('compressibility', 4.5e-05, 'Isothermal compressbility of water.')
+
+        if Type == 'NPT':
+            addParam('refcoord_scaling', 'com', 'Required with position restraints.')
 
     # PERIODIC BOUNDARY CONDITIONS
-    
+
     addTitle("Periodic boundary condition")
     addParam('pbc', 'xyz', 'Apply periodic boundary conditions.')
 

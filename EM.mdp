@@ -1,4 +1,3 @@
-
 ; RUN CONTROL
 integrator           = steep         ; Use steep for EM.
 emtol                = 1000          ; Stop when max force < 1000 kJ/mol/nm.
@@ -6,21 +5,21 @@ emstep               = 0.01          ; Time step (ps).
 nsteps               = 5000          ; 0.1 ns.      
 
 ; OUTPUT CONTROL
-nstxout-compressed   = 0             ; Write frame every 0.000 ps.
+nstxout-compressed   = 0             ; Do not write any frames.
 
 ; NEIGHBOUR SEARCHING
 cutoff-scheme        = Verlet        ; Related params are inferred by Gromacs.
 
 ; ELECTROSTATICS
-coulombtype          = PME           ; Use Particle Mesh Ewald.
-rcoulomb             = 1.2           ; Berk: CHARMM was calibrated for 1.2 nm.
-fourierspacing       = 0.14          ; Berk: set this to 0.14 for CHARMM.
+coulombtype          = PME           ; Particle Mesh Ewald electrostatics.
+rcoulomb             = 1.2           ; CHARMM is calibrated for 1.2 nm.
+fourierspacing       = 0.14          ; CHARMM is calibrated for 0.14.
 
 ; VAN DER WAALS
 vdwtype              = cut-off       ; Twin range cut-off with nblist cut-off.
-rvdw                 = 1.2           ; Berk: CHARMM was calibrated for 1.2 nm.
-vdw-modifier         = force-switch  ; Berk: specific for CHARMM.
-rvdw-switch          = 1.0           ; Berk: specific for CHARMM.
+rvdw                 = 1.2           ; CHARMM is calibrated for 1.2 nm.
+vdw-modifier         = force-switch  ; Specific for CHARMM.
+rvdw-switch          = 1.0           ; Specific for CHARMM.
 
 ; PERIODIC BOUNDARY CONDITION
-pbc                  = xyz           ; To keep molecule(s) in box.
+pbc                  = xyz           ; Apply periodic boundary conditions.

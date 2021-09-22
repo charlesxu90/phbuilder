@@ -28,7 +28,7 @@ class phbuilder(Structure):
         # Add universal parameters to the universe (used by all three targets).
         self.d_target    = CLI.target
         self.d_verbosity = CLI.verbosity
-        
+
         # If we run gentopol...
         if (CLI.target == 'gentopol'):
             self.d_file   = CLI.file
@@ -76,7 +76,7 @@ class phbuilder(Structure):
                 self.ph_inter = True
             else:
                 self.ph_inter = False
-        
+
         # User information.
         self.update("Parsed the following input from the command line:")
         self.update(vars(CLI))
@@ -94,7 +94,7 @@ class phbuilder(Structure):
 
             # Create a temporary LambdaType object.
             NewLambdaType = LambdaType(groupname, incl, pKa, atoms, qqA, qqB, dvdl)
-            
+
             # Only add NewLambdaType to ph_lambdaTypes if it does not exist yet.
             alreadyPresent = False
             for entry in self.ph_lambdaTypes:
@@ -102,7 +102,7 @@ class phbuilder(Structure):
                     self.update("LambdaType with groupname {} is already defined. Skipping...")
                     alreadyPresent = True
                     break
-            
+
             if not alreadyPresent:
                 self.ph_lambdaTypes.append(NewLambdaType)
 
@@ -129,10 +129,10 @@ class phbuilder(Structure):
                 self.ph_BUF_dvdl  = str2floatList(parser.get(sect, 'dvdl'))
                 self.ph_BUF_range = str2floatList(parser.get(sect, 'range'))
                 continue
-            
+
             # Parse groupname
             groupname = sect.strip()[0:4]
-            
+
             # Parse incl
             incl = str2strList(parser.get(sect, 'incl'))
 
@@ -191,7 +191,7 @@ class phbuilder(Structure):
         if self.d_target == 'gentopol':
             self.update('Running gentopol...')
             self.gentopol()
-        
+
         elif self.d_target == 'addbuffers':
             self.update('Running addbuffers...')
             self.addbuffers()
@@ -216,7 +216,7 @@ class phbuilder(Structure):
 
         self.d_modelFF = head[0:len(head)-3]
         self.update('ffield name  = {}'.format(self.d_modelFF))
-        
+
         # PART I - MODIFIY THE STRUCTURE FILE AND WRITE
 
         self.update("Modifying structure file...")
@@ -226,7 +226,7 @@ class phbuilder(Structure):
 
         # List of titratable names, e.g. [ASPT, GLUT].
         lambdaTypeNames = [] 
-        
+
         # List of lists of all the incl names for the LambdaTypes,
         # e.g. [[ASP1, ASPH, ASPP, ASH], [GLU, GLUH, GLUP]].
         residuesToBeConsidered = []
@@ -246,7 +246,7 @@ class phbuilder(Structure):
         # If a list of specific residues was specified, load it.
         if hasattr(self, 'ph_list_resid'):
             list_resid = self.ph_list_resid
-            
+
             # User udate
             self.update('Found user-defined list of which residues to consider:')
             self.update(list_resid)
@@ -258,10 +258,10 @@ class phbuilder(Structure):
             # (i.e. it doesn't belong to any incl group), or it will have the index of 
             # the incl grou it belongs to.
             index = isTarget(residue.d_resname)
-            
+
             # If we find a residue that was specified to be titratable...
             if (index != None):
-                
+
                 # Original name of the residue before we change it. We store this
                 # here because we'll need it later for a user update.
                 origName = residue.d_resname
@@ -317,11 +317,11 @@ class phbuilder(Structure):
                     takeInput = True
 
                     while (takeInput):
-                        
+
                         # Some user updates:
                         self.update("Choose what to do with residue {}-{} in chain {}:".format(residue.d_resname, residue.d_resid, residue.d_chain))
                         self.update("0. Keep titratable (do not change name)")
-                        
+
                         for idx in range(0, len(residuesToBeConsidered[lambdaTypeNames.index(residue.d_resname)])):
                             self.update("{}. change name to {} (no longer titratable)".format(idx + 1, residuesToBeConsidered[lambdaTypeNames.index(residue.d_resname)][idx]))
 
@@ -435,7 +435,7 @@ class phbuilder(Structure):
                 return
 
         # PART V - MERGE THE .PDB FILES
-        
+
         # If pathList is not empty, i.e. if we had at least one unknown residue:
         if pathList:
             # Load the structure output of pdb2gmx (update d_residues in universe)
@@ -515,10 +515,10 @@ class phbuilder(Structure):
             LambdaTypeNames.append(LambdaType.d_groupname)
 
         for residue in pdb.d_residues:
-            
+
             if residue.d_resname == self.d_solname:
                 foundSolvent = True
-            
+
             elif residue.d_resname in LambdaTypeNames:
                 foundTitratables = True
 
@@ -623,7 +623,13 @@ class phbuilder(Structure):
         # If no .mdp file was specified on the command line, generate our default one:
         if self.d_mdp == None:
             self.update('No .mdp file was specified. Creating a default MD.mdp file...')
-            gen_mdp('MD', 50000, 5000)
+
+            val = input("phbuilder : simulating a membrane protein?\n0 no\n1 yes\n")
+            if val == '0':
+                gen_mdp('MD', 50000, 5000, membrane=False)
+            elif val == '1':
+                gen_mdp('MD', 50000, 5000, membrane=True)
+
             self.d_mdp = 'MD.mdp'
 
         # If no .ndx file was specified on the command line, generate our default one:
@@ -780,7 +786,7 @@ class phbuilder(Structure):
             else:
                 sumA = abs(sum(qqA))
                 sumB = abs(sum(qqB[0]))
-                
+
                 if sumA == -sumB:
                     return [0.5]
                 else:
