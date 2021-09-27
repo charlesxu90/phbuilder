@@ -23,6 +23,7 @@ class Crystal:
         self.d_space   = space        # Space group
         self.d_Z       = Z            # Z va
 
+# Stores a .pdb/.gro file.
 class Structure:
     def __init__(self, name):
         extension = os.path.splitext(name)[1]
@@ -85,8 +86,8 @@ class Structure:
             z.append(float(atomLines[idx][46:54]))
 
             try:
-                currentResID = int(atomLines[idx][22:26])
-                nextResID    = int(atomLines[idx + 1][22:26])
+                currentResID = int(atomLines[idx][22:27])
+                nextResID    = int(atomLines[idx + 1][22:27])
             except IndexError:
                 lastLine = True
 
@@ -126,7 +127,7 @@ class Structure:
                     if len(atom) == 3:
                         atom = ' ' + atom
 
-                    file.write("{:6s}{:5d} {:^4s}{:1s}{:4s}{:1s}{:4d}{:1s}   {:8.3f}{:8.3f}{:8.3f}\n".format('ATOM', atomNumber % 100000, atom, '', residue.d_resname, residue.d_chain, residue.d_resid, '', residue.d_x[idx], residue.d_y[idx], residue.d_z[idx]))
+                    file.write("{:6s}{:5d} {:^4s}{:1s}{:4s}{:1s}{:4d}{:1s}   {:8.3f}{:8.3f}{:8.3f}\n".format('ATOM', atomNumber % 100000, atom, '', residue.d_resname, residue.d_chain, residue.d_resid % 10000, '', residue.d_x[idx], residue.d_y[idx], residue.d_z[idx]))
                     atomNumber += 1
 
             file.write("TER\nENDMDL\n")
