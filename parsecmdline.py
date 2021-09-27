@@ -2,40 +2,50 @@
 
 import argparse, argcomplete
 
+# Parses command line using the python argparse module.
 def parsecmdline():
+    desc_1 = "phbuilder builds constant-pH simulations for GROMACS."
+    desc_2 = "Copyright Anton Jansen 2021."
+    desc_3 = "Encapsulates gmx pdb2gmx. Regenerates topology of the specified \
+              protein using our modified charmm36 force field. By default, every \
+              residue part of the incl groups specified in lambdagrouptyes.dat \
+              will be made titratable. This behavior can be modified by specifying \
+              the -inter and -list flags."
+    desc_4 = "Encapsulated gxm genion. Adds buffer particles."
+    desc_5 = "Generates the constant-pH input parameters for the .mdp file."
 
-    parser = argparse.ArgumentParser(prog='phbuilder', description="pHbuilder builds constant-pH simulations for GROMACS.", epilog="Copyright blabla")
+    parser = argparse.ArgumentParser(prog='phbuilder', description=desc_1, epilog=desc_2)
 
-    subparsers = parser.add_subparsers(title='subcommands', description="description of subparsers?", required=False)
+    subparsers = parser.add_subparsers(required=False)
 
-    parser_1  = subparsers.add_parser('gentopol', help="blabla about gentopol")
+    parser_1  = subparsers.add_parser('gentopol', help=desc_3)
     required1 = parser_1.add_argument_group("required arguments")
 
     required1.add_argument('-f', 
                         required=True,
                         dest='file',
                         action='store',
-                        help='specify structure file for input (.pdb/.gro)')
+                        help='Specify structure file for input (.pdb/.gro).')
 
     parser_1.add_argument('-o',
                         required=False,
                         dest='output',
                         action='store',
                         default='phprocessed.pdb',
-                        help='specify structure file for output (.pdb/.gro)')
+                        help='Specify structure file for output (.pdb/.gro).')
 
     parser_1.add_argument('-inter',
                         required=False,
                         dest='inter',
                         action='store_const',
                         const=1,
-                        help='Interactively select which residues to make protonatable')
+                        help='Interactively select which residues to make protonatable.')
 
     parser_1.add_argument('-list',
                         required=False,
                         dest='list',
                         action='store',
-                        help='specify list of resid(ue)s to be considered')
+                        help='Specify list of resid(ue)s to be considered.')
 
     parser_1.add_argument('-v',
                         required=False,
@@ -43,46 +53,46 @@ def parsecmdline():
                         action='store',
                         default=2,
                         choices=[0, 1, 2, 3],
-                        help='set verbosity. 0 : supress all output, 1 only warnings and errors, 2 default, 3 more verbose',
+                        help='Set verbosity. 0 : supress all output, 1 only warnings and errors, 2 default, 3 more verbose.',
                         type=int)
 
     parser_1.set_defaults(target='gentopol')
 
-    parser_2  = subparsers.add_parser('addbuffers', help="blabla about addbuffers")
+    parser_2  = subparsers.add_parser('addbuffers', help=desc_4)
     required2 = parser_2.add_argument_group("required arguments")
 
     required2.add_argument('-f', 
                         required=True,
                         dest='file',
                         action='store',
-                        help='specify structure file for input (.pdb/.gro).')
+                        help='Specify structure file for input (.pdb/.gro).')
 
     required2.add_argument('-p', 
                         required=False,
                         dest='topol',
                         action='store',
                         default='topol.top',
-                        help='specify topology file for input (.top).')
+                        help='Specify topology file for input (.top).')
 
     parser_2.add_argument('-o',
                         required=False,
                         dest='output',
                         action='store',
                         default='phbuffers.pdb',
-                        help='specify structure file for output (.pdb/.gro).')
+                        help='Specify structure file for output (.pdb/.gro).')
 
     parser_2.add_argument('-solname',
                         required=False,
                         dest='solname',
                         action='store',
                         default='SOL',
-                        help='specify name of solvent molecule.')
+                        help='Specify name of solvent molecule.')
 
     parser_2.add_argument('-nbufs',
                         required=False,
                         dest='nbufs',
                         action='store',
-                        help='specify number of buffer molecules.',
+                        help='Specify number of buffer molecules.',
                         type=int)
 
     parser_2.add_argument('-v',
@@ -91,12 +101,12 @@ def parsecmdline():
                         action='store',
                         default=2,
                         choices=[0, 1, 2, 3],
-                        help='set verbosity. 0 : supress all output, 1 only warnings and errors, 2 default, 3 more verbose.',
+                        help='Set verbosity. 0 : supress all output, 1 only warnings and errors, 2 default, 3 more verbose.',
                         type=int)
 
     parser_2.set_defaults(target='addbuffers')
 
-    parser_3  = subparsers.add_parser('genparams', help="blabla about genparams")
+    parser_3  = subparsers.add_parser('genparams', help=desc_5)
     required3 = parser_3.add_argument_group("required arguments")
 
     required3.add_argument('-f', 
@@ -177,4 +187,4 @@ def parsecmdline():
     argcomplete.autocomplete(parser)    # Required for autocompleting using argcomplete.
     CLI = parser.parse_args()           # Do the actual parsing.
 
-    return CLI
+    return CLI # object containing all the parsed key-value pairs.
