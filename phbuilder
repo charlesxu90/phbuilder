@@ -114,17 +114,20 @@ class phbuilder(Structure):
         def str2strList(string):
             return string.split(' ')
 
+        # Do the actual parsing
         parser = configparser.ConfigParser()
         parser.read("lambdagrouptypes.dat") # name is hardcoded.
 
         # Loop through the sections.
         for sect in parser.sections():
-
+            
+            # Parse force field parameters
             if (sect.strip() == "FORCEFIELD"):
                 self.d_modelFF    = parser.get(sect, 'path')
                 self.d_modelwater = parser.get(sect, 'water')
                 continue
 
+            # Parse buffer parameters
             if (sect.strip() == "BUF"):
                 self.ph_BUF_dvdl  = str2floatList(parser.get(sect, 'dvdl'))
                 self.ph_BUF_range = str2floatList(parser.get(sect, 'range'))
@@ -214,7 +217,8 @@ class phbuilder(Structure):
         self.update('residuetypes = {}/residuetypes.dat'.format(tail))
         self.update('head-path    = {}'.format(head))
 
-        self.d_modelFF = head[0:len(head)-3]
+        # Remove .ff extention from force field.
+        self.d_modelFF = os.path.splitext(head)[0]
         self.update('ffield name  = {}'.format(self.d_modelFF))
 
         # PART I - MODIFIY THE STRUCTURE FILE AND WRITE
@@ -256,7 +260,7 @@ class phbuilder(Structure):
 
             # This will either be None if the residue does not have to be considered 
             # (i.e. it doesn't belong to any incl group), or it will have the index of 
-            # the incl grou it belongs to.
+            # the incl group it belongs to.
             index = isTarget(residue.d_resname)
 
             # If we find a residue that was specified to be titratable...
@@ -272,30 +276,12 @@ class phbuilder(Structure):
 
                 # If -inter was set, ask for every residue individually:
                 if self.ph_inter:
+                    val = self.inputOptionHandler(
+                        "Choose what to do with residue {}-{} in chain {}".format(residue.d_resname, residue.d_resid, residue.d_chain), 
+                        ["Keep current (static) protonation state", "Make titratable (change name to {})".format(lambdaTypeNames[index])])
 
-                    # Handle the user input
-                    takeInput = True
-
-                    while (takeInput):
-
-                        val = input("phbuilder : Choose what to do with residue {}-{} in chain {}:\nphbuilder : 0. Keep current (static) protonation state\nphbuilder : 1. Make titratable (change name to {})\nphbuilder : Type a number: ".format(
-                            residue.d_resname,
-                            residue.d_resid,
-                            residue.d_chain,
-                            lambdaTypeNames[index]))
-
-                        if (val == '0'):
-                            takeInput = False
-
-                        elif (val == '1'):
-                            residue.d_resname = lambdaTypeNames[index]
-                            takeInput = False
-
-                        else:
-                            print("{} is not a valid option, please try again:".format(val))
-
-                        print()
-                    # End of input handling
+                    if val == 1:
+                        residue.d_resname = lambdaTypeNames[index]
 
                 else: # If -inter was not set, just protonate everything automatically.
                     residue.d_resname = lambdaTypeNames[index]
@@ -313,38 +299,18 @@ class phbuilder(Structure):
                 # If -inter was set, ask for every residue individually:
                 if self.ph_inter:
 
-                    # Handle the user input
-                    takeInput = True
+                    options = ["Keep titratable (do not change name)"]
+                    for idx in range(0, len(residuesToBeConsidered[lambdaTypeNames.index(residue.d_resname)])):
+                        options.append("Change name to {}".format(residuesToBeConsidered[lambdaTypeNames.index(residue.d_resname)][idx]))
 
-                    while (takeInput):
+                    val = self.inputOptionHandler(
+                        "Choose what to do with residue {}-{} in chain {}".format(residue.d_resname, residue.d_resid, residue.d_chain),
+                        options)
 
-                        # Some user updates:
-                        self.update("Choose what to do with residue {}-{} in chain {}:".format(residue.d_resname, residue.d_resid, residue.d_chain))
-                        self.update("0. Keep titratable (do not change name)")
-
-                        for idx in range(0, len(residuesToBeConsidered[lambdaTypeNames.index(residue.d_resname)])):
-                            self.update("{}. change name to {} (no longer titratable)".format(idx + 1, residuesToBeConsidered[lambdaTypeNames.index(residue.d_resname)][idx]))
-
-                        val = eval(input("Type a number: "))
-
-                        # Handle incorrect input:
-                        if (type(val) != int or val not in range(0, len(residuesToBeConsidered[lambdaTypeNames.index(residue.d_resname)]))):
-                            self.update("{} is not a valid option, please try again:\n".format(val))
-                            continue
-                        else:
-                            takeInput = False
-
-                        # Process the specified option:
-                        if (val == 0):
-                            continue
-                        else:
-                            residue.d_resname = residuesToBeConsidered[lambdaTypeNames.index(residue.d_resname)][val-1]
-
-                        print()
-                    # End of input handling
-
-        # Write structure.
-        pdb.write(self.d_output)
+                    if val == 0:
+                        continue
+                    else:
+                        residue.d_resname = residuesToBeConsidered[lambdaTypeNames.index(residue.d_resname)][val-1]
 
         # PART III - HANDLE UNKNOWN STRUCTURE TYPES
 
@@ -359,7 +325,7 @@ class phbuilder(Structure):
         unknownResidues = []
         unknownResTypeNames = []
         for residue in pdb.d_residues:
-            
+
             if residue.d_resname not in residueTypes:
                 unknownResidues.append(residue)
 
@@ -381,10 +347,9 @@ class phbuilder(Structure):
 
         if good:
             self.update("everything seems OK.")
+            pdb.write(self.d_output)
 
-        # If pathList is not empty, i.e. if we had at least one unknown residue
-        if pathList:
-
+        else:
             # Create a list knownResidues containing only the known residues
             knownResidues = []
             for residue in pdb.d_residues:
@@ -408,31 +373,23 @@ class phbuilder(Structure):
         self.update("\nRecommended pdb2gmx command:")
         self.update("gmx pdb2gmx -f {0} -o {0} -ff {1} -water {2} -ignh".format(self.d_output, self.d_modelFF, self.d_modelwater))
 
-        takeInput = True
-        while (takeInput):
+        # Ask for input for what to do regarding pdb2mgx
+        val = self.inputOptionHandler(
+            "Choose whether to", 
+            ["Do nothing", "Run", "Add additional flags (https://manual.gromacs.org/documentation/current/onlinehelp/gmx-pdb2gmx.html)"])
 
-            # Prompt user for input:
-            val = input("phbuilder : Choose whether to:\nphbuilder : 0. Do nothing\nphbuilder : 1. Run\nphbuilder : 2. Add additional flags (https://manual.gromacs.org/documentation/current/onlinehelp/gmx-pdb2gmx.html)\nphbuilder : Type a number: ")
+        flags = ""
+        if val == 2:
+            flags += input("phbuilder : Enter flags: ")
 
-            # Handle incorrect input:
-            if val not in ['0', '1', '2']:
-                self.update("{} is not a valid option, please try again:\n".format(val))
-                continue
-            else:
-                takeInput = False
+        # Run pdb2gmx:
+        if val in [1, 2]:
+            self.update("Calling GROMACS ({}/gmx)...\n".format(os.environ.get("GMXBIN")))
+            os.system("gmx pdb2gmx -f {0} -o {0} -ff {1} -water {2} -ignh {3}".format(self.d_output, self.d_modelFF, self.d_modelwater, flags))
 
-            # Take additional flags:
-            if (val == '2'):
-                flags = input("phbuilder : Enter flags: ")
-            else:
-                flags = ''
-
-            # Run pdb2gmx:
-            if (val in ['1', '2']):
-                self.update("Calling GROMACS ({}/gmx)...\n".format(os.environ.get("GMXBIN")))
-                os.system("gmx pdb2gmx -f {0} -o {0} -ff {1} -water {2} -ignh {3}".format(self.d_output, self.d_modelFF, self.d_modelwater, flags))
-            if (val == '0'):
-                return
+        # If we do nothing, then return because we do not want to do PART V?
+        if val == 0:
+            return
 
         # PART V - MERGE THE .PDB FILES
 
@@ -533,7 +490,7 @@ class phbuilder(Structure):
         if not foundSolvent:
             self.error("{} doesn't seem to have any {} molecules! Did you forget to add solvent?".format(self.d_file, self.d_solname))
 
-        # Error if no titratable residues were found
+        # Warning if no titratable residues were found
         if not foundTitratables:
             self.update("WARNING - {} doesn't seem to have any titratable groups! Did you forget to run gentopol?".format(self.d_file))
 
@@ -565,7 +522,7 @@ class phbuilder(Structure):
             self.d_topol,
             self.d_output,
             'BUF', 
-            self.ph_nbufs,
+            nbufs,
             self.d_solname))
 
         # PART III - WRAPUP
@@ -624,11 +581,9 @@ class phbuilder(Structure):
         if self.d_mdp == None:
             self.update('No .mdp file was specified. Creating a default MD.mdp file...')
 
-            val = input("phbuilder : simulating a membrane protein?\n0 no\n1 yes\n")
-            if val == '0':
-                gen_mdp('MD', 50000, 5000, membrane=False)
-            elif val == '1':
-                gen_mdp('MD', 50000, 5000, membrane=True)
+            val = self.inputOptionHandler("Simulating a membrane protein?", ['No', 'Yes'])
+
+            gen_mdp('MD', 50000, 5000, membrane=val)
 
             self.d_mdp = 'MD.mdp'
 
@@ -911,5 +866,25 @@ class phbuilder(Structure):
             print("phbuilder : ERROR - {} quiting...".format(message))
 
         quit()
+
+    # Handle user input.
+    def inputOptionHandler(self, message, options):
+        
+        valids = []
+        msgstring = "phbuilder : {}:".format(message)
+        
+        for idx in range(0, len(options)):
+            msgstring += "\nphbuilder : {}. {}".format(idx, options[idx])
+            valids.append(str(idx))
+
+        while True:
+            print(msgstring)
+            val = input("phbuilder : Type a number: ")
+
+            if val in valids:
+                print()
+                return int(val)
+            
+            print("phbuilder : {} is not a valid option, please try again:\n".format(val))
 
 phbuilder(CLI).runner()
