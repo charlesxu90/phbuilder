@@ -78,8 +78,8 @@ class phbuilder(Structure):
                 self.ph_inter = False
 
         # User information.
-        self.update("Parsed the following input from the command line:")
-        self.update(vars(CLI))
+        self.verbose("Parsed the following input from the command line:")
+        self.verbose(vars(CLI))
 
         self.parseLambdaGroupTypesFile()
 
@@ -99,7 +99,7 @@ class phbuilder(Structure):
             alreadyPresent = False
             for entry in self.ph_lambdaTypes:
                 if entry.d_groupname == NewLambdaType.d_groupname:
-                    self.update("LambdaType with groupname {} is already defined. Skipping...")
+                    self.warning("LambdaType with groupname {} is already defined. Skipping...")
                     alreadyPresent = True
                     break
 
@@ -171,23 +171,23 @@ class phbuilder(Structure):
 
         # USER UPDATE
 
-        self.update("ffpath    = {}".format(self.d_modelFF))
-        self.update("water     = {}".format(self.d_modelwater))
+        self.verbose("ffpath    = {}".format(self.d_modelFF))
+        self.verbose("water     = {}".format(self.d_modelwater))
 
         for obj in self.ph_lambdaTypes:
-            self.update("groupname = {}".format(obj.d_groupname))
-            self.update("incl      = {}".format(obj.d_incl))
-            self.update("pKa       = {}".format(obj.d_pKa))
-            self.update("atoms     = {}".format(obj.d_atoms))
-            self.update("qqA       = {}".format(obj.d_qqA))
-            self.update("qqB       = {}".format(obj.d_qqB))
-            self.update("dvdl      = {}\n".format(obj.d_dvdl))
+            self.verbose("groupname = {}".format(obj.d_groupname))
+            self.verbose("incl      = {}".format(obj.d_incl))
+            self.verbose("pKa       = {}".format(obj.d_pKa))
+            self.verbose("atoms     = {}".format(obj.d_atoms))
+            self.verbose("qqA       = {}".format(obj.d_qqA))
+            self.verbose("qqB       = {}".format(obj.d_qqB))
+            self.verbose("dvdl      = {}\n".format(obj.d_dvdl))
 
         if (self.ph_BUF_dvdl != None):
-            self.update("BUF_dvdl  = {}\n".format(self.ph_BUF_dvdl))
+            self.verbose("BUF_dvdl  = {}\n".format(self.ph_BUF_dvdl))
         else:
-            self.update("dvdl coefficients for buffer were not found in lambdagrouptypes.dat.")
-            self.update("This is fine if you don't plan on using charge restraining/buffers.")
+            self.warning("dvdl coefficients for buffer were not found in lambdagrouptypes.dat.")
+            self.warning("This is fine if you don't plan on using charge restraining/buffers.")
 
     # Call correct sub function depending on specified target on cmdline.
     def runner(self):
@@ -211,15 +211,15 @@ class phbuilder(Structure):
 
         os.system("cp -r {} {}/residuetypes.dat .".format(self.d_modelFF, tail))
 
-        self.update('Force field path stuff: ')
-        self.update('full-path    = {}'.format(self.d_modelFF))
-        self.update('tail-path    = {}'.format(tail))
-        self.update('residuetypes = {}/residuetypes.dat'.format(tail))
-        self.update('head-path    = {}'.format(head))
+        self.verbose('Force field path stuff: ')
+        self.verbose('full-path    = {}'.format(self.d_modelFF))
+        self.verbose('tail-path    = {}'.format(tail))
+        self.verbose('residuetypes = {}/residuetypes.dat'.format(tail))
+        self.verbose('head-path    = {}'.format(head))
 
         # Remove .ff extention from force field.
         self.d_modelFF = os.path.splitext(head)[0]
-        self.update('ffield name  = {}'.format(self.d_modelFF))
+        self.verbose('ffield name  = {}'.format(self.d_modelFF))
 
         # PART I - MODIFIY THE STRUCTURE FILE AND WRITE
 
@@ -336,7 +336,7 @@ class phbuilder(Structure):
         skipList = []   # skipList and (the manually specified path to) pathList.
         good = True
         for val in unknownResTypeNames:
-            self.update("WARNING - residue type {} in {} wasn't found in residuetypes.dat associated with {}".format(val, self.d_file, self.d_modelFF))
+            self.warning("residue type {} in {} wasn't found in residuetypes.dat associated with {}".format(val, self.d_file, self.d_modelFF))
             path = input("phbuilder : Please specify path to .itp file (e.g. /path/to/some.itp): ")
 
             skipList.append(val)
@@ -492,7 +492,7 @@ class phbuilder(Structure):
 
         # Warning if no titratable residues were found
         if not foundTitratables:
-            self.update("WARNING - {} doesn't seem to have any titratable groups! Did you forget to run gentopol?".format(self.d_file))
+            self.warning("{} doesn't seem to have any titratable groups! Did you forget to run gentopol?".format(self.d_file))
 
         # if nbufs wasn't manually set, count the number of titratable residues.
         if not hasattr(self, 'ph_nbufs'):
@@ -542,7 +542,7 @@ class phbuilder(Structure):
         if BUFcount == nbufs:
             self.update("Succesfully added {} buffer molecule(s)...".format(BUFcount))
         else:
-            self.update("Only added {}/{} buffer molecules! Try increasing box size...")
+            self.warning("Only added {}/{} buffer molecules! Try increasing box size...")
 
     # Generate parameters for MD.mdp.
     def genparams(self):
@@ -575,7 +575,7 @@ class phbuilder(Structure):
             self.error("No titratable residues detected!")
 
         if not restrainCharge:
-            self.update("No buffer(s) found. Will not use charge restraining...")
+            self.warning("No buffer(s) found. Will not use charge restraining...")
 
         # If no .mdp file was specified on the command line, generate our default one:
         if self.d_mdp == None:
@@ -840,39 +840,52 @@ class phbuilder(Structure):
 
         file.close() # index.ndx
 
-    # Provides updates of various verbosity for the user.
-    def update(self, message, verbosity=2):
-        # If specified verbosity is larger than verbosity set for the specific message, print.
-        if self.d_verbosity >= verbosity:
-
-            # Formatting for if we want to print a list.
+    # Used for messages helpful for debugging.
+    def verbose(self, message):
+        if self.d_verbosity == 3:
+            # Format list or dict.
             if type(message) == type([]) or type(message) == type({}):
-
                 print("phbuilder : ", end='')
                 print(message)
-
-            # Formatting for if we want a newline at the start.
+            # Format newline at start.
             elif message[0] == '\n':
                 print("\nphbuilder : {}".format(message[1:]))
-
+            # Format normal message.
             else:
                 print("phbuilder : {}".format(message))
 
+    # Prints regular user update.
+    def update(self, message):
+        if self.d_verbosity >= 2:
+            # Format list or dict.
+            if type(message) == type([]) or type(message) == type({}):
+                print("phbuilder : ", end='')
+                print(message)
+            # Format newline at start.
+            elif message[0] == '\n':
+                print("\nphbuilder : {}".format(message[1:]))
+            # Format normal message.
+            else:
+                print("phbuilder : {}".format(message))
+
+    # Prints warning message for the user.
+    def warning(self, message):
+        if self.d_verbosity >= 1:
+            print("phbuilder : WARNING - {}".format(message))
+
     # Prints error message for the user and quits program.
-    def error(self, message, verbosity=2):
-
-        if self.d_verbosity >= verbosity:
-
+    def error(self, message):
+        if self.d_verbosity >= 1:
             print("phbuilder : ERROR - {} quiting...".format(message))
-
         quit()
 
     # Handle user input.
     def inputOptionHandler(self, message, options):
-        
+
         valids = []
         msgstring = "phbuilder : {}:".format(message)
-        
+
+        # Loop through the options list and create string for dislay
         for idx in range(0, len(options)):
             msgstring += "\nphbuilder : {}. {}".format(idx, options[idx])
             valids.append(str(idx))
@@ -884,7 +897,7 @@ class phbuilder(Structure):
             if val in valids:
                 print()
                 return int(val)
-            
+
             print("phbuilder : {} is not a valid option, please try again:\n".format(val))
 
 phbuilder(CLI).runner()
