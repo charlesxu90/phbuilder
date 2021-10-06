@@ -7,6 +7,7 @@ CLI = parsecmdline()
 
 # Import the rest of the modules.
 import configparser, os
+from user import User
 from structure import Structure
 from mdp import gen_mdp
 
@@ -22,16 +23,17 @@ class LambdaType:
         self.d_dvdl      = dvdl       # list of lists (previously list)
 
 # Main phbuilder object.
-class phbuilder:
+class phbuilder(User):
     # Construct phbuilder object (handles input parsed from cmdline).
     def __init__(self, CLI):
+        super().__init__(CLI.verbosity)
+        
         # Add universal parameters to the universe (used by all three targets).
-        self.d_target    = CLI.target
-        self.d_verbosity = CLI.verbosity
+        self.d_target = CLI.target
+        self.d_file   = CLI.file
 
         # If we run gentopol...
         if (CLI.target == 'gentopol'):
-            self.d_file   = CLI.file
             self.d_output = CLI.output
 
             # Process whether the -inter flag was or wasn't set.
@@ -51,7 +53,6 @@ class phbuilder:
         # If we run addbuffers...
         elif (CLI.target == 'addbuffers'):
             # Either required or has a default value
-            self.d_file    = CLI.file
             self.d_output  = CLI.output
             self.d_topol   = CLI.topol
             self.d_solname = CLI.solname
@@ -62,7 +63,6 @@ class phbuilder:
 
         # If we run genparams...
         elif (CLI.target == 'genparams'):
-            self.d_file    = CLI.file
             self.d_mdp     = CLI.mdp
             self.d_ndx     = CLI.ndx
             self.ph_ph     = CLI.ph
@@ -246,8 +246,7 @@ class phbuilder:
         # PART II - LOAD DATA
 
         # Load the .pdb/.gro structure (and implictly record.dat, if it exists).
-        self.update("Loading structure file {}...".format(self.d_file))
-        pdb = Structure(self.d_file)
+        pdb = Structure(self.d_file, self.d_verbosity)
 
         # Load user-specified list of residues (if any).
         if hasattr(self, 'ph_list_resid'):
@@ -323,45 +322,55 @@ class phbuilder:
             associatedLambdaType = [lambdaType for lambdaType in self.ph_lambdaTypes if residue.d_resname == lambdaType.d_groupname]
 
             # If this list is not empty, i.e. an associated LambdaType was found,
-            # AND the -inter flag was set (it does not make sense to change anything 
-            # from titratable to static in automatic mode), then:
-            if associatedLambdaType and self.ph_inter:
+            if associatedLambdaType:
 
                 # Turn this list, containing one object, into the object.
                 associatedLambdaType = associatedLambdaType[0]
-            
+
                 # If -list was set AND the current residue is not in the list, continue to the next residue.
                 if hasattr(self, 'ph_list_resid') and (residue.d_resid not in list_resid):
                     continue
 
-                # Create the options list for inputOptionHandler
-                options = []
+                # If -inter was set, ask for every residue individually:
+                if self.ph_inter:
+                    
+                    # List to hold the various options for the user.
+                    options = []
+                    
+                    # Is this multistate yes/no? Multistate and 2state need to be treated differently.
+                    multistate = len(associatedLambdaType.d_pKa) > 1
 
-                # Is this multistate yes/no? Multistate and 2state need to be treated differently.
-                multistate = len(associatedLambdaType.d_pKa) > 1
+                    if multistate:
+                        chargeLists = associatedLambdaType.d_qqB
+                        for idx in range(0, len(chargeLists)):
+                            options.append("Keep titratable, start in state {} (q = {:+.2f})".format(idx + 1, sum(chargeLists[idx])))
 
-                if multistate:
-                    chargeLists = associatedLambdaType.d_qqB
-                    for idx in range(0, len(chargeLists)):
-                        options.append("Keep titratable, start in state {} (q = {:+.2f})".format(idx + 1, sum(chargeLists[idx])))
+                    if not multistate:
+                        chargeLists = [associatedLambdaType.d_qqA, associatedLambdaType.d_qqB[0]]
+                        for idx in range(0, len(chargeLists)):
+                            options.append("Keep titratable, start in state {} (q = {:+.2f})".format(idx, sum(chargeLists[idx])))  
 
-                if not multistate:
-                    chargeLists = [associatedLambdaType.d_qqA, associatedLambdaType.d_qqB[0]]
-                    for idx in range(0, len(chargeLists)):
-                        options.append("Keep titratable, start in state {} (q = {:+.2f})".format(idx, sum(chargeLists[idx])))  
+                    for name in associatedLambdaType.d_incl:
+                        options.append("Change name to {}".format(name))
 
-                for name in associatedLambdaType.d_incl:
-                    options.append("Change name to {}".format(name))
+                    val = self.inputOptionHandler("Choose what to do with residue {}-{} in chain {} in initial state {}".format(residue.d_resname, residue.d_resid, residue.d_chain, residue.d_init), options)
 
-                val = self.inputOptionHandler("Choose what to do with residue {}-{} in chain {} in initial state {}".format(residue.d_resname, residue.d_resid, residue.d_chain, residue.d_init), options)
+                    # If user picks one of the "still titratable" options:
+                    if val in range(0, len(chargeLists)):
+                        residue.d_init = str(val)
 
-                # If user picks one of the "still titratable" options:
-                if val in range(0, len(chargeLists)):
-                    residue.d_init = str(val)
+                    else: # Else the user picked one of the non-titratable options
+                        residue.d_resname = associatedLambdaType.d_incl[val - len(chargeLists)]
+                        residue.d_init = ' '
+                
+                # Normally, we would not have to do anything. However, if we are
+                else: # missing initial lambda values in the record, we need to add them.
+                    init = automaticLambdaInits(associatedLambdaType.d_qqA, associatedLambdaType.d_qqB)
+                    residue.d_init = str(init)
 
-                else: # Else the user picked one of the non-titratable options
-                    residue.d_resname = associatedLambdaType.d_incl[val - len(chargeLists)]
-                    residue.d_init = ' '
+            # If the residue in question is neither an ASP nor an ASPT, as an extra
+            else: # measure we make sure that nothing is present in the init field.
+                residue.d_init = ' '
 
         # PART IV - HANDLE UNKNOWN RESIDUE TYPES
 
@@ -447,7 +456,7 @@ class phbuilder:
         # If pathList is not empty, i.e. if we had at least one unknown residue:
         if pathList:
             # Load the structure output of pdb2gmx (update d_residues in universe)
-            pdb = Structure(someTempName)
+            pdb.read(someTempName)
 
             # Merge the processed structure of good residues with unknown residues
             mergedResidues = pdb.d_residues + unknownResidues
@@ -511,7 +520,7 @@ class phbuilder:
         # PART I - PREP
 
         # Load the input structure into d_residues.
-        pdb = Structure(self.d_file)
+        pdb = Structure(self.d_file, self.d_verbosity)
 
         # Perform some basic checks for PBC box, solvent, and titratable groups.
         foundPBC         = hasattr(pdb, 'd_box')
@@ -582,7 +591,7 @@ class phbuilder:
         os.remove('dummy.tpr'); os.remove('dummy.mdp')
 
         # Update d_residues in universe
-        pdb = Structure(self.d_output)
+        pdb.read(self.d_output)
 
         # Check whether the required number of buffers was added
         BUFcount = 0
@@ -600,7 +609,7 @@ class phbuilder:
         # PART I - PREP
 
         # Load the input structure into d_residues.
-        pdb = Structure(self.d_file)
+        pdb = Structure(self.d_file, self.d_verbosity)
 
         # List of groupnames of the LambdaTypes specified in lambdagrouptypes.dat.
         LambdaTypeNames = []
@@ -890,45 +899,6 @@ class phbuilder:
             writeTheGroup(groupNumber, bufferIndexList)
 
         file.close() # index.ndx
-
-    # Used for messages helpful for debugging.
-    def verbose(self, message):
-        if self.d_verbosity == 3:
-            # Format list or dict.
-            if type(message) == type([]) or type(message) == type({}):
-                print("phbuilder : ", end='')
-                print(message)
-            # Format newline at start.
-            elif message[0] == '\n':
-                print("\nphbuilder : {}".format(message[1:]))
-            # Format normal message.
-            else:
-                print("phbuilder : {}".format(message))
-
-    # Prints regular user update.
-    def update(self, message):
-        if self.d_verbosity >= 2:
-            # Format list or dict.
-            if type(message) == type([]) or type(message) == type({}):
-                print("phbuilder : ", end='')
-                print(message)
-            # Format newline at start.
-            elif message[0] == '\n':
-                print("\nphbuilder : {}".format(message[1:]))
-            # Format normal message.
-            else:
-                print("phbuilder : {}".format(message))
-
-    # Prints warning message for the user.
-    def warning(self, message):
-        if self.d_verbosity >= 1:
-            print("phbuilder : WARNING - {}".format(message))
-
-    # Prints error message for the user and quits program.
-    def error(self, message):
-        if self.d_verbosity >= 1:
-            print("phbuilder : ERROR - {} quiting...".format(message))
-        quit()
 
     # Handle user input.
     def inputOptionHandler(self, message, options):

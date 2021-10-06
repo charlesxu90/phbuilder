@@ -1,4 +1,5 @@
 import os
+from user import User
 
 # Stores the information for a residue.
 class Residue:
@@ -26,7 +27,12 @@ class Crystal:
 
 # Stores a .pdb/.gro file.
 class Structure:
-    def __init__(self, name):
+    def __init__(self, name, verbosity):
+        self.__user = User(verbosity)
+        self.read(name)
+    
+    # Read d_residues from a structure (pdb/gro) file.
+    def read(self, name):
         extension = os.path.splitext(name)[1]
 
         if (extension == ".pdb"):
@@ -51,6 +57,7 @@ class Structure:
 
     # Load a .pdb file into d_residues.
     def __read_pdb(self, name):
+        self.__user.verbose('Reading structure from {}...'.format(name))
 
         with open(name) as file:
 
@@ -114,6 +121,8 @@ class Structure:
         self.d_residues = residues
 
     def __write_pdb(self, name):
+        self.__user.verbose('Writing structure to {}...'.format(name))
+
         with open(name, 'w') as file:
             if hasattr(self, 'd_title'):
                 file.write("TITLE     {0}\n".format(self.d_title))
@@ -138,6 +147,7 @@ class Structure:
             file.write("TER\nENDMDL\n")
 
     def __read_gro(self, name):
+        self.__user.verbose('Reading structure from {}...'.format(name))
 
         atomLines = open(name).read().splitlines()
 
@@ -190,6 +200,8 @@ class Structure:
         self.d_residues = residues
 
     def __write_gro(self, name):
+        self.__user.verbose('Writing structure to {}...'.format(name))
+
         with open(name, 'w') as file:
             # Title.
             if hasattr(self, 'd_title'):
@@ -222,7 +234,7 @@ class Structure:
     # Will set any inits found in record.dat to the corresponding residue in d_residues.
     def __read_record(self):
         if os.path.isfile('record.dat'):
-            print('Found existing record of initial lambda values (record.dat). Will try to match...')
+            self.__user.update('Found existing record of initial lambda values (record.dat)...')
             # Split file by lines.
             idx = 0
             for line in open('record.dat').read().splitlines():
@@ -233,17 +245,17 @@ class Structure:
                     # Set the init value found in record.dat in corresponding residue object.
                     self.d_residues[idx].d_init = array[3]
                     # User update.
-                    print("Matched {}-{} in chain {} with record entry for {}-{} in chain {} (init = {})".format(
-                    self.d_residues[idx].d_resname, self.d_residues[idx].d_resid, self.d_residues[idx].d_chain,
-                    array[0], array[1], array[2], array[3]))
+                    self.__user.verbose("Matched {}-{} in chain {} with record entry for {}-{} in chain {} (init = {})".format(
+                        self.d_residues[idx].d_resname, self.d_residues[idx].d_resid, self.d_residues[idx].d_chain,
+                        array[0], array[1], array[2], array[3]))
                 
                 idx += 1
         else:
-            print("Did not find existing record.dat...")
+            self.__user.update("Did not find existing record of initial lambda values (record.dat)...")
 
     # Writes a record of initial lambda values to record.dat.
     def __write_record(self):
-        print('Writing record...')
+        self.__user.verbose('Writing initial lambda record to record.dat...')
         with open('record.dat', 'w+') as file:
             for residue in self.d_residues:
                 file.write("{:4s} {:4d} {:1s} {:2s}\n".format(residue.d_resname, residue.d_resid % 10000, residue.d_chain, residue.d_init))
