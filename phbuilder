@@ -187,7 +187,7 @@ class phbuilder(User):
             self.verbose("BUF_dvdl  = {}\n".format(self.ph_BUF_dvdl))
         else:
             self.warning("dvdl coefficients for buffer were not found in lambdagrouptypes.dat.")
-            self.warning("This is fine if you don't plan on using charge restraining/buffers.")
+            self.warning("This is fine if you don't plan on using charge constraining/buffers.")
 
     # Call correct sub function depending on specified target on cmdline.
     def runner(self):
@@ -205,28 +205,6 @@ class phbuilder(User):
 
     # Prepare topology.
     def gentopol(self):
-
-        # If the user does not specify the -inter flag, all the residues associated
-        # with a lambdagrouptype will by default made titratable. These residues
-        # will be put in the lowest charge state (can be changed later.)
-        def automaticLambdaInits(qqA, qqB):
-            if len(qqB) > 1:    # We can ignore qqA in the multistate case. Instead
-                inits = []      # we compile a list  of sums of the qqB states and 
-                sums  = []      # set the state with the lowest abs val charge to 1
-                for lst in qqB: # and the rest to 0.
-                    sums.append(abs(sum(lst)))
-
-                for idx in range(0, len(qqB)):
-                    if idx == sums.index(min(sums)):
-                        return idx + 1
-            # In the 2state case, we simply pick the smallest abs val of the sum,
-            # OR if the charges are opposite, the neutral charge will be in the
-            # middle, which will then corresponds to lambda = 0.5.
-            else:
-                sumA = abs(sum(qqA))
-                sumB = abs(sum(qqB[0]))
-                return int(sumA > sumB)
-
         # Part I - COPY FORCE FIELD AND RESIDUETYPES.DAT TO WORKING DIR
 
         tail, head = os.path.split(self.d_modelFF)
@@ -313,7 +291,7 @@ class phbuilder(User):
                     self.update("Made residue {}-{} in chain {} titratable (changed name to {})".format(origName, residue.d_resid, residue.d_chain, residue.d_resname))
 
                     # Additionally, use automaticLambdaInits to set the initial lambda values.
-                    init = automaticLambdaInits(associatedLambdaType.d_qqA, associatedLambdaType.d_qqB)
+                    init = self.automaticLambdaInits(associatedLambdaType.d_qqA, associatedLambdaType.d_qqB)
                     residue.d_init = str(init)
 
                 continue # Otherwise code below is executed for the same residue we just changed.
@@ -365,7 +343,7 @@ class phbuilder(User):
                 
                 # Normally, we would not have to do anything. However, if we are
                 else: # missing initial lambda values in the record, we need to add them.
-                    init = automaticLambdaInits(associatedLambdaType.d_qqA, associatedLambdaType.d_qqB)
+                    init = self.automaticLambdaInits(associatedLambdaType.d_qqA, associatedLambdaType.d_qqB)
                     residue.d_init = str(init)
 
             # If the residue in question is neither an ASP nor an ASPT, as an extra
@@ -436,7 +414,7 @@ class phbuilder(User):
         # Ask for input for what to do regarding pdb2mgx
         val = self.inputOptionHandler(
             "Choose whether to", 
-            ["Do nothing", "Run", "Add additional flags (https://manual.gromacs.org/documentation/current/onlinehelp/gmx-pdb2gmx.html)"])
+            ["Do nothing (e.g. when you just wanted to (re)generate the initial lambda record (record.dat))", "Run", "Add additional flags (https://manual.gromacs.org/documentation/current/onlinehelp/gmx-pdb2gmx.html)"])
 
         flags = ""
         if val == 2:
@@ -619,23 +597,23 @@ class phbuilder(User):
         # Check whether we have any titratable residues in the structure, and also
         # check whether we have any buffers.
         anyTitratables = False
-        restrainCharge = False
+        constrainCharge = False
 
         for residue in pdb.d_residues:
             if residue.d_resname in LambdaTypeNames:
                 anyTitratables = True
 
             elif residue.d_resname == 'BUF':
-                restrainCharge = True
+                constrainCharge = True
 
-            if anyTitratables and restrainCharge:
+            if anyTitratables and constrainCharge:
                 break
 
         if not anyTitratables:
             self.error("No titratable residues detected!")
 
-        if not restrainCharge:
-            self.warning("No buffer(s) found. Will not use charge restraining...")
+        if not constrainCharge:
+            self.warning("No buffer(s) found. Will not use charge constraining...")
 
         # If no .mdp file was specified on the command line, generate our default one:
         if self.d_mdp == None:
@@ -668,8 +646,8 @@ class phbuilder(User):
         addParam('lambda-dynamics-tau', "{:.1f}".format(self.ph_ltau))
         addParam('lambda-dynamics-update-nst', self.ph_nstout)
 
-        # If we use charge restraining...
-        if restrainCharge:
+        # If we use charge constraining...
+        if constrainCharge:
             addParam('lambda-dynamics-charge-constraints', 'yes')
 
         # We need to count how many titratable residues in total we have in the
@@ -684,7 +662,7 @@ class phbuilder(User):
                 LambdasFoundinProtein.append(residue.d_resname)
 
             # Also in this loop we count how many buffer ions we have.
-            elif restrainCharge and residue.d_resname == 'BUF':
+            elif constrainCharge and residue.d_resname == 'BUF':
                 buffersFoundinProtein += 1
 
         # The fact that we have a LambdaType in lambdagrouptypes.dat does not mean
@@ -701,9 +679,9 @@ class phbuilder(User):
             if len(LambdaType.d_pKa) > 1 and LambdaType.d_groupname in LambdaTypeNamesFoundinProtein:
                 addParam('lambda-dynamics-multistate-constraints', 'yes')
 
-        # If we use charge-restraining we also have he BUF residue-type, as well as 
+        # If we use charge constraining we also have he BUF residue-type, as well as 
         # one extra lambda group containing all the BUFs.
-        if restrainCharge:
+        if constrainCharge:
             addParam('lambda-dynamics-number-lambda-group-types', len(LambdaTypeNamesFoundinProtein) + 1)
             addParam('lambda-dynamics-number-atom-collections', len(LambdasFoundinProtein) + 1)
         else:
@@ -761,8 +739,8 @@ class phbuilder(User):
 
                 number += 1
 
-        # If we do charge restraining, we additionally need the block for the buffer.
-        if restrainCharge:
+        # If we do charge constraining, we additionally need the block for the buffer.
+        if constrainCharge:
             qqA = self.ph_BUF_range[0]
             qqB = self.ph_BUF_range[1]
 
@@ -778,42 +756,13 @@ class phbuilder(User):
 
         # PART 3 - WRITE LAMBDA GROUPS
 
-        # GOAL : set the initial lambdas such that every titratable group and every
-        # buffer has q = 0 at t = 0.
-
-        # This function evaluates (the sums of) d_qqA and d_qqB and based on this
-        # returns the initial values such that the titratable site is neutral.
-        def determineLambdaInits(qqA, qqB):
-            if len(qqB) > 1:    # We can ignore qqA in the multistate case. Instead
-                inits = []      # we compile a list  of sums of the qqB states and 
-                sums  = []      # set the state with the lowest abs val charge to 1
-                for lst in qqB: # and the rest to 0.
-                    sums.append(abs(sum(lst)))
-
-                for idx in range(0, len(qqB)):
-                    inits.append(idx == sums.index(min(sums)))
-
-                return inits
-
-            # In the 2state case, we simply pick the smallest abs val of the sum,
-            # OR if the charges are opposite, the neutral charge will be in the
-            # middle, which will then corresponds to lambda = 0.5.
-            else:
-                sumA = abs(sum(qqA))
-                sumB = abs(sum(qqB[0]))
-
-                if sumA == -sumB:
-                    return [0.5]
-                else:
-                    return [float(sumA > sumB)]
-
-        def writeResBlock(number, name, QQinitial, Edwp):
+        def writeResBlock(number, name, initList, Edwp):
             addParam('lambda-dynamics-atom-set{}-name'.format(number), name)
             addParam('lambda-dynamics-atom-set{}-index-group-name'.format(number), 'LAMBDA{}'.format(number))
-            addParam('lambda-dynamics-atom-set{}-initial-lambda'.format(number), to_string(QQinitial, 1))
+            addParam('lambda-dynamics-atom-set{}-initial-lambda'.format(number), to_string(initList, 0))
             addParam('lambda-dynamics-atom-set{}-barrier'.format(number), Edwp)
 
-            if restrainCharge:
+            if constrainCharge:
                 addParam('lambda-dynamics-atom-set{}-charge-restraint-group-index'.format(number), 1)
 
             if (name == 'BUF'):
@@ -823,30 +772,50 @@ class phbuilder(User):
             file.write('\n')
 
         number = 1
-        for residue in pdb.d_residues:
-            if residue.d_resname in LambdaTypeNamesFoundinProtein:
-                LambdaType = [obj for obj in self.ph_lambdaTypes if obj.d_groupname == residue.d_resname][0]
-                QQinitial  = determineLambdaInits(LambdaType.d_qqA, LambdaType.d_qqB)
 
-                # This interactive handler is OK for now.
+        for residue in pdb.d_residues:
+
+            if residue.d_resname in LambdaTypeNamesFoundinProtein:
+
+                LambdaType = [obj for obj in self.ph_lambdaTypes if obj.d_groupname == residue.d_resname][0]
+                multistate = len(LambdaType.d_pKa) > 1
+
+                # HANDLE INTERACTIVE EDWP
+
                 if self.ph_inter:
-                    Edwp = input("phbuilder : set bias barrier (kJ/mol) for {}-{} in chain {} (or enter for default (= {})): ".format(residue.d_resname, residue.d_resid, residue.d_chain, self.ph_dwpE))
+                    Edwp = input("phbuilder : set bias barrier (kJ/mol) for {}-{} in chain {} (or hit enter for default = {}): ".format(residue.d_resname, residue.d_resid, residue.d_chain, self.ph_dwpE))
                     if Edwp == '':
                         Edwp = self.ph_dwpE
                     else:
                         Edwp = float(Edwp)
-                        # print("Setting custom Edwp ({}) for residue {}-{} in chain {} (LAMBDA{})".format(Edwp, residue.d_resname, residue.d_resid, residue.d_chain, number))
+                        self.verbose("Setting custom Edwp ({}) for residue {}-{} in chain {} (LAMBDA{})".format(Edwp, residue.d_resname, residue.d_resid, residue.d_chain, number))
                 else:
                     Edwp = self.ph_dwpE
 
-                writeResBlock(number, residue.d_resname, QQinitial, Edwp)
+                # HANDLE INITIAL LAMBDA FROM RECORD.DAT
+
+                init = residue.d_init
+                if init == '':
+                    init = self.automaticLambdaInits(LambdaType.d_qqA, LambdaType.d_qqB)
+                    self.warning('Initial lambda value for residue {}-{} in chain {} not found! Check your record.dat file. Will revert to automatic (state {}), but your system might no-longer be neutral.'.format(residue.d_resname, residue.d_resid, residue.d_chain, init))
+
+                if multistate:
+                    initList = []
+                    for idx in range(0, len(LambdaType.d_pKa)):
+                        initList.append(idx == int(init) - 1)
+
+                if not multistate:
+                    initList = [init]
+
+                # DO THE WRITING
+
+                writeResBlock(number, residue.d_resname, initList, Edwp)
 
                 number += 1
 
-        if restrainCharge:
-            BUFrange   = self.ph_BUF_range
-            QQinitial  = determineLambdaInits([BUFrange[0]], [[BUFrange[1]]])
-            writeResBlock(number, 'BUF', QQinitial, 0.0)
+        if constrainCharge:
+            # Write block for the buffer.
+            writeResBlock(number, 'BUF', [1.0], 0.0)
 
         file.close() # MD.mdp
 
@@ -886,7 +855,7 @@ class phbuilder(User):
                 writeTheGroup(groupNumber, atomIndexList)
                 groupNumber += 1
 
-            elif restrainCharge and residue.d_resname == 'BUF':
+            elif constrainCharge and residue.d_resname == 'BUF':
                 bufferIndexList.append(atomCount)
                 atomCount += 1
 
@@ -894,8 +863,8 @@ class phbuilder(User):
                 for atom in residue.d_atoms:
                     atomCount += 1
 
-        # If we do charge restraining write the lambda index group for the buffer(s)
-        if restrainCharge:
+        # If we do charge constraining write the lambda index group for the buffer(s)
+        if constrainCharge:
             writeTheGroup(groupNumber, bufferIndexList)
 
         file.close() # index.ndx
@@ -920,5 +889,26 @@ class phbuilder(User):
                 return int(val)
 
             print("phbuilder : {} is not a valid option, please try again:\n".format(val))
+
+    # If the user does not specify the -inter flag, all the residues associated
+    # with a lambdagrouptype will by default made titratable. These residues
+    # will be put in the lowest charge state (can be changed later.)
+    def automaticLambdaInits(self, qqA, qqB):
+        if len(qqB) > 1:    # We can ignore qqA in the multistate case. Instead
+            inits = []      # we compile a list  of sums of the qqB states and 
+            sums  = []      # set the state with the lowest abs val charge to 1
+            for lst in qqB: # and the rest to 0.
+                sums.append(abs(sum(lst)))
+
+            for idx in range(0, len(qqB)):
+                if idx == sums.index(min(sums)):
+                    return idx + 1
+        # In the 2state case, we simply pick the smallest abs val of the sum,
+        # OR if the charges are opposite, the neutral charge will be in the
+        # middle, which will then corresponds to lambda = 0.5.
+        else:
+            sumA = abs(sum(qqA))
+            sumB = abs(sum(qqB[0]))
+            return int(sumA > sumB)
 
 phbuilder(CLI).runner()
