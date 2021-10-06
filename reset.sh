@@ -1,7 +1,7 @@
 #!/bin/bash
 
 rm -rf __py* charmm*
-rm -f residuetypes.dat universe phprocessed.pdb
+rm -f residuetypes.dat universe phprocessed.pdb record.dat
 
 rm -f \#*
 rm -f *.top *.gro *.itp

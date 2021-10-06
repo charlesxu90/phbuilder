@@ -5,11 +5,12 @@ class Residue:
     def __init__(self, atoms, resname, chain, resid, x, y, z):
         self.d_atoms   = atoms        # list      holds atom types
         self.d_resname = resname      # string    holds residue name
-        self.d_chain   = chain        # string    holds chain name (A, B, etc.)
+        self.d_chain   = chain        # string    holds chain identifer
         self.d_resid   = resid        # int       holds residue number
         self.d_x       = x            # list      holds x-coordinates
         self.d_y       = y            # list      holds y-coordinates
         self.d_z       = z            # list      holds z-coordinates
+        self.d_init    = ''           # string    holds the initial lambda value (for record)
 
 # Stores the information for the periodic box.
 class Crystal:
@@ -27,12 +28,14 @@ class Crystal:
 class Structure:
     def __init__(self, name):
         extension = os.path.splitext(name)[1]
-        
+
         if (extension == ".pdb"):
             self.__read_pdb(name)
+            self.__read_record()
 
         if (extension == ".gro"):
             self.__read_gro(name)
+            self.__read_record()
 
     # Writes d_residues to a structure (pdb/gro) file.
     def write(self, name):
@@ -40,9 +43,11 @@ class Structure:
 
         if (extension == ".pdb"):
             self.__write_pdb(name)
+            self.__write_record()
 
         if (extension == ".gro"):
             self.__write_gro(name)
+            self.__write_record()
 
     # Load a .pdb file into d_residues.
     def __read_pdb(self, name):
@@ -92,10 +97,10 @@ class Structure:
                 lastLine = True
 
             if (currentResID != nextResID or lastLine):
-                
+
                 currentResName = atomLines[idx][17:21].strip()
                 currentChain   = atomLines[idx][21:22]
-                
+
                 # Create the Residue object.
                 residues.append(Residue(atoms, currentResName, currentChain, currentResID, x, y, z))
 
@@ -122,7 +127,7 @@ class Structure:
             atomNumber = 1
             for residue in self.d_residues:
                 for idx in range(0, len(residue.d_atoms)):
-                    
+
                     atom = residue.d_atoms[idx]
                     if len(atom) == 3:
                         atom = ' ' + atom
@@ -212,3 +217,33 @@ class Structure:
                 file.write("{:>10.5f}{:>10.5f}{:>10.5f}\n".format(cryst.d_a/10, cryst.d_b/10, cryst.d_c/10))
             else:
                 file.write("{:>10.5f}{:>10.5f}{:>10.5f}\n".format(0.0, 0.0, 0.0))
+
+    # Reads the record of initial lambda values (record.dat) if it exists.
+    # Will set any inits found in record.dat to the corresponding residue in d_residues.
+    def __read_record(self):
+        if os.path.isfile('record.dat'):
+            print('Found existing record of initial lambda values (record.dat). Will try to match...')
+            # Split file by lines.
+            idx = 0
+            for line in open('record.dat').read().splitlines():
+                # Split line by whitespace.
+                array = line.split()
+                # Only try to acces array[3] if there actually is a value there.
+                if len(array) == 4:
+                    # Set the init value found in record.dat in corresponding residue object.
+                    self.d_residues[idx].d_init = array[3]
+                    # User update.
+                    print("Matched {}-{} in chain {} with record entry for {}-{} in chain {} (init = {})".format(
+                    self.d_residues[idx].d_resname, self.d_residues[idx].d_resid, self.d_residues[idx].d_chain,
+                    array[0], array[1], array[2], array[3]))
+                
+                idx += 1
+        else:
+            print("Did not find existing record.dat...")
+
+    # Writes a record of initial lambda values to record.dat.
+    def __write_record(self):
+        print('Writing record...')
+        with open('record.dat', 'w+') as file:
+            for residue in self.d_residues:
+                file.write("{:4s} {:4d} {:1s} {:2s}\n".format(residue.d_resname, residue.d_resid % 10000, residue.d_chain, residue.d_init))
