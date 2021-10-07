@@ -2,6 +2,7 @@
 
 rm -rf __py* charmm*
 rm -f residuetypes.dat universe phprocessed.pdb record.dat
+rm -f box.pdb solvated.pdb pdb2gmxtemp.pdb ions.pdb buffers.pdb
 
 rm -f \#*
 rm -f *.top *.gro *.itp
