@@ -189,6 +189,28 @@ class phbuilder(User):
             self.warning("dvdl coefficients for buffer were not found in lambdagrouptypes.dat.")
             self.warning("This is fine if you don't plan on using charge constraining/buffers.")
 
+    # Function to encapsulate GROMACS calls
+    def gromacs(self, cmdstring, EOF='', terminal=False, logFile='builder.log'):
+        self.verbose('GROMACS location is {}/gmx...'.format(os.environ.get('GMXBIN')))
+        
+        command = "gmx {}".format(cmdstring)
+        temp = command
+
+        # If we do not want output in the terminal, send it to a (log) file.
+        if not terminal:
+            command += " >> {} 2>&1".format(logFile)
+
+        # If we want some EOF input (i.e. echo SOL | gmx genion ...)
+        if EOF != '':
+            command += " << EOF\n{}\nEOF".format(EOF)
+
+        self.verbose("Running {} ...".format(temp))
+
+        exitcode = os.system(command)
+
+        if os.system(command) != 0:
+            self.error("Failed to run {} (exitcode {}). Check your logfile ({})".format(command, exitcode, logFile))
+
     # Call correct sub function depending on specified target on cmdline.
     def runner(self):
         if self.d_target == 'gentopol':
@@ -422,8 +444,7 @@ class phbuilder(User):
 
         # Run pdb2gmx:
         if val in [1, 2]:
-            self.update("Calling GROMACS ({}/gmx)...\n".format(os.environ.get("GMXBIN")))
-            os.system("gmx pdb2gmx -f {0} -o {0} -ff {1} -water {2} -ignh {3}".format(self.d_output, self.d_modelFF, self.d_modelwater, flags))
+            self.gromacs("pdb2gmx -f {0} -o {0} -ff {1} -water {2} -ignh {3}".format(self.d_output, self.d_modelFF, self.d_modelwater, flags), terminal=True)
 
         # If we do nothing, then return because we do not want to do PART V?
         if val == 0:
@@ -491,6 +512,80 @@ class phbuilder(User):
 
         self.update("Finished generating topology for constant-pH.")
 
+    def chargeAtConstantpH(self, pdb):
+
+        # Error if record.dat wasn't found
+        if not os.path.isfile('record.dat'):
+            self.error("Cannot determine total charge for cpHMD because record.dat was not found.")
+
+        # I - GET TOTAL CHARGE OF SYSTEM IN CLASSICAL MODE
+
+        QQtotalClassic = 0
+
+        # Generate .tpr file
+        open('charge.mdp', 'w').close()
+        self.gromacs("grompp -f charge.mdp -c {} -p topol.top".format(self.d_file), logFile='charge.log')
+
+        # Grep total charge from output message of grompp
+        for line in open('charge.log').read().splitlines():
+            if "non-zero total charge" in line:
+                QQtotalClassic = float(line.split()[-1])
+                break
+
+        # Cleanup
+        os.remove('charge.mdp'); os.remove('charge.log')
+
+        # II - GET TOTAL CHARGE OF TITRATABLE RESIDUES IN CONSTANT-PH MODE
+
+        QQinitLambda = 0        # Here we want to answer how much the sum of charges
+        QQmaxProto = 0          # based on initial lambdas is different from the sum
+                                # of charges based on the most protonated state.
+        for residue in pdb.d_residues:
+            
+            # If this is a titratable residue (for which an initial lambda value was set)...
+            if residue.d_init != '':
+                
+                # Get the associated LambdaType object
+                LambdaType = [lambdaType for lambdaType in self.ph_lambdaTypes if residue.d_resname == lambdaType.d_groupname][0]
+                multistate = len(LambdaType.d_pKa) > 1
+
+                if multistate:
+                    # Charge based on initial lambda value
+                    QQinitLambda += sum(LambdaType.d_qqB[int(residue.d_init) - 1])
+
+                    sums = []
+                    for array in LambdaType.d_qqB:
+                        sums.append(sum(array))
+
+                    # Charge based on most protonated state
+                    QQmaxProto += max(sums)
+
+                if not multistate:
+                    
+                    # Charge based on initial lambda value
+                    if int(residue.d_init) == 0:
+                        QQinitLambda  += sum(LambdaType.d_qqA)
+
+                    # Charge based on initial lambda value
+                    if int(residue.d_init) == 1:
+                        QQinitLambda  += sum(LambdaType.d_qqB)
+
+                    # Charge based on most protonated state
+                    QQmaxProto += max(sum(LambdaType.d_qqA), sum(LambdaType.d_qqB[0]))
+
+        # III - GET TOTAL CHARGE OF SYSTEM IN CONSTANT-PH MODE + USER UPDATE
+
+        QQdiff = QQmaxProto - QQinitLambda
+        QQtotalcpHMD = QQtotalClassic - QQdiff
+
+        self.verbose("Charge of system in normal MD                  = {:+.2f}".format(QQtotalClassic))
+        self.verbose("Charge of titratables based on initial lambdas = {:+.2f}".format(QQinitLambda))
+        self.verbose("Charge of titratables in most protonated state = {:+.2f}".format(QQmaxProto))
+        self.verbose("Charge difference between the two              = {:+.2f}".format(QQdiff))
+        self.verbose("Charge of system in constant-pH MD             = {:+.2f}".format(QQtotalcpHMD))
+
+        return QQtotalcpHMD
+
     # Add buffers.
     def addbuffers(self):
         maxChargeOnBuffer = 0.3
@@ -499,6 +594,9 @@ class phbuilder(User):
 
         # Load the input structure into d_residues.
         pdb = Structure(self.d_file, self.d_verbosity)
+
+        # Get the charge.
+        self.chargeAtConstantpH(pdb)
 
         # Perform some basic checks for PBC box, solvent, and titratable groups.
         foundPBC         = hasattr(pdb, 'd_box')
@@ -552,16 +650,11 @@ class phbuilder(User):
         # Create dummy mdp file for gmx grompp
         open('dummy.mdp', 'w').close()
 
-        # Run gmx grompp to create a .tpr file for gmx genion
-        os.system("gmx grompp -f dummy.mdp -c {} -p {} -o dummy.tpr >> builder.log 2>&1".format(self.d_file, self.d_topol))
+        # Create .tpr file for gmx genion
+        self.gromacs("grompp -f dummy.mdp -c {} -p {} -o dummy.tpr".format(self.d_file, self.d_topol))
 
         # Run gxm genion to replace some solvent molecules with buffers
-        os.system("gmx genion -s dummy.tpr -p {} -o {} -pname {} -np {} >> builder.log 2>&1 << EOF\n{}\nEOF".format(
-            self.d_topol,
-            self.d_output,
-            'BUF', 
-            nbufs,
-            self.d_solname))
+        self.gromacs("genion -s dummy.tpr -p {} -o {} -pname {} -np {}".format(self.d_topol, self.d_output, 'BUF', nbufs), EOF=self.d_solname)
 
         # PART III - WRAPUP
 
@@ -628,7 +721,7 @@ class phbuilder(User):
         # If no .ndx file was specified on the command line, generate our default one:
         if self.d_ndx == None:
             self.update('No .ndx file was specified. Creating a default index.ndx file...')
-            os.system("gmx make_ndx -f {0} >> builder.log 2>&1 << EOF\nq\nEOF".format(self.d_file))
+            self.gromacs("make_ndx -f {}".format(self.d_file), EOF='q')
 
         file = open(self.d_mdp, 'a')
 
