@@ -238,16 +238,18 @@ class Structure:
             # Split file by lines.
             idx = 0
             for line in open('record.dat').read().splitlines():
-                # Split line by whitespace.
-                array = line.split()
-                # Only try to acces array[3] if there actually is a value there.
-                if len(array) == 4:
+                resname = line[0:4].strip()
+                resid   = int(line[5:9])
+                chain   = line[10:11]
+                init    = line[12:14].strip()
+
+                if (init != ""):
                     # Set the init value found in record.dat in corresponding residue object.
-                    self.d_residues[idx].d_init = array[3]
+                    self.d_residues[idx].d_init = init
                     # User update.
                     self.__user.verbose("Matched {}-{} in chain {} with record entry for {}-{} in chain {} (init = {})".format(
                         self.d_residues[idx].d_resname, self.d_residues[idx].d_resid, self.d_residues[idx].d_chain,
-                        array[0], array[1], array[2], array[3]))
+                        resname, resid, chain, init))
                 
                 idx += 1
         else:

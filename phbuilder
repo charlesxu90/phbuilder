@@ -805,7 +805,7 @@ class phbuilder(User):
                         initList.append(idx == int(init) - 1)
 
                 if not multistate:
-                    initList = [init]
+                    initList = [int(init)]
 
                 # DO THE WRITING
 
