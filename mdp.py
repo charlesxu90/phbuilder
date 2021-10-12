@@ -47,12 +47,12 @@ def gen_mdp(Type, nsteps, nstxout, membrane=False):
         addParam('integrator', 'md')
         addParam('dt', dt, 'Time step (ps).')
 
-    addParam('nsteps', nsteps, "{:.1f} ns.".format((dt * nsteps)/1000.0))
+    addParam('nsteps', nsteps, "{:d} ps.".format(int(dt * nsteps)))
 
     # OUTPUT
 
     addTitle("Output control")
-    addParam('nstxout-compressed', nstxout, 'Write .xtc frame every {:.1f} ps.'.format(dt * nstxout))
+    addParam('nstxout-compressed', nstxout, 'Write .xtc frame every {:d} ps.'.format(int(dt * nstxout)))
 
     # NEIGHBOUR SEARCHING
 
@@ -120,3 +120,4 @@ def gen_mdp(Type, nsteps, nstxout, membrane=False):
     # WRAP UP
 
     file.close()
+    global firstLine; firstLine = True

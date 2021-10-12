@@ -27,7 +27,7 @@ class phbuilder(User):
     # Construct phbuilder object (handles input parsed from cmdline).
     def __init__(self, CLI):
         super().__init__(CLI.verbosity)
-        
+
         # Add universal parameters to the universe (used by all three targets).
         self.d_target = CLI.target
         self.d_file   = CLI.file
@@ -66,7 +66,6 @@ class phbuilder(User):
 
         # If we run genparams...
         elif (CLI.target == 'genparams'):
-            self.d_mdp     = CLI.mdp
             self.d_ndx     = CLI.ndx
             self.ph_ph     = CLI.ph
             self.ph_nstout = CLI.nstout
@@ -195,7 +194,7 @@ class phbuilder(User):
     # Function to encapsulate GROMACS calls
     def gromacs(self, cmdstring, EOF='', terminal=False, logFile='builder.log'):
         self.verbose('GROMACS location is {}/gmx...'.format(os.environ.get('GMXBIN')))
-        
+
         command = "gmx {}".format(cmdstring)
         temp = command
 
@@ -254,7 +253,7 @@ class phbuilder(User):
         # Load user-specified list of residues (if any).
         if hasattr(self, 'ph_list_resid'):
             list_resid = self.ph_list_resid
-            
+
             self.update('Found user-defined list containing residues to consider...')
             self.verbose(list_resid)
 
@@ -264,7 +263,7 @@ class phbuilder(User):
 
         # Loop through all the residue objects.
         for residue in pdb.d_residues:
-            
+
             # Get the lambdaType object for which d_incl contains residue.d_resname (if any).
             associatedLambdaType = [lambdaType for lambdaType in self.ph_lambdaTypes if residue.d_resname in lambdaType.d_incl]
 
@@ -273,7 +272,7 @@ class phbuilder(User):
 
                 # Turn this list, containing one object, into the object.
                 associatedLambdaType = associatedLambdaType[0]
-            
+
                 # If -list was set AND the current residue is not in the list, continue to the next residue.
                 if hasattr(self, 'ph_list_resid') and (residue.d_resid not in list_resid):
                     continue
@@ -336,10 +335,10 @@ class phbuilder(User):
 
                 # If -inter was set, ask for every residue individually:
                 if self.ph_inter:
-                    
+
                     # List to hold the various options for the user.
                     options = []
-                    
+
                     # Is this multistate yes/no? Multistate and 2state need to be treated differently.
                     multistate = len(associatedLambdaType.d_pKa) > 1
 
@@ -365,7 +364,7 @@ class phbuilder(User):
                     else: # Else the user picked one of the non-titratable options
                         residue.d_resname = associatedLambdaType.d_incl[val - len(chargeLists)]
                         residue.d_init = ' '
-                
+
                 # Normally, we would not have to do anything. However, if we are
                 else: # missing initial lambda values in the record, we need to add them.
                     init = self.automaticLambdaInits(associatedLambdaType.d_qqA, associatedLambdaType.d_qqB)
@@ -518,10 +517,10 @@ class phbuilder(User):
     # Returns total charge of system from a classical MD perspective.
     def charge_classic(self, file, topol):
         QQtotalClassic = 0
-        
+
         open('charge.mdp', 'w').close() # Generate .tpr file
         self.gromacs("grompp -f charge.mdp -c {} -p {}".format(file, topol), logFile='charge.log')
-        
+
         # Grep total charge from output message of grompp
         for line in open('charge.log').read().splitlines():
             if "non-zero total charge" in line:
@@ -543,10 +542,10 @@ class phbuilder(User):
         QQmaxProto = 0          # based on initial lambdas is different from the sum
                                 # of charges based on the most protonated state.
         for residue in pdb.d_residues:
-            
+
             # If this is a titratable residue (for which an initial lambda value was set)...
             if residue.d_init != '':
-                
+
                 # Get the associated LambdaType object
                 LambdaType = [lambdaType for lambdaType in self.ph_lambdaTypes if residue.d_resname == lambdaType.d_groupname][0]
                 multistate = len(LambdaType.d_pKa) > 1
@@ -563,7 +562,7 @@ class phbuilder(User):
                     QQmaxProto += max(sums)
 
                 if not multistate:
-                    
+
                     # Charge based on initial lambda value
                     if int(residue.d_init) == 0:
                         QQinitLambda  += sum(LambdaType.d_qqA)
@@ -711,7 +710,7 @@ class phbuilder(User):
 
         else:
             nbufs = self.ph_nbufs
-        
+
         self.update("Will add {} buffer(s)...".format(nbufs))
 
         # Create .tpr file for gmx genion
@@ -731,9 +730,9 @@ class phbuilder(User):
         os.remove('buffers.tpr')
 
         # Check if the correct number of ions and buffers are present in the output file.
-        
+
         self.update('Checking whether everything was succesful...'.format(self.d_output))
-        
+
         pdb.read(self.d_output)
 
         countPions = self.countRes(pdb, self.d_pname)
@@ -781,209 +780,222 @@ class phbuilder(User):
         if not constrainCharge:
             self.warning("No buffer(s) found. Will not use charge constraining...")
 
-        # If no .mdp file was specified on the command line, generate our default one:
-        if self.d_mdp == None:
-            self.update('No .mdp file was specified. Creating a default MD.mdp file...')
+        val = self.inputOptionHandler("Simulating a membrane protein? (this will modify some barostat parameters)", ['No', 'Yes'])
 
-            val = self.inputOptionHandler("Simulating a membrane protein?", ['No', 'Yes'])
+        gen_mdp(Type='EM', nsteps=5000, nstxout=0)
+        self.update('Wrote a default EM.mdp file (for energy minimization)...')
 
-            gen_mdp('MD', 50000, 5000, membrane=val)
+        gen_mdp(Type='NVT', nsteps=5000, nstxout=0)
+        self.update('Wrote a default NPT.mdp file (for temperature coupling)...')
 
-            self.d_mdp = 'MD.mdp'
+        gen_mdp(Type='NPT', nsteps=5000, nstxout=0, membrane=val)
+        self.update('Wrote a default NVT.mdp file (for pressure coupling)...')
+
+        gen_mdp('MD', 50000, 5000, membrane=val)
+        self.update('Wrote a default MD.mdp file (for production)...')
 
         # If no .ndx file was specified on the command line, generate our default one:
         if self.d_ndx == None:
             self.update('No .ndx file was specified. Creating a default index.ndx file...')
             self.gromacs("make_ndx -f {}".format(self.d_file), EOF='q')
 
-        file = open(self.d_mdp, 'a')
+        # We do not only MD, but also EM, NVT, and NPT at constant-pH.
+        # Therefore loop over these files for PARTS I, II, and III (but not IV):
+        for Type in ['NVT', 'NPT', 'MD']:
 
-        # Formatting function for adding parameters.
-        def addParam(name, value):
-                file.write("{:54s} = {:13s}\n".format(name, str(value)))
+            file = open("{}.mdp".format(Type), 'a')
 
-        # PART 1 - WRITE GENERAL PARAMETERS
+            # Formatting function for adding parameters.
+            def addParam(name, value):
+                    file.write("{:54s} = {:13s}\n".format(name, str(value)))
 
-        file.write("\n; CONSTANT PH\n")
+            # PART 1 - WRITE GENERAL PARAMETERS
 
-        addParam('lambda-dynamics', 'yes')
-        addParam('lambda-dynamics-simulation-ph', "{:.1f}".format(self.ph_ph))
-        addParam('lambda-dynamics-lambda-particle-mass', "{:.1f}".format(self.ph_lmass))
-        addParam('lambda-dynamics-tau', "{:.1f}".format(self.ph_ltau))
-        addParam('lambda-dynamics-update-nst', self.ph_nstout)
+            file.write("\n; CONSTANT PH\n")
 
-        # If we use charge constraining...
-        if constrainCharge:
-            addParam('lambda-dynamics-charge-constraints', 'yes')
+            addParam('lambda-dynamics', 'yes')
+            addParam('lambda-dynamics-simulation-ph', "{:.1f}".format(self.ph_ph))
+            addParam('lambda-dynamics-lambda-particle-mass', "{:.1f}".format(self.ph_lmass))
+            addParam('lambda-dynamics-tau', "{:.1f}".format(self.ph_ltau))
+            addParam('lambda-dynamics-update-nst', self.ph_nstout)
 
-        # We need to count how many titratable residues in total we have in the
-        # protein. For this we compile a list LambdasFoundinProtein.
-        LambdasFoundinProtein = [] # (e.g ASPT ASPT GLUT ASPT GLUT ASPT...)
+            # If we use charge constraining...
+            if constrainCharge:
+                addParam('lambda-dynamics-charge-constraints', 'yes')
 
-        # Stores the number of buffer atoms/ions.
-        buffersFoundinProtein = 0
+            # If we are doing EM/NVT/NPT, we do not want the lambdas to move:
+            if Type in ['NVT', 'NPT']:
+                addParam('lambda-dynamics-calibration', 'yes')
 
-        for residue in pdb.d_residues:
-            if residue.d_resname in LambdaTypeNames:
-                LambdasFoundinProtein.append(residue.d_resname)
+            # We need to count how many titratable residues in total we have in the
+            # protein. For this we compile a list LambdasFoundinProtein.
+            LambdasFoundinProtein = [] # (e.g ASPT ASPT GLUT ASPT GLUT ASPT...)
 
-            # Also in this loop we count how many buffer ions we have.
-            elif constrainCharge and residue.d_resname == 'BUF':
-                buffersFoundinProtein += 1
+            # Stores the number of buffer atoms/ions.
+            buffersFoundinProtein = 0
 
-        # The fact that we have a LambdaType in lambdagrouptypes.dat does not mean
-        # one of those is also present in the protein. In that case, we want to 
-        # prevent counting it, so we compile a subgroup of LambdaType groupnames
-        # that are not only in lambdagrouptypes.dat, but ALSO found at least once 
-        # in the actual protein.
-        LambdaTypeNamesFoundinProtein = list(set(LambdasFoundinProtein)) # (e.g ASPT GLUT)
+            for residue in pdb.d_residues:
+                if residue.d_resname in LambdaTypeNames:
+                    LambdasFoundinProtein.append(residue.d_resname)
 
-        # If we not only have multistate LambdaResidueTypes defined in the .dat file,
-        # but we also have detected such a LambdaResidueType in the actual protein,
-        # we'll need to turn on multistate:
-        for LambdaType in self.ph_lambdaTypes:
-            if len(LambdaType.d_pKa) > 1 and LambdaType.d_groupname in LambdaTypeNamesFoundinProtein:
-                addParam('lambda-dynamics-multistate-constraints', 'yes')
+                # Also in this loop we count how many buffer ions we have.
+                elif constrainCharge and residue.d_resname == 'BUF':
+                    buffersFoundinProtein += 1
 
-        # If we use charge constraining we also have he BUF residue-type, as well as 
-        # one extra lambda group containing all the BUFs.
-        if constrainCharge:
-            addParam('lambda-dynamics-number-lambda-group-types', len(LambdaTypeNamesFoundinProtein) + 1)
-            addParam('lambda-dynamics-number-atom-collections', len(LambdasFoundinProtein) + 1)
-        else:
-            addParam('lambda-dynamics-number-lambda-group-types', len(LambdaTypeNamesFoundinProtein))
-            addParam('lambda-dynamics-number-atom-collections', len(LambdasFoundinProtein))
+            # The fact that we have a LambdaType in lambdagrouptypes.dat does not mean
+            # one of those is also present in the protein. In that case, we want to 
+            # prevent counting it, so we compile a subgroup of LambdaType groupnames
+            # that are not only in lambdagrouptypes.dat, but ALSO found at least once 
+            # in the actual protein.
+            LambdaTypeNamesFoundinProtein = list(set(LambdasFoundinProtein)) # (e.g ASPT GLUT)
 
-        file.write('\n')
+            # If we not only have multistate LambdaResidueTypes defined in the .dat file,
+            # but we also have detected such a LambdaResidueType in the actual protein,
+            # we'll need to turn on multistate:
+            for LambdaType in self.ph_lambdaTypes:
+                if len(LambdaType.d_pKa) > 1 and LambdaType.d_groupname in LambdaTypeNamesFoundinProtein:
+                    addParam('lambda-dynamics-multistate-constraints', 'yes')
 
-        # PART 2 - WRITE LAMBDA GROUP TYPES
-
-        # Convert a list to a string
-        def to_string(Input, round):
-            string = ""
-            for element in Input:
-                string += "{0:.{arg}f} ".format(element, arg=round)
-            return string
-
-        # Writes the lambda group type block
-        def writeLambdaGroupTypeBlock(number, name, multistates, qqA, qqB, pKa, dvdl):
-            addParam('lambda-dynamics-group-type{}-name'.format(number), name)
-            addParam('lambda-dynamics-group-type{}-n-states'.format(number), multistates)
-            addParam('lambda-dynamics-group-type{}-state-0-charges'.format(number), to_string(qqA, 2))
-
-            for idx in range(1, multistates + 1):
-                # When we have a multistate lambdagrouptype, one of the pKas should 
-                # be equal to the simulation-pH. This is done by setting this pKa 
-                # to zero in the lambdagrouptypes.dat file.
-                pKaNew = pKa[idx-1]
-                if multistates > 1 and float(pKaNew) == 0.0:
-                    pKaNew = self.ph_ph
-
-                addParam('lambda-dynamics-group-type{}-state-{}-charges'.format(number, idx), to_string(qqB[idx-1], 2))
-                addParam('lambda-dynamics-group-type{}-state-{}-reference-pka'.format(number, idx), pKaNew)
-                addParam('lambda-dynamics-group-type{}-state-{}-dvdl-coefficients'.format(number, idx), to_string(dvdl[idx-1], 3))
+            # If we use charge constraining we also have he BUF residue-type, as well as 
+            # one extra lambda group containing all the BUFs.
+            if constrainCharge:
+                addParam('lambda-dynamics-number-lambda-group-types', len(LambdaTypeNamesFoundinProtein) + 1)
+                addParam('lambda-dynamics-number-atom-collections', len(LambdasFoundinProtein) + 1)
+            else:
+                addParam('lambda-dynamics-number-lambda-group-types', len(LambdaTypeNamesFoundinProtein))
+                addParam('lambda-dynamics-number-atom-collections', len(LambdasFoundinProtein))
 
             file.write('\n')
 
-        number = 1
-        # We loop over the object itself instead of the d_groupname as we need all
-        # the information in the object.
-        for LambdaType in self.ph_lambdaTypes:
-            # This if-statement prevents writing a block when there are no residues 
-            # of this type in the protein.
-            if (LambdaType.d_groupname in LambdaTypeNamesFoundinProtein):
+            # PART 2 - WRITE LAMBDA GROUP TYPES
+
+            # Convert a list to a string
+            def to_string(Input, round):
+                string = ""
+                for element in Input:
+                    string += "{0:.{arg}f} ".format(element, arg=round)
+                return string
+
+            # Writes the lambda group type block
+            def writeLambdaGroupTypeBlock(number, name, multistates, qqA, qqB, pKa, dvdl):
+                addParam('lambda-dynamics-group-type{}-name'.format(number), name)
+                addParam('lambda-dynamics-group-type{}-n-states'.format(number), multistates)
+                addParam('lambda-dynamics-group-type{}-state-0-charges'.format(number), to_string(qqA, 2))
+
+                for idx in range(1, multistates + 1):
+                    # When we have a multistate lambdagrouptype, one of the pKas should 
+                    # be equal to the simulation-pH. This is done by setting this pKa 
+                    # to zero in the lambdagrouptypes.dat file.
+                    pKaNew = pKa[idx-1]
+                    if multistates > 1 and float(pKaNew) == 0.0:
+                        pKaNew = self.ph_ph
+
+                    addParam('lambda-dynamics-group-type{}-state-{}-charges'.format(number, idx), to_string(qqB[idx-1], 2))
+                    addParam('lambda-dynamics-group-type{}-state-{}-reference-pka'.format(number, idx), pKaNew)
+                    addParam('lambda-dynamics-group-type{}-state-{}-dvdl-coefficients'.format(number, idx), to_string(dvdl[idx-1], 3))
+
+                file.write('\n')
+
+            number = 1
+            # We loop over the object itself instead of the d_groupname as we need all
+            # the information in the object.
+            for LambdaType in self.ph_lambdaTypes:
+                # This if-statement prevents writing a block when there are no residues 
+                # of this type in the protein.
+                if (LambdaType.d_groupname in LambdaTypeNamesFoundinProtein):
+
+                    writeLambdaGroupTypeBlock(
+                        number,
+                        LambdaType.d_groupname,
+                        len(LambdaType.d_pKa),
+                        LambdaType.d_qqA,
+                        LambdaType.d_qqB,
+                        LambdaType.d_pKa,
+                        LambdaType.d_dvdl
+                    )
+
+                    number += 1
+
+            # If we do charge constraining, we additionally need the block for the buffer.
+            if constrainCharge:
+                qqA = self.ph_BUF_range[0]
+                qqB = self.ph_BUF_range[1]
 
                 writeLambdaGroupTypeBlock(
                     number,
-                    LambdaType.d_groupname,
-                    len(LambdaType.d_pKa),
-                    LambdaType.d_qqA,
-                    LambdaType.d_qqB,
-                    LambdaType.d_pKa,
-                    LambdaType.d_dvdl
+                    'BUF',
+                    1,
+                    [qqA],
+                    [[qqB]],
+                    [0],
+                    [self.ph_BUF_dvdl]
                 )
 
-                number += 1
+            # PART 3 - WRITE LAMBDA GROUPS
 
-        # If we do charge constraining, we additionally need the block for the buffer.
-        if constrainCharge:
-            qqA = self.ph_BUF_range[0]
-            qqB = self.ph_BUF_range[1]
+            def writeResBlock(number, name, initList, Edwp):
+                addParam('lambda-dynamics-atom-set{}-name'.format(number), name)
+                addParam('lambda-dynamics-atom-set{}-index-group-name'.format(number), 'LAMBDA{}'.format(number))
+                addParam('lambda-dynamics-atom-set{}-initial-lambda'.format(number), to_string(initList, 0))
+                addParam('lambda-dynamics-atom-set{}-barrier'.format(number), Edwp)
 
-            writeLambdaGroupTypeBlock(
-                number,
-                'BUF',
-                1,
-                [qqA],
-                [[qqB]],
-                [0],
-                [self.ph_BUF_dvdl]
-            )
+                if constrainCharge:
+                    addParam('lambda-dynamics-atom-set{}-charge-restraint-group-index'.format(number), 1)
 
-        # PART 3 - WRITE LAMBDA GROUPS
+                if (name == 'BUF'):
+                    addParam('lambda-dynamics-atom-set{}-buffer-residue'.format(number), 'yes')
+                    addParam('lambda-dynamics-atom-set{}-buffer-residue-multiplier'.format(number), buffersFoundinProtein)
 
-        def writeResBlock(number, name, initList, Edwp):
-            addParam('lambda-dynamics-atom-set{}-name'.format(number), name)
-            addParam('lambda-dynamics-atom-set{}-index-group-name'.format(number), 'LAMBDA{}'.format(number))
-            addParam('lambda-dynamics-atom-set{}-initial-lambda'.format(number), to_string(initList, 0))
-            addParam('lambda-dynamics-atom-set{}-barrier'.format(number), Edwp)
+                file.write('\n')
+
+            number = 1
+
+            for residue in pdb.d_residues:
+
+                if residue.d_resname in LambdaTypeNamesFoundinProtein:
+
+                    LambdaType = [obj for obj in self.ph_lambdaTypes if obj.d_groupname == residue.d_resname][0]
+                    multistate = len(LambdaType.d_pKa) > 1
+
+                    # HANDLE INTERACTIVE EDWP
+
+                    # Only do this if -inter was set AND we're writing params for production run (no point for EM/NVT/NPT).
+                    if self.ph_inter and Type == 'MD':
+                        Edwp = input("phbuilder : set bias barrier (kJ/mol) for {}-{} in chain {} (or hit enter for default = {}): ".format(residue.d_resname, residue.d_resid, residue.d_chain, self.ph_dwpE))
+                        if Edwp == '':
+                            Edwp = self.ph_dwpE
+                        else:
+                            Edwp = float(Edwp)
+                            self.verbose("Setting custom Edwp ({}) for residue {}-{} in chain {} (LAMBDA{})".format(Edwp, residue.d_resname, residue.d_resid, residue.d_chain, number))
+                    else:
+                        Edwp = self.ph_dwpE
+
+                    # HANDLE INITIAL LAMBDA FROM RECORD.DAT
+
+                    init = residue.d_init
+                    if init == '':
+                        init = self.automaticLambdaInits(LambdaType.d_qqA, LambdaType.d_qqB)
+                        self.warning('Initial lambda value for residue {}-{} in chain {} not found! Check your record.dat file. Will revert to automatic (state {}), but your system might no-longer be neutral.'.format(residue.d_resname, residue.d_resid, residue.d_chain, init))
+
+                    if multistate:
+                        initList = []
+                        for idx in range(0, len(LambdaType.d_pKa)):
+                            initList.append(idx == int(init) - 1)
+
+                    if not multistate:
+                        initList = [int(init)]
+
+                    # DO THE WRITING
+
+                    writeResBlock(number, residue.d_resname, initList, Edwp)
+
+                    number += 1
 
             if constrainCharge:
-                addParam('lambda-dynamics-atom-set{}-charge-restraint-group-index'.format(number), 1)
+                # Write block for the buffer.
+                writeResBlock(number, 'BUF', [1.0], 0.0)
 
-            if (name == 'BUF'):
-                addParam('lambda-dynamics-atom-set{}-buffer-residue'.format(number), 'yes')
-                addParam('lambda-dynamics-atom-set{}-buffer-residue-multiplier'.format(number), buffersFoundinProtein)
-
-            file.write('\n')
-
-        number = 1
-
-        for residue in pdb.d_residues:
-
-            if residue.d_resname in LambdaTypeNamesFoundinProtein:
-
-                LambdaType = [obj for obj in self.ph_lambdaTypes if obj.d_groupname == residue.d_resname][0]
-                multistate = len(LambdaType.d_pKa) > 1
-
-                # HANDLE INTERACTIVE EDWP
-
-                if self.ph_inter:
-                    Edwp = input("phbuilder : set bias barrier (kJ/mol) for {}-{} in chain {} (or hit enter for default = {}): ".format(residue.d_resname, residue.d_resid, residue.d_chain, self.ph_dwpE))
-                    if Edwp == '':
-                        Edwp = self.ph_dwpE
-                    else:
-                        Edwp = float(Edwp)
-                        self.verbose("Setting custom Edwp ({}) for residue {}-{} in chain {} (LAMBDA{})".format(Edwp, residue.d_resname, residue.d_resid, residue.d_chain, number))
-                else:
-                    Edwp = self.ph_dwpE
-
-                # HANDLE INITIAL LAMBDA FROM RECORD.DAT
-
-                init = residue.d_init
-                if init == '':
-                    init = self.automaticLambdaInits(LambdaType.d_qqA, LambdaType.d_qqB)
-                    self.warning('Initial lambda value for residue {}-{} in chain {} not found! Check your record.dat file. Will revert to automatic (state {}), but your system might no-longer be neutral.'.format(residue.d_resname, residue.d_resid, residue.d_chain, init))
-
-                if multistate:
-                    initList = []
-                    for idx in range(0, len(LambdaType.d_pKa)):
-                        initList.append(idx == int(init) - 1)
-
-                if not multistate:
-                    initList = [int(init)]
-
-                # DO THE WRITING
-
-                writeResBlock(number, residue.d_resname, initList, Edwp)
-
-                number += 1
-
-        if constrainCharge:
-            # Write block for the buffer.
-            writeResBlock(number, 'BUF', [1.0], 0.0)
-
-        file.close() # MD.mdp
+            file.close() # MD.mdp
 
         # PART 4 - WRITE LAMBBDA INDEX GROUPS
 
