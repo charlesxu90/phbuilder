@@ -32,7 +32,10 @@ def titrate(lambdaFileName, cutoff=0.80):
         if (x < 1 - cutoff):
             lambda_proto   += 1
 
-    fraction = float(lambda_deproto) / (lambda_proto + lambda_deproto)
+    if (lambda_proto + lambda_deproto == 0):
+        fraction = 0
+    else:
+        fraction = float(lambda_deproto) / (lambda_proto + lambda_deproto)
 
     return fraction
 
@@ -125,7 +128,7 @@ def compareLambdaFiles(namelist):
     plt.show()
 
 def plotlambda(fileName, plotHSPT=True, plotBUF=False):
-    pdb = Structure(fileName)
+    pdb = Structure(fileName, verbosity=3)
 
     idx = 1
     for residue in pdb.d_residues:
@@ -413,7 +416,7 @@ def glicphstates(fileName, pdbName, pH, nstOut, dump=0):
 
     # CREATE LAMBDA PLOT FOR EVERY INDIVIDUAL PROTONATABLE RESIDUE
 
-    pdb = Structure(fileName)
+    pdb = Structure(fileName, verbosity=3)
 
     print('Writing individual lambda plots...')
 
@@ -632,7 +635,7 @@ def inverseboltzmann(fileName, resid):
 
     # GET THE DATA
 
-    pdb = Structure(fileName)
+    pdb = Structure(fileName, verbosity=3)
 
     idx = 1
     data = []

@@ -7,11 +7,11 @@ def parsecmdline():
     desc_1 = "phbuilder builds constant-pH simulations for GROMACS."
     desc_2 = "Copyright Anton Jansen 2021."
     desc_3 = "Encapsulates gmx pdb2gmx. Regenerates topology of the specified \
-              protein using our modified charmm36 force field. By default, every \
-              residue part of the incl groups specified in lambdagrouptyes.dat \
-              will be made titratable. This behavior can be modified by specifying \
-              the -inter and -list flags."
-    desc_4 = "Encapsulated gxm genion. Adds buffer particles."
+            protein using our modified charmm36 force field. By default, every \
+            residue part of the incl groups specified in lambdagrouptyes.dat \
+            will be made titratable. This behavior can be modified by specifying \
+            the -inter and -list flags."
+    desc_4 = "Adds ions and buffer particles for neutralizing the simulating."
     desc_5 = "Generates the constant-pH input parameters for the .mdp file."
 
     parser = argparse.ArgumentParser(prog='phbuilder', description=desc_1, epilog=desc_2)
@@ -58,7 +58,7 @@ def parsecmdline():
 
     parser_1.set_defaults(target='gentopol')
 
-    parser_2  = subparsers.add_parser('addbuffers', help=desc_4)
+    parser_2  = subparsers.add_parser('neutralize', help=desc_4)
     required2 = parser_2.add_argument_group("required arguments")
 
     required2.add_argument('-f', 
@@ -78,7 +78,7 @@ def parsecmdline():
                         required=False,
                         dest='output',
                         action='store',
-                        default='phbuffers.pdb',
+                        default='phneutral.pdb',
                         help='Specify structure file for output (.pdb/.gro).')
 
     parser_2.add_argument('-solname',
@@ -88,11 +88,33 @@ def parsecmdline():
                         default='SOL',
                         help='Specify name of solvent molecule.')
 
+    parser_2.add_argument('-pname',
+                        required=False,
+                        dest='pname',
+                        action='store',
+                        default='NA',
+                        help='Specify name of the positive ion.')
+
+    parser_2.add_argument('-nname',
+                        required=False,
+                        dest='nname',
+                        action='store',
+                        default='CL',
+                        help='Specify name of the negative ion.')
+
+    parser_2.add_argument('-conc',
+                        required=False,
+                        dest='conc',
+                        action='store',
+                        default=0.0,
+                        help='Specify ion concentration in mol/L.',
+                        type=float)
+
     parser_2.add_argument('-nbufs',
                         required=False,
                         dest='nbufs',
                         action='store',
-                        help='Specify number of buffer molecules.',
+                        help='Specify number of buffers to be added.',
                         type=int)
 
     parser_2.add_argument('-v',
@@ -104,7 +126,7 @@ def parsecmdline():
                         help='Set verbosity. 0 : supress all output, 1 only warnings and errors, 2 default, 3 more verbose.',
                         type=int)
 
-    parser_2.set_defaults(target='addbuffers')
+    parser_2.set_defaults(target='neutralize')
 
     parser_3  = subparsers.add_parser('genparams', help=desc_5)
     required3 = parser_3.add_argument_group("required arguments")

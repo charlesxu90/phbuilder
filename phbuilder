@@ -50,12 +50,15 @@ class phbuilder(User):
 
                 self.ph_list_resid = [int(i) for i in resid]
 
-        # If we run addbuffers...
-        elif (CLI.target == 'addbuffers'):
+        # If we run neutralize...
+        elif (CLI.target == 'neutralize'):
             # Either required or has a default value
             self.d_output  = CLI.output
             self.d_topol   = CLI.topol
             self.d_solname = CLI.solname
+            self.d_pname   = CLI.pname
+            self.d_nname   = CLI.nname
+            self.d_conc    = CLI.conc
 
             # Optional
             if (CLI.nbufs != None):
@@ -208,7 +211,7 @@ class phbuilder(User):
 
         exitcode = os.system(command)
 
-        if os.system(command) != 0:
+        if exitcode != 0:
             self.error("Failed to run {} (exitcode {}). Check your logfile ({})".format(command, exitcode, logFile))
 
     # Call correct sub function depending on specified target on cmdline.
@@ -217,9 +220,9 @@ class phbuilder(User):
             self.update('Running gentopol...')
             self.gentopol()
 
-        elif self.d_target == 'addbuffers':
-            self.update('Running addbuffers...')
-            self.addbuffers()
+        elif self.d_target == 'neutralize':
+            self.update('Running neutralize...')
+            self.neutralize()
 
         elif self.d_target == 'genparams':
             self.update('Running genparams...')
@@ -306,7 +309,7 @@ class phbuilder(User):
 
                         if val != 0:
                             residue.d_resname = associatedLambdaType.d_groupname
-                            residue.d_init = str(val)
+                            residue.d_init = str(val - 1)
 
                 else: # If -inter was not set, just protonate everything automatically.
                     residue.d_resname = associatedLambdaType.d_groupname
@@ -512,20 +515,13 @@ class phbuilder(User):
 
         self.update("Finished generating topology for constant-pH.")
 
-    def chargeAtConstantpH(self, pdb):
-
-        # Error if record.dat wasn't found
-        if not os.path.isfile('record.dat'):
-            self.error("Cannot determine total charge for cpHMD because record.dat was not found.")
-
-        # I - GET TOTAL CHARGE OF SYSTEM IN CLASSICAL MODE
-
+    # Returns total charge of system from a classical MD perspective.
+    def charge_classic(self, file, topol):
         QQtotalClassic = 0
-
-        # Generate .tpr file
-        open('charge.mdp', 'w').close()
-        self.gromacs("grompp -f charge.mdp -c {} -p topol.top".format(self.d_file), logFile='charge.log')
-
+        
+        open('charge.mdp', 'w').close() # Generate .tpr file
+        self.gromacs("grompp -f charge.mdp -c {} -p {}".format(file, topol), logFile='charge.log')
+        
         # Grep total charge from output message of grompp
         for line in open('charge.log').read().splitlines():
             if "non-zero total charge" in line:
@@ -535,7 +531,13 @@ class phbuilder(User):
         # Cleanup
         os.remove('charge.mdp'); os.remove('charge.log')
 
-        # II - GET TOTAL CHARGE OF TITRATABLE RESIDUES IN CONSTANT-PH MODE
+        return QQtotalClassic
+
+    # Returns difference in system charge between classical and cpHMD perspective.
+    def charge_cpHMDdiff(self, pdb):
+        # Error if record.dat wasn't found
+        if not os.path.isfile('record.dat'):
+            self.error("Cannot determine total charge for cpHMD because record.dat was not found.")
 
         QQinitLambda = 0        # Here we want to answer how much the sum of charges
         QQmaxProto = 0          # based on initial lambdas is different from the sum
@@ -568,35 +570,29 @@ class phbuilder(User):
 
                     # Charge based on initial lambda value
                     if int(residue.d_init) == 1:
-                        QQinitLambda  += sum(LambdaType.d_qqB)
+                        QQinitLambda  += sum(LambdaType.d_qqB[0])
 
                     # Charge based on most protonated state
                     QQmaxProto += max(sum(LambdaType.d_qqA), sum(LambdaType.d_qqB[0]))
 
-        # III - GET TOTAL CHARGE OF SYSTEM IN CONSTANT-PH MODE + USER UPDATE
+        self.verbose("Total charge of titratables based on initial lambdas = {:+.2f}".format(QQinitLambda))
+        self.verbose("Total charge of titratables in most protonated state = {:+.2f}".format(QQmaxProto))
 
-        QQdiff = QQmaxProto - QQinitLambda
-        QQtotalcpHMD = QQtotalClassic - QQdiff
+        return QQmaxProto - QQinitLambda
 
-        self.verbose("Charge of system in normal MD                  = {:+.2f}".format(QQtotalClassic))
-        self.verbose("Charge of titratables based on initial lambdas = {:+.2f}".format(QQinitLambda))
-        self.verbose("Charge of titratables in most protonated state = {:+.2f}".format(QQmaxProto))
-        self.verbose("Charge difference between the two              = {:+.2f}".format(QQdiff))
-        self.verbose("Charge of system in constant-pH MD             = {:+.2f}".format(QQtotalcpHMD))
+    def countRes(self, Structure, resname):
+        count = 0
+        for residue in Structure.d_residues:
+            if residue.d_resname == resname:
+                count += 1
+        return count
 
-        return QQtotalcpHMD
-
-    # Add buffers.
-    def addbuffers(self):
-        maxChargeOnBuffer = 0.3
-
-        # PART I - PREP
+    # Add appropriate number ions and buffers to make the system neutral.
+    def neutralize(self):
+        # I - LOAD DATA, PERFORM SOME CHECKS
 
         # Load the input structure into d_residues.
         pdb = Structure(self.d_file, self.d_verbosity)
-
-        # Get the charge.
-        self.chargeAtConstantpH(pdb)
 
         # Perform some basic checks for PBC box, solvent, and titratable groups.
         foundPBC         = hasattr(pdb, 'd_box')
@@ -620,17 +616,88 @@ class phbuilder(User):
 
         # Error if no periodic box was found
         if not foundPBC:
-            self.error("{} doesn't have a periodic box! Did you forget to add one?".format(self.d_file))
+            self.error("{} does not have a periodic box! Did you forget to add one?".format(self.d_file))
 
         # Error if no solvent was found
         if not foundSolvent:
-            self.error("{} doesn't seem to have any {} molecules! Did you forget to add solvent?".format(self.d_file, self.d_solname))
+            self.error("{} does not seem to have any {} molecules! Did you forget to add solvent?".format(self.d_file, self.d_solname))
 
         # Warning if no titratable residues were found
         if not foundTitratables:
-            self.warning("{} doesn't seem to have any titratable groups! Did you forget to run gentopol?".format(self.d_file))
+            self.warning("{} does not seem to have any titratable groups! Did you forget to run gentopol?".format(self.d_file))
 
-        # if nbufs wasn't manually set, count the number of titratable residues.
+        # II - DO THE IONS PART
+
+        # Get the total charge of the system in classical MD, and at the same time
+        # generate the .tpr file for genion for adding ions:
+
+        QQtotalClassic = 0
+
+        self.update("Getting the total charge of system in classical MD...")
+
+        open('ions.mdp', 'w').close() # Generate .tpr file
+        self.gromacs("grompp -f ions.mdp -c {} -p {} -o ions.tpr".format(self.d_file, self.d_topol), logFile='charge.log')
+
+        # Grep total charge from grompp output message
+        for line in open('charge.log').read().splitlines():
+            if "non-zero total charge" in line:
+                QQtotalClassic = float(line.split()[-1])
+                break
+
+        self.update("Getting the total charge of system in cpHMD...")
+
+        # Get the total charge of the system in cpHMD:
+        QQtotalcpHMD = QQtotalClassic - self.charge_cpHMDdiff(pdb)
+
+        self.update('Total charge of system in classical MD = {:+.2f}'.format(QQtotalClassic))
+        self.update('Total charge of system in cpHMD        = {:+.2f}'.format(QQtotalcpHMD))
+
+        np = 0; nn = 0
+        if QQtotalcpHMD > 0:
+            nn = round(QQtotalcpHMD)
+        elif QQtotalcpHMD < 0:
+            np = round(-QQtotalcpHMD)
+        else:
+            self.update('System seems to be neutral already.')
+
+        def fromBoxVol():
+            Avo    = 6.02214076 * 10 ** 23
+            boxVol = pdb.d_box.d_a * pdb.d_box.d_b * pdb.d_box.d_c
+            return int(round(self.d_conc * Avo * boxVol * 10 ** -27))
+
+        def fromSolVol(Structure):
+            Nwater = self.countRes(Structure, self.d_solname)
+            return int(round(0.01808 * Nwater * self.d_conc))
+
+        if self.d_conc != 0:
+            Nions = fromSolVol(pdb)
+
+            # We only want integers so we want to divide an even number.
+            if (Nions - np - nn) % 2 != 0:
+                Nions += 1
+
+            factor = int((Nions - np - nn)/2.0)
+
+            np += factor
+            nn += factor
+
+            self.update('Specified ion concentration of {} mol/L corresponds to {} ions for given solvent volume'.format(self.d_conc, Nions))
+
+        self.update('Will add {} positive ({}) and {} negative ({}) ions...'.format(np, self.d_pname, nn, self.d_nname))
+        self.update('Total charge to be added via ions      = {:+.2f}'.format(np - nn))
+
+        # Run genion to add the appropriate number of ions.
+        self.gromacs("genion -s ions.tpr -o phions.pdb -p {} -pname {} -nname {} -np {} -nn {}".format(
+            self.d_topol, self.d_pname, self.d_nname, np, nn), EOF=self.d_solname)
+
+        self.update('Finished adding ions')
+
+        # III - DO THE BUFFER PART
+
+        # Load the structure that now contains the ions.
+        pdb.read('phions.pdb')
+
+        # Obtain the number of buffers that should be added.
         if not hasattr(self, 'ph_nbufs'):
             # Count number of titratable residues
             titratables = 0
@@ -638,42 +705,48 @@ class phbuilder(User):
                 if residue.d_resname in LambdaTypeNames:
                     titratables += 1
 
-            nbufs = int(titratables / maxChargeOnBuffer) + 1 # Worst case scenario.
-            self.update("Counted {0} titratable residues, will add ceil({0}/{1}) = {2} buffer(s)...".format(titratables, maxChargeOnBuffer, nbufs))
+            nbufs = (3.141592 * titratables) ** 0.5
+            nbufs /= 0.3
+            nbufs = int(round(nbufs))
 
         else:
             nbufs = self.ph_nbufs
-            self.update("Will add {} buffer(s) (per user request)...".format(nbufs))
-
-        # PART II - RUN GMX GENION TO REPLACE SOLVENT MOLECULES WITH BUFFER
-
-        # Create dummy mdp file for gmx grompp
-        open('dummy.mdp', 'w').close()
+        
+        self.update("Will add {} buffer(s)...".format(nbufs))
 
         # Create .tpr file for gmx genion
-        self.gromacs("grompp -f dummy.mdp -c {} -p {} -o dummy.tpr".format(self.d_file, self.d_topol))
+        self.gromacs("grompp -f ions.mdp -c phions.pdb -p {} -o buffers.tpr".format(self.d_topol))
 
-        # Run gxm genion to replace some solvent molecules with buffers
-        self.gromacs("genion -s dummy.tpr -p {} -o {} -pname {} -np {}".format(self.d_topol, self.d_output, 'BUF', nbufs), EOF=self.d_solname)
+        # Run genion to add the appropriate number of buffers.
+        self.gromacs("genion -s buffers.tpr -o {} -p {} -pname BUF -np {}".format(self.d_output, self.d_topol, nbufs), EOF=self.d_solname)
 
-        # PART III - WRAPUP
+        self.update('Finished adding buffers')
 
-        # Remove dummy files
-        os.remove('dummy.tpr'); os.remove('dummy.mdp')
+        # IV - WRAPUP
 
-        # Update d_residues in universe
+        # Remove files
+        os.remove('charge.log')
+        os.remove('ions.mdp')
+        os.remove('ions.tpr')
+        os.remove('buffers.tpr')
+
+        # Check if the correct number of ions and buffers are present in the output file.
+        
+        self.update('Checking whether everything was succesful...'.format(self.d_output))
+        
         pdb.read(self.d_output)
 
-        # Check whether the required number of buffers was added
-        BUFcount = 0
-        for residue in pdb.d_residues:
-            if residue.d_resname == 'BUF':
-                BUFcount += 1
+        countPions = self.countRes(pdb, self.d_pname)
+        if countPions != np:
+            self.warning('Detected only {}/{} required positive ions'.format(countPions, np))
 
-        if BUFcount == nbufs:
-            self.update("Succesfully added {} buffer molecule(s)...".format(BUFcount))
-        else:
-            self.warning("Only added {}/{} buffer molecules! Try increasing box size...")
+        countNions = self.countRes(pdb, self.d_nname)
+        if countNions != nn:
+            self.warning('Detected only {}/{} required negative ions'.format(countNions, nn))
+
+        countBUFs  = self.countRes(pdb, 'BUF')
+        if countBUFs != nbufs:
+            self.warning('Detected only {}/{} required buffers'.format(countBUFs, nbufs))
 
     # Generate parameters for MD.mdp.
     def genparams(self):

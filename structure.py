@@ -234,7 +234,7 @@ class Structure:
     # Will set any inits found in record.dat to the corresponding residue in d_residues.
     def __read_record(self):
         if os.path.isfile('record.dat'):
-            self.__user.update('Found existing record of initial lambda values (record.dat)...')
+            self.__user.verbose('Found existing record of initial lambda values (record.dat)...')
             # Split file by lines.
             idx = 0
             for line in open('record.dat').read().splitlines():
