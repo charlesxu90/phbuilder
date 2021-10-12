@@ -936,7 +936,7 @@ class phbuilder(User):
             def writeResBlock(number, name, initList, Edwp):
                 addParam('lambda-dynamics-atom-set{}-name'.format(number), name)
                 addParam('lambda-dynamics-atom-set{}-index-group-name'.format(number), 'LAMBDA{}'.format(number))
-                addParam('lambda-dynamics-atom-set{}-initial-lambda'.format(number), to_string(initList, 0))
+                addParam('lambda-dynamics-atom-set{}-initial-lambda'.format(number), to_string(initList, 1))
                 addParam('lambda-dynamics-atom-set{}-barrier'.format(number), Edwp)
 
                 if constrainCharge:
@@ -993,7 +993,7 @@ class phbuilder(User):
 
             if constrainCharge:
                 # Write block for the buffer.
-                writeResBlock(number, 'BUF', [1.0], 0.0)
+                writeResBlock(number, 'BUF', initList=[0.5], Edwp=0.0)
 
             file.close() # MD.mdp
 
