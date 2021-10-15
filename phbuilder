@@ -801,7 +801,7 @@ class phbuilder(User):
 
         # We do not only MD, but also EM, NVT, and NPT at constant-pH.
         # Therefore loop over these files for PARTS I, II, and III (but not IV):
-        for Type in ['NVT', 'NPT', 'MD']:
+        for Type in ['EM', 'NVT', 'NPT', 'MD']:
 
             file = open("{}.mdp".format(Type), 'a')
 
@@ -824,7 +824,7 @@ class phbuilder(User):
                 addParam('lambda-dynamics-charge-constraints', 'yes')
 
             # If we are doing EM/NVT/NPT, we do not want the lambdas to move:
-            if Type in ['NVT', 'NPT']:
+            if Type in ['EM', 'NVT', 'NPT']:
                 addParam('lambda-dynamics-calibration', 'yes')
 
             # We need to count how many titratable residues in total we have in the
