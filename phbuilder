@@ -50,6 +50,8 @@ class phbuilder(User):
 
                 self.ph_list_resid = [int(i) for i in resid]
 
+            self.ph_ph = CLI.ph
+
         # If we run neutralize...
         elif (CLI.target == 'neutralize'):
             # Either required or has a default value
@@ -122,7 +124,7 @@ class phbuilder(User):
 
         # Loop through the sections.
         for sect in parser.sections():
-            
+
             # Parse force field parameters
             if (sect.strip() == "FORCEFIELD"):
                 self.d_modelFF    = parser.get(sect, 'path')
@@ -153,7 +155,7 @@ class phbuilder(User):
             for idx in range(1, 11): # Max 10 multistates
                 try:
                     # Parse pKa(s)
-                    pKa.append(parser.get(sect, 'pKA_{}'.format(idx)))
+                    pKa.append(float(parser.get(sect, 'pKA_{}'.format(idx))))
 
                     # Parse qqB(s)
                     qqB.append(str2floatList(parser.get(sect, 'qqB_{}'.format(idx))))
@@ -312,11 +314,12 @@ class phbuilder(User):
 
                 else: # If -inter was not set, just protonate everything automatically.
                     residue.d_resname = associatedLambdaType.d_groupname
-                    self.update("Made residue {}-{} in chain {} titratable (changed name to {})".format(origName, residue.d_resid, residue.d_chain, residue.d_resname))
 
                     # Additionally, use automaticLambdaInits to set the initial lambda values.
-                    init = self.automaticLambdaInits(associatedLambdaType.d_qqA, associatedLambdaType.d_qqB)
+                    init = self.automaticLambdaInits(associatedLambdaType.d_pKa, self.ph_ph)
                     residue.d_init = str(init)
+
+                    self.update("Made residue {}-{} in chain {} titratable (changed name to {}, initlambda = {})".format(origName, residue.d_resid, residue.d_chain, residue.d_resname, init))
 
                 continue # Otherwise code below is executed for the same residue we just changed.
 
@@ -367,7 +370,7 @@ class phbuilder(User):
 
                 # Normally, we would not have to do anything. However, if we are
                 else: # missing initial lambda values in the record, we need to add them.
-                    init = self.automaticLambdaInits(associatedLambdaType.d_qqA, associatedLambdaType.d_qqB)
+                    init = self.automaticLambdaInits(associatedLambdaType.d_pKa, self.ph_ph)
                     residue.d_init = str(init)
 
             # If the residue in question is neither an ASP nor an ASPT, as an extra
@@ -974,7 +977,7 @@ class phbuilder(User):
 
                     init = residue.d_init
                     if init == '':
-                        init = self.automaticLambdaInits(LambdaType.d_qqA, LambdaType.d_qqB)
+                        init = self.automaticLambdaInits(LambdaType.d_pKa, self.ph_ph)
                         self.warning('Initial lambda value for residue {}-{} in chain {} not found! Check your record.dat file. Will revert to automatic (state {}), but your system might no-longer be neutral.'.format(residue.d_resname, residue.d_resid, residue.d_chain, init))
 
                     if multistate:
@@ -1069,24 +1072,19 @@ class phbuilder(User):
             print("phbuilder : {} is not a valid option, please try again:\n".format(val))
 
     # If the user does not specify the -inter flag, all the residues associated
-    # with a lambdagrouptype will by default made titratable. These residues
-    # will be put in the lowest charge state (can be changed later.)
-    def automaticLambdaInits(self, qqA, qqB):
-        if len(qqB) > 1:    # We can ignore qqA in the multistate case. Instead
-            inits = []      # we compile a list  of sums of the qqB states and 
-            sums  = []      # set the state with the lowest abs val charge to 1
-            for lst in qqB: # and the rest to 0.
-                sums.append(abs(sum(lst)))
+    # with a lambdagrouptype will by default made titratable. The charge states
+    # of these residues will be guessed based on an optional pH parameter
+    # (default = 7.0) that can be specified for gentopol.
+    def automaticLambdaInits(self, pKaList, systempH):
+        
+        # multistate case
+        if len(pKaList) > 1:
+            return 1 # multistate will be always get state 1, regardless of system pH. Fix this.
 
-            for idx in range(0, len(qqB)):
-                if idx == sums.index(min(sums)):
-                    return idx + 1
-        # In the 2state case, we simply pick the smallest abs val of the sum,
-        # OR if the charges are opposite, the neutral charge will be in the
-        # middle, which will then corresponds to lambda = 0.5.
         else:
-            sumA = abs(sum(qqA))
-            sumB = abs(sum(qqB[0]))
-            return int(sumA > sumB)
+            if systempH >= pKaList[0]: 
+                return 1 # if pH >= pKa, we are in deproto = 1 state.
+
+            return 0 # if pH < pKa, we are in the proto = 0 state.
 
 phbuilder(CLI).runner()

@@ -47,6 +47,14 @@ def parsecmdline():
                         action='store',
                         help='Specify list of resid(ue)s to be considered.')
 
+    parser_1.add_argument('-ph',
+                        required=False,
+                        dest='ph',
+                        action='store',
+                        default=7.0,
+                        help='Specify system pH (default = 7.0). This will be used to estimate the appropriate initial state when -inter is not set and should ideally be equal to the pH you specify for genparams.',
+                        type=float)
+
     parser_1.add_argument('-v',
                         required=False,
                         dest='verbosity',
