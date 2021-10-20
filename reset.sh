@@ -1,6 +1,6 @@
 #!/bin/bash
 
-rm -rf __py* charmm*
+rm -rf __py* charmm36*
 rm -f residuetypes.dat phprocessed.pdb record.dat phions.pdb phneutral.pdb
 rm -f box.pdb solvated.pdb pdb2gmxtemp.pdb
 

@@ -399,7 +399,7 @@ class phbuilder(User):
         good = True
         for val in unknownResTypeNames:
             self.warning("residue type {} in {} wasn't found in residuetypes.dat associated with {}".format(val, self.d_file, self.d_modelFF))
-            path = input("phbuilder : Please specify path to .itp file (e.g. /path/to/some.itp): ")
+            path = input("phbuilder : Specify /path/to/some.itp file (or enter to ignore): ")
 
             skipList.append(val)
             pathList.append(path)
@@ -484,7 +484,7 @@ class phbuilder(User):
                     for line in range(0, len(topList)):
                         file.write(topList[line])
 
-                        if "[ system ]\n" == topList[line + 1]:
+                        if "[ system ]\n" == topList[line + 1] and itpfname != '':
                             file.write("; {0}\n".format(comment))
                             file.write("#include \"{0}\"\n\n".format(itpfname))
 

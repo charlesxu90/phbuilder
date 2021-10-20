@@ -28,9 +28,9 @@ def gen_mdp(Type, nsteps, nstxout, membrane=False):
 
     # POSITION RESTRAINTS
 
-    if Type in ['NVT', 'NPT']:
-        addTitle('Position restraints')
-        addParam('define', '-DPOSRES', 'Position restrain protein.')
+    # if Type in ['NVT', 'NPT']:
+    #     addTitle('Position restraints')
+    #     addParam('define', '-DPOSRES', 'Position restrain protein.')
 
     # RUN CONTROL
 
