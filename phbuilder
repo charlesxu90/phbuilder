@@ -591,6 +591,8 @@ class phbuilder(User):
 
     # Add appropriate number ions and buffers to make the system neutral.
     def neutralize(self):
+        maxChargeOnBuffer = 0.3 # hardcoded
+
         # I - LOAD DATA, PERFORM SOME CHECKS
 
         # Load the input structure into d_residues.
@@ -707,14 +709,13 @@ class phbuilder(User):
                 if residue.d_resname in LambdaTypeNames:
                     titratables += 1
 
-            nbufs = (3.141592 * titratables) ** 0.5
-            nbufs /= 0.3
-            nbufs = int(round(nbufs))
+            nbufs = int(0.5 * titratables / maxChargeOnBuffer)
+
+            self.update("Will add {} buffer(s) ( = Tsites / 2q_max )".format(nbufs))
 
         else:
             nbufs = self.ph_nbufs
-
-        self.update("Will add {} buffer(s)...".format(nbufs))
+            self.update("Will add {} buffer(s) (user specified)...".format(nbufs))
 
         # Create .tpr file for gmx genion
         self.gromacs("grompp -f ions.mdp -c phions.pdb -p {} -o buffers.tpr".format(self.d_topol))
@@ -741,14 +742,20 @@ class phbuilder(User):
         countPions = self.countRes(pdb, self.d_pname)
         if countPions != np:
             self.warning('Detected only {}/{} required positive ions'.format(countPions, np))
+        else:
+            self.update('Detected correct number of positive ions.')
 
         countNions = self.countRes(pdb, self.d_nname)
         if countNions != nn:
             self.warning('Detected only {}/{} required negative ions'.format(countNions, nn))
+        else:
+            self.update('Detected correct number of negative ions.')
 
         countBUFs  = self.countRes(pdb, 'BUF')
         if countBUFs != nbufs:
             self.warning('Detected only {}/{} required buffers'.format(countBUFs, nbufs))
+        else:
+            self.update('Detected correct number of buffers.')
 
     # Generate parameters for MD.mdp.
     def genparams(self):
