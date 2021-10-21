@@ -536,13 +536,12 @@ def glicphstates(fileName, pdbName, pH, nstOut, dump=0):
                 plt.hist(dataList[idx], density=True, bins=200)
 
                 # Title
-                plt.title("{0}-{1} (all chains) in {2}.pdb\npH={3}, nstlambda={4}, deprotonation={5:.2f}".format(
+                plt.title("{}-{} (all chains) in {}\npH={}, nstlambda={}".format(
                     residue.d_resname,
                     residue.d_resid,
                     pdbName,
                     pH,
                     nstOut,
-                    titrate("lambda_{}.dat".format(ii))
                     ))
 
                 # Axes and stuff
@@ -552,12 +551,13 @@ def glicphstates(fileName, pdbName, pH, nstOut, dump=0):
                 plt.grid()
 
                 # Add green vertical line indicating experimental value
-                plt.vlines(x=biophys["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=12, color='r', linewidth=4.0, label="biophysics.se/Prevost2012 = {}".format(biophys["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
-                plt.vlines(x=nury2010["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=10, color='g', linewidth=4.0, label="Nury2010/Cheng2010/Calimet2013 = {}".format(nury2010["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
-                plt.vlines(x=fritsch2011["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=8, color='b', linewidth=4.0, label="Fritsch2011 = {}".format(fritsch2011["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
-                plt.vlines(x=lev2017["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=6, color='c', linewidth=4.0, label="Lev2017 = {}".format(lev2017["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
-                plt.vlines(x=nemecz2017["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=4, color = 'm', linewidth=4.0, label="Nemecz2017/Hu2018 = {}".format(nemecz2017["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
-                plt.vlines(x=ullman["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=2, color='y', linewidth=4.0, label="Ullman (unpublished) = {}".format(ullman["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                if pH == 4.0:
+                    plt.vlines(x=biophys["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=12, color='r', linewidth=4.0, label="biophysics.se/Prevost2012 = {}".format(biophys["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                    plt.vlines(x=nury2010["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=10, color='g', linewidth=4.0, label="Nury2010/Cheng2010/Calimet2013 = {}".format(nury2010["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                    plt.vlines(x=fritsch2011["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=8, color='b', linewidth=4.0, label="Fritsch2011 = {}".format(fritsch2011["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                    plt.vlines(x=lev2017["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=6, color='c', linewidth=4.0, label="Lev2017 = {}".format(lev2017["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                    plt.vlines(x=nemecz2017["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=4, color = 'm', linewidth=4.0, label="Nemecz2017/Hu2018 = {}".format(nemecz2017["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                    plt.vlines(x=ullman["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=2, color='y', linewidth=4.0, label="Ullman (unpublished) = {}".format(ullman["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
                 plt.legend()
                 
                 # Save and clear
@@ -578,13 +578,12 @@ def glicphstates(fileName, pdbName, pH, nstOut, dump=0):
                     plt.hist(dataList[idx + val], density=True, bins=200, label='state {}'.format(val + 1), histtype='step')
 
                 # Title
-                plt.title("{0}-{1} (all chains) in {2}.pdb\npH={3}, nstlambda={4}, deprotonation={5:.2f}".format(
+                plt.title("{0}-{1} (all chains) in {2}\npH={3}, nstlambda={4}".format(
                     residue.d_resname,
                     residue.d_resid,
                     pdbName,
                     pH,
                     nstOut,
-                    titrate("lambda_{}.dat".format(ii))
                     ))
 
                 # Axes and stuff
@@ -594,12 +593,13 @@ def glicphstates(fileName, pdbName, pH, nstOut, dump=0):
                 plt.grid()
 
                 # Add green vertical line indicating experimental value
-                plt.vlines(x=biophys["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=12, color='r', linewidth=4.0, label="biophysics.se/Prevost2012 = {}".format(biophys["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
-                plt.vlines(x=nury2010["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=10, color='g', linewidth=4.0, label="Nury2010/Cheng2010/Calimet2013 = {}".format(nury2010["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
-                plt.vlines(x=fritsch2011["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=8, color='b', linewidth=4.0, label="Fritsch2011 = {}".format(fritsch2011["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
-                plt.vlines(x=lev2017["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=6, color='c', linewidth=4.0, label="Lev2017 = {}".format(lev2017["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
-                plt.vlines(x=nemecz2017["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=4, color = 'm', linewidth=4.0, label="Nemecz2017/Hu2018 = {}".format(nemecz2017["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
-                plt.vlines(x=ullman["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=2, color='y', linewidth=4.0, label="Ullman (unpublished) = {}".format(ullman["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                if pH == 4.0:
+                    plt.vlines(x=biophys["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=12, color='r', linewidth=4.0, label="biophysics.se/Prevost2012 = {}".format(biophys["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                    plt.vlines(x=nury2010["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=10, color='g', linewidth=4.0, label="Nury2010/Cheng2010/Calimet2013 = {}".format(nury2010["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                    plt.vlines(x=fritsch2011["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=8, color='b', linewidth=4.0, label="Fritsch2011 = {}".format(fritsch2011["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                    plt.vlines(x=lev2017["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=6, color='c', linewidth=4.0, label="Lev2017 = {}".format(lev2017["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                    plt.vlines(x=nemecz2017["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=4, color = 'm', linewidth=4.0, label="Nemecz2017/Hu2018 = {}".format(nemecz2017["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
+                    plt.vlines(x=ullman["{0}-{1}".format(residue.d_resname, residue.d_resid)], ymin=0, ymax=2, color='y', linewidth=4.0, label="Ullman (unpublished) = {}".format(ullman["{0}-{1}".format(residue.d_resname, residue.d_resid)]))
                 plt.legend()
                 
                 # Save and clear
