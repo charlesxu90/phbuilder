@@ -441,7 +441,7 @@ class phbuilder(User):
         # Ask for input for what to do regarding pdb2mgx
         val = self.inputOptionHandler(
             "Choose whether to", 
-            ["Do nothing (e.g. when you just wanted to (re)generate the initial lambda record (record.dat))", "Run", "Add additional flags (https://manual.gromacs.org/documentation/current/onlinehelp/gmx-pdb2gmx.html)"])
+            ["Do nothing", "Run", "Add additional flags (https://manual.gromacs.org/documentation/current/onlinehelp/gmx-pdb2gmx.html)"])
 
         flags = ""
         if val == 2:
@@ -1083,11 +1083,17 @@ class phbuilder(User):
     # of these residues will be guessed based on an optional pH parameter
     # (default = 7.0) that can be specified for gentopol.
     def automaticLambdaInits(self, pKaList, systempH):
-        
         # multistate case
         if len(pKaList) > 1:
-            return 1 # multistate will be always get state 1, regardless of system pH. Fix this.
 
+            highest = 0
+            for pKa in pKaList:
+                if pKa <= systempH and pKa > highest:
+                    highest = pKa
+
+            return pKaList.index(highest) + 1
+
+        #2state case
         else:
             if systempH >= pKaList[0]: 
                 return 1 # if pH >= pKa, we are in deproto = 1 state.
