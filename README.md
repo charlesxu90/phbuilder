@@ -16,26 +16,48 @@ Limitations: CHARMM36-mar2019 with tip3p water model. We have only parametrized 
 <b>The `lambdagrouptypes.dat` file</b>
 
 
+---
 
 <b>phbuilder gentopol</b>
 
----
-
 SYNOPSIS
 
-`phbuilder gentopol [-h] -f FILE [-o OUTPUT] [-inter] [-list LIST] [-v {0,1,2,3}]`
+`phbuilder gentopol [-h] -f FILE [-o OUTPUT] [-inter] [-list LIST] [-ph PH] [-v {0,1,2,3}]`
 
 DESCRIPTION
 
-This tool encapsulates pdb2gmx and allows you to (re)generate the topology for your protein using our modified version of the CHARMM36 force field. This is necessary as some dihedral parameters were modified for titratable residues (ref manuscript 2). Gentopol also allows you to interactively set the initial lambda (protonation) state for each residue associated with a defined lambdagrouptype (for this, the `-inter` flag should be set).
+This tool encapsulates pdb2gmx and allows you to (re)generate the topology for your protein using our modified version of the CHARMM36 force field. This is necessary as some dihedral parameters were modified for titratable residues (ref manuscript 2). Gentopol also allows you to interactively set the initial lambda (protonation) state for each residue associated with a defined lambdagrouptype (for this, the `-inter` flag should be set). If the `-inter` flag is not set, the initial lambda values will be guessed based on an optional `-ph` flag that is by default set to `7.0`, together with the pKa defined in the `lambdagrouptypes.dat` file.
 
 OPTIONS
 
-| Flag      | Description    |
-|-----------|---------|
-| `-f`      | [<.pdb/.gro>] (required) <br /> Specify input structure file. | 
-| `-o`      | [<.pdb/.gro>] (phprocessed.pdb) <br /> Specify output structure file. | 
-| `-inter`  | (no) <br /> Toggle interactive mode. | 
-| `-list`   | [<.txt>] <br /> Specify subset of residues to treat. | 
-| `-ph`     | [\<real>] (7.0) <br /> Simulation pH. If the `-inter` flag is not set, this (together with the pKa specified in `lambdagrouptypes.dat`) will be used to guess the initial lambda state of the titratable residue(s).|
-| `-v`      | [\<int>] (phprocessed.pdb) <br /> Verbosity: 0 = no output, 1 = errors and warnings only, 2 = default, 3 = be more verbose. | 
+| Flag         | Description    |
+|--------------|----------------|
+| `-f`         | [<.pdb/.gro>] (required) <br /> Specify input structure file. | 
+| `-o`         | [<.pdb/.gro>] (phprocessed.pdb) <br /> Specify output structure file. | 
+| <nobr>`-inter`</nobr> | (no) <br /> Toggle interactive mode. | 
+| `-list`      | [<.txt>] <br /> Specify subset of residues to treat. | 
+| `-ph`        | [\<real>] (7.0) <br /> Simulation pH. If the `-inter` flag is not set, this (together with the pKa specified in `lambdagrouptypes.dat`) will be used to guess the initial lambda state of the titratable residue(s).|
+| `-v`         | [\<int>] (2) (phprocessed.pdb) <br /> Verbosity: 0 = no output, 1 = errors and warnings only, 2 = default, 3 = be more verbose. | 
+
+---
+
+<b>phbuilder neutralize</b>
+
+SYNOPSIS
+
+`phbuilder neutralize [-h] -f FILE [-p TOPOL] [-o OUTPUT] [-solname SOLNAME] [-pname PNAME] [-nname NNAME] [-conc CONC] [-nbufs NBUFS] [-v {0,1,2,3}]`
+
+DESCRIPTION
+
+Blabla on this tool.
+
+OPTIONS
+
+| Flag         | Description    |
+|--------------|----------------|
+| `-f`         | [<.pdb/.gro>] (required) <br /> Specify input structure file. | 
+| `-o`         | [<.pdb/.gro>] (phprocessed.pdb) <br /> Specify output structure file. | 
+| <nobr>`-inter`</nobr> | (no) <br /> Toggle interactive mode. | 
+| `-list`      | [<.txt>] <br /> Specify subset of residues to treat. | 
+| `-ph`        | [\<real>] (7.0) <br /> Simulation pH. If the `-inter` flag is not set, this (together with the pKa specified in `lambdagrouptypes.dat`) will be used to guess the initial lambda state of the titratable residue(s).|
+| `-v`         | [\<int>] (2) (phprocessed.pdb) <br /> Verbosity: 0 = no output, 1 = errors and warnings only, 2 = default, 3 = be more verbose. | 
