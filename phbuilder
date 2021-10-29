@@ -36,11 +36,11 @@ class phbuilder(User):
         if (CLI.target == 'gentopol'):
             self.d_output = CLI.output
 
-            # Process whether the -inter flag was or wasn't set.
-            if (CLI.inter != None):
-                self.ph_inter = True
+            # Process whether the -auto flag was or wasn't set.
+            if (CLI.auto != None):
+                self.ph_auto = True
             else:
-                self.ph_inter = False
+                self.ph_auto = False
 
             # Process whether the -list flag was or wasn't set.
             if (CLI.list != None):
@@ -282,8 +282,8 @@ class phbuilder(User):
                 # Store original name here as we'll need it later for a user update.
                 origName = residue.d_resname
 
-                # If -inter was set, ask for every residue individually:
-                if self.ph_inter:
+                # If -auto was set, do not ask for every residue individually:
+                if not self.ph_auto:
                     # List to hold the various options for the user.
                     options = ["Keep current (static) protonation state"]
 
@@ -312,7 +312,7 @@ class phbuilder(User):
                             residue.d_resname = associatedLambdaType.d_groupname
                             residue.d_init = str(val - 1)
 
-                else: # If -inter was not set, just protonate everything automatically.
+                else: # If -auto was set, just protonate everything automatically.
                     residue.d_resname = associatedLambdaType.d_groupname
 
                     # Additionally, use automaticLambdaInits to set the initial lambda values.
@@ -336,8 +336,8 @@ class phbuilder(User):
                 if hasattr(self, 'ph_list_resid') and (residue.d_resid not in list_resid):
                     continue
 
-                # If -inter was set, ask for every residue individually:
-                if self.ph_inter:
+                # If -auto was set, do not ask for every residue individually:
+                if not self.ph_auto:
 
                     # List to hold the various options for the user.
                     options = []

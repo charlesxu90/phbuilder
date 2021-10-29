@@ -34,12 +34,12 @@ def parsecmdline():
                         default='phprocessed.pdb',
                         help='Specify structure file for output (.pdb/.gro).')
 
-    parser_1.add_argument('-inter',
+    parser_1.add_argument('-auto',
                         required=False,
-                        dest='inter',
+                        dest='auto',
                         action='store_const',
                         const=1,
-                        help='Interactively select which residues to make protonatable.')
+                        help='Automatically make all residues beloninging to a lambdagrouptype titratable and guess the initial lambdas based on the pH and pKa.')
 
     parser_1.add_argument('-list',
                         required=False,

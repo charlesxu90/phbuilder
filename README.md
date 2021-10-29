@@ -17,21 +17,21 @@
 
 SYNOPSIS
 
-`phbuilder gentopol [-h] -f FILE [-o OUTPUT] [-inter] [-list LIST] [-ph PH] [-v {0,1,2,3}]`
+`phbuilder gentopol [-h] -f FILE [-o OUTPUT] [-auto] [-list LIST] [-ph PH] [-v {0,1,2,3}]`
 
 DESCRIPTION
 
-This tool encapsulates pdb2gmx and allows you to (re)generate the topology for your system using our modified version of the CHARMM36 force field. This is necessary as some dihedral parameters were modified for titratable residues (ref manuscript 2). gentopol also allows you to interactively set the initial lambda (protonation) state for each residue associated with a defined lambdagrouptype (for this, the `-inter` flag should be set). If the `-inter` flag is not set, the initial lambda values will be guessed based on an optional `-ph` flag that is by default set to `7.0`, together with the pKa defined in the `lambdagrouptypes.dat` file.
+This tool encapsulates pdb2gmx and allows you to (re)generate the topology for your system using our modified version of the CHARMM36 force field. This is necessary as some dihedral parameters were modified for titratable residues (ref manuscript 2). gentopol by default allows you to interactively set the initial lambda (protonation) state for each residue associated with a defined lambdagrouptype. This behavior can be automated by setting the `-auto` flag. In this case, every residue associated with a defined lambdagrouptype will automatically be made titratable, and the initial lambda values will be guessed based on an optional `-ph` flag that is by default set to `7.0`, together with the pKa defined in the `lambdagrouptypes.dat` file.
 
 OPTIONS
 
-| Flag         | Description    |
+| Flag__       | Description    |
 |--------------|----------------|
 | `-f`         | [\<.pdb/.gro>] (required) <br /> Specify input structure file. | 
 | `-o`         | [\<.pdb/.gro>] (phprocessed.pdb) <br /> Specify output structure file. | 
-| <nobr>`-inter` </nobr> | (no) <br /> Toggle interactive mode. | 
+| `-auto`      | (no) <br /> Toggle automatic mode. | 
 | `-list`      | [\<.txt>] <br /> Specify subset of residues to treat. | 
-| `-ph`        | [\<real>] (7.0) <br /> Simulation pH. If the `-inter` flag is not set, this (together with the pKa specified in `lambdagrouptypes.dat`) will be used to guess the initial lambda state of the titratable residue(s).|
+| `-ph`        | [\<real>] (7.0) <br /> Simulation pH. If the `-auto` flag is set, this (together with the pKa specified in `lambdagrouptypes.dat`) will be used to guess the initial lambda state of the titratable residue(s).|
 | `-v`         | [\<int>] (2) (phprocessed.pdb) <br /> Verbosity: 0 = no output, 1 = errors and warnings only, 2 = default, 3 = be more verbose. | 
 
 ---
@@ -48,15 +48,15 @@ The purpose of this tool is to ensure a charge-neutral system by adding the appr
 
 OPTIONS
 
-| Flag         | Description    |
+| Flag______   | Description    |
 |--------------|----------------|
 | `-f`         | [\<.pdb/.gro>] (required) <br /> Specify input structure file. | 
 | `-p`         | [\<.top>] (topol.top) <br /> Specify input topology file. |
 | `-o`         | [\<.pdb/.gro>] (phneutral.pdb) <br /> Specify output structure file. |
 | `-solname`   | [\<string>] (SOL) <br /> Specify solvent name (of which to replace molecules with ions and buffers). |
-| `-pname`     | [\<string>] (NA) <br /> Specify name of positive ion to use. |
-| `-nname`     | [\<string>] (CL) <br /> Specify name of negative ion to use. |
-| `-conc`      | [\<real>] (0.0) <br /> Specify ion concentration in mol/L. Analogous to `gmx genion'`, but will use solvent volume for calculating the required number of ions, not periodic box volume as `gmx genion` does). |
+| `-pname`     | [\<string>] (NA) <br /> Specify name of positive ion to use. Analogous to `gmx genion`.|
+| `-nname`     | [\<string>] (CL) <br /> Specify name of negative ion to use. Analogous to `gmx genion`. |
+| `-conc`      | [\<real>] (0.0) <br /> Specify ion concentration in mol/L. Analogous to `gmx genion` but will use solvent volume for calculating the required number of ions, not periodic box volume as `gmx genion` does). |
 | `-nbufs`     | [\<int>] <br /> Manually specify the number of buffer particles to add. If this flag is not set, a (more generous than necessarily required) estimate will be made based on the number of titratable sites. |
 | `-v`         | [\<int>] (2) <br /> Verbosity: 0 = no output, 1 = errors and warnings only, 2 = default, 3 = be more verbose. |
 
@@ -74,7 +74,7 @@ genparams generates the .mdp files, including all the required constant-pH param
 
 OPTIONS
 
-| Flag         | Description    |
+| Flag_____    | Description    |
 |--------------|----------------|
 | `-f`         | [\<.pdb/.gro>] (required) <br /> Specify input structure file. |
 | `-ph`        | [\<real>] (required) <br /> Specify simulation pH. |
@@ -93,15 +93,20 @@ OPTIONS
 
 1. Prepare your structure file. <br /> This is an important step, and it applies especially to .pdbs that are straight from rcsb.org. Make sure your structure file only contains one MODEL, does not contain alternate location indicators, does not miss certain atoms/residues, etc. etc. It is also strongly recommended that every (non-ion/water) molecule has a chain identifier. If you have only one chain or do not care about this, you can simply set everything to A. One basic check to see if your input file contains mistakes can be to simply run: <br /> `gmx editconf -f input.pdb -o test.pdb` <br /> and see if you get any errors and how test.pdb differs from input.pdb.
 
-2. Check whether your structure file contains any moleculetypes that <i>are</i> part of Charmm36, but for which `pdb2gmx` <i>cannot</i> generate the topology data. Take as an example the lipid POPC. A Charmm36 topology for POPC exists in the form of a stand-alone POPC.itp file, but if you supply just POPC.pdb to `gmpdb2gmx`, it won't be able to generate topol.top. If your structure file contains such residues, phbuilder can still be used but you'll be prompted for the path to POPC.itp when gentopol is called.
+2. Check whether your structure file contains any moleculetypes that <i>are</i> part of CHARMM36, but for which `pdb2gmx` <i>cannot</i> generate the topology data. Take as an example the lipid POPC. A CHARMM36 topology for POPC exists in the form of a stand-alone POPC.itp file, but if you supply just POPC.pdb to `gmpdb2gmx`, it won't be able to generate topol.top. If your structure file contains such residues, phbuilder can still be used but you'll be prompted for the path to POPC.itp when gentopol is called.
 
-3. Decide which residues you want to have titratable, and in which protonation state those residues should be at t = 0 (i.e. which initial lambda values they should have). It's fine if you don't care about any of this, but then you should not set the `-inter` flag.
+3. Decide which residues you want to have titratable, and in which protonation state those residues should be at t = 0 (i.e. which initial lambda values they should have). If you do not care about this, you can set the `-auto` flag to have gentopol automatically choose the appropriate initial lambda values based on the system pH and pKa.
 
-3. (Re)generate the topology using: <br /> `phbuilder gentopol -f input.pdb -inter` <br /> Alternatively, if you just want to make every residue for which a lambdagrouptype exists titratable, you can leave out the `-inter` flag and run: <br /> `phbuilder gentopol -f input.pdb` <br /> In this case, the initial lambda values will be guessed based on the system ph (optional flag for gentopol by default set to 7.0) together with the pKa specified in lambdagrouptypes.dat.
-4. Add a periodix box (if not already present) by e.g. <br /> `gmx editconf -f phprocessed.pdb -o box.pdb -bt cubic -d 1.5`
-5. Add solvent (if not already present) by e.g. <br /> `gmx solvate -cp box.pdb -p topol.top -o solvated.pdb`
+3. (Re)generate the topology using: <br /> `phbuilder gentopol -f input.pdb` <br /> Alternatively, you can set the `-auto` flag and run: <br /> `phbuilder gentopol -f input.pdb -auto` <br /> In this case, the initial lambda values will be guessed based on the system ph (optional flag for gentopol by default set to 7.0) together with the pKa specified in lambdagrouptypes.dat.
+
+4. Add a periodix box (if not already present) by e.g.: <br /> `gmx editconf -f phprocessed.pdb -o box.pdb -bt cubic -d 1.5`
+
+5. Add solvent (if not already present) by e.g.: <br /> `gmx solvate -cp box.pdb -p topol.top -o solvated.pdb`
+
 6. Add the appropriate number of positive/negative ions and buffers to ensure a net-neutral system: <br /> `phbuilder neutralize -f solvated.pdb` <br /> Alternatively, if you want a specific ion concentration and/or a specific number of buffer particles , you could do: <br /> `phbuilder neutralize -f solvated.pdb -conc 0.15 -nbufs 20`
+
 7. At this point, if everything went correctly both your structure and topology file(s) should be completed and constitute a net-neutral system when running cpHMD. What is now left is the actual simulation part: energy minimization, equilibration and production using the correct MD parameters.
+
 8. Generate the .mdp files for EM/EQ/MD, including the constant-pH parameters for a specific simulation pH: 
 <br /> `phbuilder genparams -f phneutral.pdb -ph 4.0` <br /> This will write the following files: EM.mdp, NVT.mdp, NPT.mdp, MD.mdp, and index.ndx.
 9. Check the generated files and modify parameters specific to your system as required. For example if your system explodes upon starting NVT, you might need to adjust the time step for NVT coupling. Also note that by default no position restraints are used for the protein during NVT and NPT coupling.
@@ -132,6 +137,14 @@ source /usr/local/gromacs_constantph/bin/GMXRC
 gmx grompp -f MD.mdp -c NPT.pdb -p topol.top -n index.ndx -o MD.tpr -maxwarn 1
 gmx mdrun -v -deffnm MD -c MD.pdb -x MD.xtc
 ```
+
+---
+
+To-do
+
+* Improve the currently-written sections.
+* Write a section with advanced things you can do.
+* Implement the gmx-api for handling GROMACS calls.
 
 ---
 
