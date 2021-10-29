@@ -6,7 +6,7 @@ from parsecmdline import parsecmdline
 CLI = parsecmdline()
 
 # Import the rest of the modules.
-import configparser, os
+import configparser, os, subprocess
 from user import User
 from structure import Structure
 from mdp import gen_mdp
@@ -120,6 +120,10 @@ class phbuilder(User):
 
         # Do the actual parsing
         parser = configparser.ConfigParser()
+
+        if not os.path.isfile('lambdagrouptypes.dat'):
+            self.error('Did not find lambdagrouptypes.dat in your working directory. This is currently required. lambdagrouptypes.dat can be found in the repository root.')
+
         parser.read("lambdagrouptypes.dat") # name is hardcoded.
 
         # Loop through the sections.
@@ -200,20 +204,23 @@ class phbuilder(User):
         command = "gmx {}".format(cmdstring)
         temp = command
 
-        # If we do not want output in the terminal, send it to a (log) file.
-        if not terminal:
-            command += " >> {} 2>&1".format(logFile)
-
         # If we want some EOF input (i.e. echo SOL | gmx genion ...)
         if EOF != '':
             command += " << EOF\n{}\nEOF".format(EOF)
 
         self.verbose("Running {} ...".format(temp))
 
-        exitcode = os.system(command)
+        if terminal:
+            process = subprocess.run(command, shell=True)
+        else:
+            with open(logFile, 'a') as file:
+                process = subprocess.run(command, shell=True, stdout=file, stderr=file)
+        
+        if process.returncode != 0:
+            if terminal:
+                self.error("Failed to run \"{}\" (exitcode {}).".format(command, process.returncode))
 
-        if exitcode != 0:
-            self.error("Failed to run {} (exitcode {}). Check your logfile ({})".format(command, exitcode, logFile))
+            self.error("Failed to run \"{}\" (exitcode {}). Check your logfile ({})".format(command, process.returncode, logFile))
 
     # Call correct sub function depending on specified target on cmdline.
     def runner(self):

@@ -1,4 +1,5 @@
-<b>Description</b><br />
+<b>Description</b>
+
 System builder for constant-pH simulations in [GROMACS](https://www.gromacs.org/). phbuilder consists of three tools: gentopol, neutralize, and genparams. Each tool performs a specific task for preparing a constant-pH simulation.
 
 ---
@@ -18,6 +19,7 @@ System builder for constant-pH simulations in [GROMACS](https://www.gromacs.org/
 * argparse (should be a simple `pip3 install argparse`)
 * configparser (should be a simple `pip3 install configparser`)
 * os (should be a simple `pip3 install os`)
+* subprocess (should be a simple `pip3 install subprocess`)
 
 ---
 
@@ -29,7 +31,7 @@ SYNOPSIS
 
 DESCRIPTION
 
-gentopol encapsulates [pdb2gmx](https://manual.gromacs.org/current/onlinehelp/gmx-pdb2gmx.html) and allows you to (re)generate the topology for your system using our modified version of the CHARMM36 force field. This is necessary as some dihedral parameters were modified for titratable residues (ref manuscript 2). gentopol by default allows you to interactively set the initial lambda value (protonation state) for each residue associated with a defined lambdagrouptype. This behavior can be automated by setting the `-auto` flag. In this case, every residue associated with a defined lambdagrouptype will automatically be made titratable, and the initial lambda values will be guessed based on an optional `-ph` flag that is by default set to `7.0`, together with the pKa defined in the `lambdagrouptypes.dat` file.
+gentopol encapsulates [gmx pdb2gmx](https://manual.gromacs.org/current/onlinehelp/gmx-pdb2gmx.html) and allows you to (re)generate the topology for your system using our modified version of the CHARMM36 force field. This is necessary as some dihedral parameters were modified for titratable residues (ref manuscript 2). gentopol by default allows you to interactively set the initial lambda value (protonation state) for each residue associated with a defined lambdagrouptype. This behavior can be automated by setting the `-auto` flag. In this case, every residue associated with a defined lambdagrouptype will automatically be made titratable, and the initial lambda values will be guessed based on an optional `-ph` flag that is by default set to `7.0`, together with the pKa defined in the `lambdagrouptypes.dat` file.
 
 OPTIONS
 
@@ -38,9 +40,9 @@ OPTIONS
 | `-f`         | [\<.pdb/.gro>] (required) <br /> Specify input structure file. | 
 | `-o`         | [\<.pdb/.gro>] (phprocessed.pdb) <br /> Specify output structure file. | 
 | `-auto`      | (no) <br /> Toggle automatic mode. | 
-| `-list`      | [\<.txt>] <br /> Provide a subset of resids to consider. Helpful if you do not want to manually go through many (unimportant) residues. |
+| `-list`      | [\<.txt>] <br /> Provide a subset of resid(ue)s to consider. Helpful if you do not want to manually go through many (unimportant) residues. |
 | `-ph`        | [\<real>] (7.0) <br /> Simulation pH. If the `-auto` flag is set, this (together with the pKa specified in `lambdagrouptypes.dat`) will be used to guess the initial lambda state of the titratable residue(s).|
-| `-v`         | [\<int>] (2) (phprocessed.pdb) <br /> Verbosity: 0 = no output, 1 = errors and warnings only, 2 = default, 3 = be more verbose. | 
+| `-v`         | [\<int>] (2) <br /> Verbosity: 0 = no output, 1 = errors and warnings only, 2 = default, 3 = be more verbose. | 
 
 ---
 
@@ -64,8 +66,8 @@ OPTIONS
 | `-solname`   | [\<string>] (SOL) <br /> Specify solvent name (of which to replace molecules with ions and buffers). |
 | `-pname`     | [\<string>] (NA) <br /> Specify name of positive ion to use. Analogous to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html).|
 | `-nname`     | [\<string>] (CL) <br /> Specify name of negative ion to use. Analogous to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html). |
-| `-conc`      | [\<real>] (0.0) <br /> Specify ion concentration in mol/L. Analogous to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html) but will use the solvent volume for calculating the required number of ions, not the periodic box volume as genion does). |
-| `-nbufs`     | [\<int>] <br /> Manually specify the number of buffer particles to add. If this flag is not set, a (more generous than necessarily required) estimate will be made based on the number of titratable sites. Currently $N_{\text{buf}} = N_{\text{sites}} / 2q_{\text{max}}$ with $q_{\text{max}} = 0.3$.|
+| `-conc`      | [\<real>] (0.0) <br /> Specify ion concentration in mol/L. Analogous to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html) but will use the solvent volume for calculating the required number of ions, not the periodic box volume as genion does. |
+| `-nbufs`     | [\<int>] <br /> Manually specify the number of buffer particles to add. If this flag is not set, a (more generous than necessarily required) estimate will be made based on the number of titratable sites. Currently N_buf = N_sites / 2q_max with q_max = 0.3.|
 | `-v`         | [\<int>] (2) <br /> Verbosity: 0 = no output, 1 = errors and warnings only, 2 = default, 3 = be more verbose. |
 
 ---
@@ -99,7 +101,7 @@ OPTIONS
 
 <b>Basic workflow</b>
 
-1. Prepare your structure file. <br /> This is an important step, and it applies especially to .pdbs that are straight from [rcsb.org](https://www.rscb.org/). Make sure your structure file only contains one MODEL, does not contain alternate location indicators, does not miss certain atoms/residues, etc. etc. It is also strongly recommended that every (non-ion/water) molecule has a chain identifier. If you have only one chain or do not care about this, you can simply set everything to A. One basic check to see if your input file contains mistakes can be to simply run: <br /> `gmx editconf -f input.pdb -o test.pdb` <br /> and see if you get any errors and how test.pdb differs from input.pdb.
+1. Prepare your structure file. <br /> This is an important step, and it applies especially to .pdbs that are straight from [rcsb](https://www.rcsb.org/). Make sure your structure file only contains one MODEL, does not contain alternate location indicators, does not miss certain atoms/residues, etc. etc. It is also strongly recommended that every (non-ion/water) molecule has a chain identifier. If you have only one chain or do not care about this, you can simply set everything to A. One basic check to see if your input file contains mistakes can be to simply run: <br /> `gmx editconf -f input.pdb -o test.pdb` <br /> and see if you get any errors and how test.pdb differs from input.pdb.
 
 2. Check whether your structure file contains any moleculetypes that <i>are</i> part of CHARMM36, but for which `pdb2gmx` <i>cannot</i> generate the topology data. Take as an example the lipid POPC. A CHARMM36 topology for POPC exists in the form of a stand-alone POPC.itp file, but if you supply just POPC.pdb to `gmpdb2gmx`, it won't be able to generate topol.top. If your structure file contains such residues, phbuilder can still be used but you'll be prompted for the path to POPC.itp when gentopol is called.
 
@@ -150,9 +152,8 @@ gmx mdrun -v -deffnm MD -c MD.pdb -x MD.xtc
 
 To-do
 
-* Improve the currently-written sections.
-* Write a section with advanced things you can do.
 * Implement the gmx-api for handling GROMACS calls.
+* Problem with parsing .gro files.
 
 ---
 
