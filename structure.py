@@ -206,6 +206,8 @@ class Structure:
             # Title.
             if hasattr(self, 'd_title'):
                 file.write("{}\n".format(self.d_title.strip()))
+            else:
+                file.write("Dummy Title\n")
 
             # Total number of atoms.
             total = 0
