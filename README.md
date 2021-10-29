@@ -1,5 +1,5 @@
-<b>Description</b>
-<p>Python-based system builder for constant-pH simulations in GROMACS.</p>
+<b>Description</b><br />
+System builder for constant-pH simulations in [GROMACS](https://www.gromacs.org/). phbuilder consists of three tools: gentopol, neutralize, and genparams. Each tool performs a specific task for preparing a constant-pH simulation.
 
 ---
 
@@ -10,6 +10,14 @@
 `cmake .. -DGMX_BUILD_OWN_FFTW=ON -DGMX_GPU=CUDA -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=/usr/local/gromacs_constantph`
 4. Clone phbuilder (this) repository.
 5. Add phbuilder directory to PYTHONPATH by adding `export PYTHONPATH=$PYTHONPATH:/path/to/phbuilder` to your `~/.bashrc` file (and reload terminal(s)).
+6. Currently, the `lambdagrouptypes.dat` file should be in your working directory in order for phbuilder to work. Additionally, you should update the force field path in lambdagrouptypes.dat to `/where/you/cloned/phbuilder/ffield/charmm36-mar2019-m6.ff`.
+
+<b>Required Python packages</b>
+
+* argcomplete (requires more than just installing in pip, look into this)
+* argparse (should be a simple `pip3 install argparse`)
+* configparser (should be a simple `pip3 install configparser`)
+* os (should be a simple `pip3 install os`)
 
 ---
 
@@ -21,7 +29,7 @@ SYNOPSIS
 
 DESCRIPTION
 
-This tool encapsulates pdb2gmx and allows you to (re)generate the topology for your system using our modified version of the CHARMM36 force field. This is necessary as some dihedral parameters were modified for titratable residues (ref manuscript 2). gentopol by default allows you to interactively set the initial lambda (protonation) state for each residue associated with a defined lambdagrouptype. This behavior can be automated by setting the `-auto` flag. In this case, every residue associated with a defined lambdagrouptype will automatically be made titratable, and the initial lambda values will be guessed based on an optional `-ph` flag that is by default set to `7.0`, together with the pKa defined in the `lambdagrouptypes.dat` file.
+gentopol encapsulates [pdb2gmx](https://manual.gromacs.org/current/onlinehelp/gmx-pdb2gmx.html) and allows you to (re)generate the topology for your system using our modified version of the CHARMM36 force field. This is necessary as some dihedral parameters were modified for titratable residues (ref manuscript 2). gentopol by default allows you to interactively set the initial lambda value (protonation state) for each residue associated with a defined lambdagrouptype. This behavior can be automated by setting the `-auto` flag. In this case, every residue associated with a defined lambdagrouptype will automatically be made titratable, and the initial lambda values will be guessed based on an optional `-ph` flag that is by default set to `7.0`, together with the pKa defined in the `lambdagrouptypes.dat` file.
 
 OPTIONS
 
@@ -30,7 +38,7 @@ OPTIONS
 | `-f`         | [\<.pdb/.gro>] (required) <br /> Specify input structure file. | 
 | `-o`         | [\<.pdb/.gro>] (phprocessed.pdb) <br /> Specify output structure file. | 
 | `-auto`      | (no) <br /> Toggle automatic mode. | 
-| `-list`      | [\<.txt>] <br /> Specify subset of residues to treat. | 
+| `-list`      | [\<.txt>] <br /> Provide a subset of resids to consider. Helpful if you do not want to manually go through many (unimportant) residues. |
 | `-ph`        | [\<real>] (7.0) <br /> Simulation pH. If the `-auto` flag is set, this (together with the pKa specified in `lambdagrouptypes.dat`) will be used to guess the initial lambda state of the titratable residue(s).|
 | `-v`         | [\<int>] (2) (phprocessed.pdb) <br /> Verbosity: 0 = no output, 1 = errors and warnings only, 2 = default, 3 = be more verbose. | 
 
@@ -54,10 +62,10 @@ OPTIONS
 | `-p`         | [\<.top>] (topol.top) <br /> Specify input topology file. |
 | `-o`         | [\<.pdb/.gro>] (phneutral.pdb) <br /> Specify output structure file. |
 | `-solname`   | [\<string>] (SOL) <br /> Specify solvent name (of which to replace molecules with ions and buffers). |
-| `-pname`     | [\<string>] (NA) <br /> Specify name of positive ion to use. Analogous to `gmx genion`.|
-| `-nname`     | [\<string>] (CL) <br /> Specify name of negative ion to use. Analogous to `gmx genion`. |
-| `-conc`      | [\<real>] (0.0) <br /> Specify ion concentration in mol/L. Analogous to `gmx genion` but will use solvent volume for calculating the required number of ions, not periodic box volume as `gmx genion` does). |
-| `-nbufs`     | [\<int>] <br /> Manually specify the number of buffer particles to add. If this flag is not set, a (more generous than necessarily required) estimate will be made based on the number of titratable sites. |
+| `-pname`     | [\<string>] (NA) <br /> Specify name of positive ion to use. Analogous to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html).|
+| `-nname`     | [\<string>] (CL) <br /> Specify name of negative ion to use. Analogous to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html). |
+| `-conc`      | [\<real>] (0.0) <br /> Specify ion concentration in mol/L. Analogous to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html) but will use the solvent volume for calculating the required number of ions, not the periodic box volume as genion does). |
+| `-nbufs`     | [\<int>] <br /> Manually specify the number of buffer particles to add. If this flag is not set, a (more generous than necessarily required) estimate will be made based on the number of titratable sites. Currently $N_{\text{buf}} = N_{\text{sites}} / 2q_{\text{max}}$ with $q_{\text{max}} = 0.3$.|
 | `-v`         | [\<int>] (2) <br /> Verbosity: 0 = no output, 1 = errors and warnings only, 2 = default, 3 = be more verbose. |
 
 ---
@@ -78,12 +86,12 @@ OPTIONS
 |--------------|----------------|
 | `-f`         | [\<.pdb/.gro>] (required) <br /> Specify input structure file. |
 | `-ph`        | [\<real>] (required) <br /> Specify simulation pH. |
-| `-mdp`       | [\<.mdp>] <br /> Specify existing .mdp file for production run to append the constant-pH parameters to, instead of generating a new MD.mdp from scratch. |
-| `-ndx`       | [\<.idx>] <br /> Specify existing .ndx file to append the constant-pH groups to, instead of generating a new index.ndx from scratch.
-| `-nstout`    | [\<int>] (500) <br /> Specify output frequency (in simulation steps) for the lambda_xxx.dat files. 500 is large enough for subsequent frames to be uncoupled.
+| `-mdp`       | [\<.mdp>] (MD.mdp) <br /> Specify .mdp file for the constant-pH parameters to be appended to. If the specified file does not exist, the .mdp file will be generated from scratch. Note that this only applies to production (MD), for energy minimization (EM) and equilibration (NVT/NPT), the .mdp files will be generated from scratch regardless. |
+| `-ndx`       | [\<.idx>] (index.ndx) <br /> Specify .ndx file for the constant-pH (lambda) groups to be appended to. If the specified file does not exist, the .ndx file will be generated from scratch (using `echo q \| gmx make_ndx -f input.pdb`). |
+| `-nstout`    | [\<int>] (500) <br /> Specify output frequency for the lambda_xxx.dat files. 500 is large enough for subsequent frames to be uncoupled.
 | `-dwpE`      | [\<real>] (7.5) <br /> Specify default height of bias potential barrier in kJ/mol. 7.5 should be large enough in most cases, but if you observe a lambda coordinate spending a signficant amount of time between physical (i.e. lambda = 0/1) states, you should manually increase (either directly in the .mdp file or by setting the `-inter` flag).
-| `-lmass`     | [\<real>] (5.0) <br /> Specify mass of the lambda particle(s). 5.0 is a good value.
-| `-ltau`      | [\<real>] (2.0) <br /> Specify thermostat coupling time for the lambda-particles. 2.0 ps^-1 is a good value.
+| `-lmass`     | [\<real>] (5.0) <br /> Specify mass of the lambda particle(s). The user should probably not touch this.
+| `-ltau`      | [\<real>] (2.0) <br /> Specify thermostat coupling time for the lambda-particles. The user should probably not touch this.
 | `-inter`     | (no) <br /> If this flag is set, the user can manually specify the height of the bias potential barrier (in kJ/mol) for every titratable group.
 | `-v`         | [\<int>] (2) <br /> Verbosity: 0 = no output, 1 = errors and warnings only, 2 = default, 3 = be more verbose. |
 
@@ -91,7 +99,7 @@ OPTIONS
 
 <b>Basic workflow</b>
 
-1. Prepare your structure file. <br /> This is an important step, and it applies especially to .pdbs that are straight from rcsb.org. Make sure your structure file only contains one MODEL, does not contain alternate location indicators, does not miss certain atoms/residues, etc. etc. It is also strongly recommended that every (non-ion/water) molecule has a chain identifier. If you have only one chain or do not care about this, you can simply set everything to A. One basic check to see if your input file contains mistakes can be to simply run: <br /> `gmx editconf -f input.pdb -o test.pdb` <br /> and see if you get any errors and how test.pdb differs from input.pdb.
+1. Prepare your structure file. <br /> This is an important step, and it applies especially to .pdbs that are straight from [rcsb.org](https://www.rscb.org/). Make sure your structure file only contains one MODEL, does not contain alternate location indicators, does not miss certain atoms/residues, etc. etc. It is also strongly recommended that every (non-ion/water) molecule has a chain identifier. If you have only one chain or do not care about this, you can simply set everything to A. One basic check to see if your input file contains mistakes can be to simply run: <br /> `gmx editconf -f input.pdb -o test.pdb` <br /> and see if you get any errors and how test.pdb differs from input.pdb.
 
 2. Check whether your structure file contains any moleculetypes that <i>are</i> part of CHARMM36, but for which `pdb2gmx` <i>cannot</i> generate the topology data. Take as an example the lipid POPC. A CHARMM36 topology for POPC exists in the form of a stand-alone POPC.itp file, but if you supply just POPC.pdb to `gmpdb2gmx`, it won't be able to generate topol.top. If your structure file contains such residues, phbuilder can still be used but you'll be prompted for the path to POPC.itp when gentopol is called.
 
@@ -99,9 +107,9 @@ OPTIONS
 
 3. (Re)generate the topology using: <br /> `phbuilder gentopol -f input.pdb` <br /> Alternatively, you can set the `-auto` flag and run: <br /> `phbuilder gentopol -f input.pdb -auto` <br /> In this case, the initial lambda values will be guessed based on the system ph (optional flag for gentopol by default set to 7.0) together with the pKa specified in lambdagrouptypes.dat.
 
-4. Add a periodix box (if not already present) by e.g.: <br /> `gmx editconf -f phprocessed.pdb -o box.pdb -bt cubic -d 1.5`
+4. Add a periodix box (if not already present) by e.g. (see [gmx editconf](https://manual.gromacs.org/documentation/current/onlinehelp/gmx-editconf.html)): <br /> `gmx editconf -f phprocessed.pdb -o box.pdb -bt cubic -d 1.5`
 
-5. Add solvent (if not already present) by e.g.: <br /> `gmx solvate -cp box.pdb -p topol.top -o solvated.pdb`
+5. Add solvent (if not already present) by e.g. (see [gmx solvate](https://manual.gromacs.org/documentation/current/onlinehelp/gmx-solvate.html)): <br /> `gmx solvate -cp box.pdb -p topol.top -o solvated.pdb`
 
 6. Add the appropriate number of positive/negative ions and buffers to ensure a net-neutral system: <br /> `phbuilder neutralize -f solvated.pdb` <br /> Alternatively, if you want a specific ion concentration and/or a specific number of buffer particles , you could do: <br /> `phbuilder neutralize -f solvated.pdb -conc 0.15 -nbufs 20`
 
