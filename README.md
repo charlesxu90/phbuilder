@@ -25,7 +25,7 @@ This tool encapsulates pdb2gmx and allows you to (re)generate the topology for y
 
 OPTIONS
 
-| Flag__       | Description    |
+| Flag___      | Description    |
 |--------------|----------------|
 | `-f`         | [\<.pdb/.gro>] (required) <br /> Specify input structure file. | 
 | `-o`         | [\<.pdb/.gro>] (phprocessed.pdb) <br /> Specify output structure file. | 
@@ -48,7 +48,7 @@ The purpose of this tool is to ensure a charge-neutral system by adding the appr
 
 OPTIONS
 
-| Flag______   | Description    |
+| Flag_______  | Description    |
 |--------------|----------------|
 | `-f`         | [\<.pdb/.gro>] (required) <br /> Specify input structure file. | 
 | `-p`         | [\<.top>] (topol.top) <br /> Specify input topology file. |
