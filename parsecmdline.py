@@ -8,7 +8,7 @@ def parsecmdline():
     desc_2 = "Please cite [phbuilder_paper]."
     desc_3 = "gentopol encapsulates gmx pdb2gmx and allows you to (re)generate the topology for your system using our modified version of the CHARMM36 force field. This is necessary as some dihedral parameters were modified for titratable residues (ref manuscript 2). gentopol by default allows you to interactively set the initial lambda value (protonation state) for each residue associated with a defined lambdagrouptype. This behavior can be automated by setting the -auto flag. In this case, every residue associated with a defined lambdagrouptype will automatically be made titratable, and the initial lambda values will be guessed based on an optional -ph flag that is by default set to 7.0, together with the pKa defined in the lambdagrouptypes.dat file."
     desc_4 = "The purpose of this tool is to ensure a charge-neutral system by adding the appropriate number of ions and buffer particles."
-    desc_5 = "genparams generates the .mdp files, including all the required constant-pH parameters. genparams requires the existance of a record.dat file for setting the initial lambda values."
+    desc_5 = "genparams generates the .mdp files, including all the required constant-pH parameters. genparams requires the existance of a phrecord.dat file for setting the initial lambda values."
 
     parser = argparse.ArgumentParser(prog='phbuilder', description=desc_1, epilog=desc_2)
 

@@ -279,7 +279,7 @@ class phbuilder(User):
 
         # PART II - LOAD DATA
 
-        # Load the .pdb/.gro structure (and implictly record.dat, if it exists).
+        # Load the .pdb/.gro structure (and implictly phrecord.dat, if it exists).
         pdb = Structure(self.d_file, self.d_verbosity)
 
         # Load user-specified list of residues (if any).
@@ -573,9 +573,9 @@ class phbuilder(User):
 
     # Returns difference in system charge between classical and cpHMD perspective.
     def charge_cpHMDdiff(self, pdb):
-        # Error if record.dat wasn't found
-        if not os.path.isfile('record.dat'):
-            self.error("Cannot determine total charge for cpHMD because record.dat was not found.")
+        # Error if phrecord.dat wasn't found
+        if not os.path.isfile('phrecord.dat'):
+            self.error("Cannot determine total charge for cpHMD because phrecord.dat was not found.")
 
         QQinitLambda = 0        # Here we want to answer how much the sum of charges
         QQmaxProto = 0          # based on initial lambdas is different from the sum
@@ -820,9 +820,6 @@ class phbuilder(User):
             if anyTitratables and constrainCharge:
                 break
 
-        if not anyTitratables:
-            self.error("No titratable residues detected!")
-
         if not constrainCharge:
             self.warning("No buffer(s) found. Will not use charge constraining...")
 
@@ -844,6 +841,10 @@ class phbuilder(User):
         if self.d_ndx == None:
             self.update('No .ndx file was specified. Creating a default index.ndx file...')
             self.gromacs("make_ndx -f {}".format(self.d_file), EOF='q')
+
+        # Move this warning here so that we can also build normal MD sims with phbuilder.
+        if not anyTitratables:
+            self.error("No titratable residues detected! Will not perform any cpHMD related stuff...")
 
         # We do not only MD, but also EM, NVT, and NPT at constant-pH.
         # Therefore loop over these files for PARTS I, II, and III (but not IV):
@@ -1016,12 +1017,12 @@ class phbuilder(User):
                     else:
                         Edwp = self.ph_dwpE
 
-                    # HANDLE INITIAL LAMBDA FROM RECORD.DAT
+                    # HANDLE INITIAL LAMBDA FROM phrecord.dat
 
                     init = residue.d_init
                     if init == '':
                         init = self.automaticLambdaInits(LambdaType.d_pKa, self.ph_ph)
-                        self.warning('Initial lambda value for residue {}-{} in chain {} not found! Check your record.dat file. Will revert to automatic (state {}), but your system might no-longer be neutral.'.format(residue.d_resname, residue.d_resid, residue.d_chain, init))
+                        self.warning('Initial lambda value for residue {}-{} in chain {} not found! Check your phrecord.dat file. Will revert to automatic (state {}), but your system might no-longer be neutral.'.format(residue.d_resname, residue.d_resid, residue.d_chain, init))
 
                     if multistate:
                         initList = []

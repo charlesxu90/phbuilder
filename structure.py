@@ -232,21 +232,21 @@ class Structure:
             else:
                 file.write("{:>10.5f}{:>10.5f}{:>10.5f}\n".format(0.0, 0.0, 0.0))
 
-    # Reads the record of initial lambda values (record.dat) if it exists.
-    # Will set any inits found in record.dat to the corresponding residue in d_residues.
+    # Reads the record of initial lambda values (phrecord.dat) if it exists.
+    # Will set any inits found in phrecord.dat to the corresponding residue in d_residues.
     def __read_record(self):
-        if os.path.isfile('record.dat'):
-            self.__user.verbose('Found existing record of initial lambda values (record.dat)...')
+        if os.path.isfile('phrecord.dat'):
+            self.__user.verbose('Found existing record of initial lambda values (phrecord.dat)...')
             # Split file by lines.
             idx = 0
-            for line in open('record.dat').read().splitlines():
+            for line in open('phrecord.dat').read().splitlines():
                 resname = line[0:4].strip()
                 resid   = int(line[5:9])
                 chain   = line[10:11]
                 init    = line[12:14].strip()
 
                 if (init != ""):
-                    # Set the init value found in record.dat in corresponding residue object.
+                    # Set the init value found in phrecord.dat in corresponding residue object.
                     self.d_residues[idx].d_init = init
                     # User update.
                     self.__user.verbose("Matched {}-{} in chain {} with record entry for {}-{} in chain {} (init = {})".format(
@@ -255,11 +255,11 @@ class Structure:
                 
                 idx += 1
         else:
-            self.__user.update("Did not find existing record of initial lambda values (record.dat)...")
+            self.__user.update("Did not find existing record of initial lambda values (phrecord.dat)...")
 
-    # Writes a record of initial lambda values to record.dat.
+    # Writes a record of initial lambda values to phrecord.dat.
     def __write_record(self):
-        self.__user.verbose('Writing initial lambda record to record.dat...')
-        with open('record.dat', 'w+') as file:
+        self.__user.verbose('Writing initial lambda record to phrecord.dat...')
+        with open('phrecord.dat', 'w+') as file:
             for residue in self.d_residues:
                 file.write("{:4s} {:4d} {:1s} {:2s}\n".format(residue.d_resname, residue.d_resid % 10000, residue.d_chain, residue.d_init))

@@ -79,7 +79,7 @@ SYNOPSIS
 
 DESCRIPTION
 
-genparams generates the .mdp files, including all the required constant-pH parameters. genparams requires the existance of a record.dat file for setting the initial lambda values.
+genparams generates the .mdp files, including all the required constant-pH parameters. genparams requires the existance of a phrecord.dat file for setting the initial lambda values.
 
 OPTIONS
 
