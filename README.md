@@ -153,7 +153,7 @@ gmx mdrun -v -deffnm MD -c MD.pdb -x MD.xtc
 To-do
 
 * Implement the gmx-api for handling GROMACS calls.
-* Problem with parsing .gro files.
+* Separate files for editing structure and running pdb2gmx in gentopol.
 
 ---
 
