@@ -10,8 +10,7 @@ System builder for constant-pH simulations in [GROMACS](https://www.gromacs.org/
 3. Install using the instructions <a href="https://manual.gromacs.org/documentation/current/install-guide/index.html">here</a>. I personally use the following CMake flags:
 `cmake .. -DGMX_BUILD_OWN_FFTW=ON -DGMX_GPU=CUDA -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=/usr/local/gromacs_constantph`
 4. Clone phbuilder (this) repository.
-5. Add phbuilder directory to PYTHONPATH by adding `export PYTHONPATH=$PYTHONPATH:/path/to/phbuilder` to your `~/.bashrc` file (and reload terminal(s)).
-6. Currently, the `lambdagrouptypes.dat` file should be in your working directory in order for phbuilder to work. Additionally, you should update the force field path in lambdagrouptypes.dat to `/where/you/cloned/phbuilder/ffield/charmm36-mar2019-m6.ff`.
+5. Set the appropriate environment variables in ~/.bashrc: <br /> `export PYTHONPATH=$PYTHONPATH:/path/to/clone/phbuilder` <br /> `export PHFFIELD=/path/to/clone/ffield` <br /> the ffield dir contains the modified CHARMM36 force field, as well as the lambdagrouptypes.dat file containing cpHMD specific topology data.
 
 <b>Required Python packages</b>
 
@@ -154,6 +153,8 @@ To-do
 
 * Implement the gmx-api for handling GROMACS calls.
 * Separate files for editing structure and running pdb2gmx in gentopol.
+* Format of user update which residues were made titratable using -auto.
+* If you use gentopol -f phprocessed -auto, still give a message that residues ARE titratable.
 
 ---
 

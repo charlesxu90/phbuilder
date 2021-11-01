@@ -121,10 +121,21 @@ class phbuilder(User):
         # Do the actual parsing
         parser = configparser.ConfigParser()
 
-        if not os.path.isfile('lambdagrouptypes.dat'):
-            self.error('Did not find lambdagrouptypes.dat in your working directory. This is currently required. lambdagrouptypes.dat can be found in the repository root.')
+        # Get the path to the ffield directory from the environment variable.
+        self.p_ffield = os.environ.get('PHFFIELD')
 
-        parser.read("lambdagrouptypes.dat") # name is hardcoded.
+        if self.p_ffield == None:
+            self.error('PHFFIELD environment variable is not set. Please add PHFFIELD=/path/to/ffield dir to your ~/.bashrc and reload terminal(s).')
+
+        p_lambdagrouptypes = os.path.normpath(self.p_ffield + '/' + 'lambdagrouptypes.dat') # name is hardcoded.
+
+        if not os.path.isfile(p_lambdagrouptypes):
+            self.error('Did not find lambdagrouptypes.dat in {}. Please check your directory and/or update your PHFFIELD environment variable in your ~/.bashrc and reload terminal(s).'.format(self.p_ffield))
+
+        self.verbose('path to ffield dir           = {}'.format(self.p_ffield))
+        self.verbose('path to lambdagrouptypes.dat = {}'.format(p_lambdagrouptypes))
+
+        parser.read(p_lambdagrouptypes)
 
         # Loop through the sections.
         for sect in parser.sections():
@@ -240,19 +251,25 @@ class phbuilder(User):
     def gentopol(self):
         # Part I - COPY FORCE FIELD AND RESIDUETYPES.DAT TO WORKING DIR
 
-        tail, head = os.path.split(self.d_modelFF)
+        # /path/to/ffield/charmm36-mar2019-m6.ff
+        p_modelFF = os.path.normpath(self.p_ffield + '/' + self.d_modelFF)
 
-        os.system("cp -r {} {}/residuetypes.dat .".format(self.d_modelFF, tail))
+        # /path/to/ffield/residuetypes.dat
+        p_residuetypes = os.path.normpath(self.p_ffield + '/' + 'residuetypes.dat')
 
-        self.verbose('Force field path stuff: ')
-        self.verbose('full-path    = {}'.format(self.d_modelFF))
-        self.verbose('tail-path    = {}'.format(tail))
-        self.verbose('residuetypes = {}/residuetypes.dat'.format(tail))
-        self.verbose('head-path    = {}'.format(head))
+        # User update
+        self.verbose('Force field path stuff:')
+        self.verbose('path to ffield dir   = {}'.format(self.p_ffield))
+        self.verbose('path to ffield       = {}'.format(p_modelFF))
+        self.verbose('path to residuetypes = {}'.format(p_residuetypes))
 
-        # Remove .ff extention from force field.
+        # Copy force field and residuetypes.dat to working directory
+        os.system("cp -r {} .".format(p_modelFF))
+        os.system("cp {} .".format(p_residuetypes))
+
+        # Remove .ff extention from force field (we need d_modelff for pdb2gmx).
+        tail, head     = os.path.split(p_modelFF)
         self.d_modelFF = os.path.splitext(head)[0]
-        self.verbose('ffield name  = {}'.format(self.d_modelFF))
 
         # PART II - LOAD DATA
 
