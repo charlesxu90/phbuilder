@@ -131,7 +131,7 @@ class phbuilder(User):
         self.p_ffield = os.environ.get('PHFFIELD')
 
         if self.p_ffield == None:
-            self.error('PHFFIELD environment variable is not set. Please add PHFFIELD=/path/to/ffield dir to your ~/.bashrc and reload terminal(s).')
+            self.error('PHFFIELD environment variable is not set! Please add PHFFIELD=/path/to/ffield dir to your ~/.bashrc and reload terminal(s).')
 
         p_lambdagrouptypes = os.path.normpath(self.p_ffield + '/' + 'lambdagrouptypes.dat') # name is hardcoded.
 
@@ -215,22 +215,25 @@ class phbuilder(User):
             self.warning("This is fine if you don't plan on using charge constraining/buffers.")
 
     # Function to encapsulate GROMACS calls
-    def gromacs(self, cmdstring, EOF='', terminal=False, logFile='builder.log'):
+    def gromacs(self, command, stdin=[], terminal=False, logFile='builder.log'):
+        if os.environ.get('GMXBIN') == None:
+            self.error('GMXBIN environment variable is not set! Please make sure you source the desired GROMACS version (i.e. \'source /usr/local/gromacs_version_you_want/bin/GMXRC\') in your ~/.bashrc and reload terminal(s).')
         self.verbose('GROMACS location is {}/gmx...'.format(os.environ.get('GMXBIN')))
 
-        command = "gmx {}".format(cmdstring)
-        temp = command
+        command = "gmx {}".format(command)
 
-        # If we want some EOF input (i.e. echo SOL | gmx genion ...)
-        if EOF != '':
-            command += " << EOF\n{}\nEOF".format(EOF)
+        if stdin:
+            xstr = ' << EOF\n'
+            for val in stdin:
+                xstr += '{}\n'.format(val)
+            command += xstr + 'EOF'
 
-        self.verbose("Running {} ...".format(temp))
+        self.verbose("Running {} ...".format(command))
 
         if terminal:
             process = subprocess.run(command, shell=True)
         else:
-            with open(logFile, 'a') as file:
+            with open(logFile, 'a+') as file:
                 process = subprocess.run(command, shell=True, stdout=file, stderr=file)
         
         if process.returncode != 0:
@@ -728,7 +731,7 @@ class phbuilder(User):
 
         # Run genion to add the appropriate number of ions.
         self.gromacs("genion -s ions.tpr -o phions.pdb -p {} -pname {} -nname {} -np {} -nn {}".format(
-            self.d_topol, self.d_pname, self.d_nname, np, nn), EOF=self.d_solname)
+            self.d_topol, self.d_pname, self.d_nname, np, nn), stdin=[self.d_solname])
 
         self.update('Finished adding ions')
 
@@ -757,7 +760,7 @@ class phbuilder(User):
         self.gromacs("grompp -f ions.mdp -c phions.pdb -p {} -o buffers.tpr".format(self.d_topol))
 
         # Run genion to add the appropriate number of buffers.
-        self.gromacs("genion -s buffers.tpr -o {} -p {} -pname BUF -np {}".format(self.d_output, self.d_topol, nbufs), EOF=self.d_solname)
+        self.gromacs("genion -s buffers.tpr -o {} -p {} -pname BUF -np {}".format(self.d_output, self.d_topol, nbufs), stdin=[self.d_solname])
 
         self.update('Finished adding buffers')
 
@@ -840,7 +843,7 @@ class phbuilder(User):
         # If no .ndx file was specified on the command line, generate our default one:
         if self.d_ndx == None:
             self.update('No .ndx file was specified. Creating a default index.ndx file...')
-            self.gromacs("make_ndx -f {}".format(self.d_file), EOF='q')
+            self.gromacs("make_ndx -f {}".format(self.d_file), stdin=['q'])
 
         # Move this warning here so that we can also build normal MD sims with phbuilder.
         if not anyTitratables:
