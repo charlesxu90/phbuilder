@@ -343,7 +343,7 @@ class phbuilder(User):
                     init = self.automaticLambdaInits(associatedLambdaType.d_pKa, self.ph_ph)
                     residue.d_init = str(init)
 
-                    self.update("Made residue {}-{} in chain {} titratable (changed name to {}, initlambda = {})".format(origName, residue.d_resid, residue.d_chain, residue.d_resname, init))
+                    self.update("Made residue {:>4s}-{:<4d} in chain {:1s} titratable (changed name to {}, initlambda = {})".format(origName, residue.d_resid, residue.d_chain, residue.d_resname, init))
 
                 continue # Otherwise code below is executed for the same residue we just changed.
 
@@ -396,6 +396,8 @@ class phbuilder(User):
                 else: # missing initial lambda values in the record, we need to add them.
                     init = self.automaticLambdaInits(associatedLambdaType.d_pKa, self.ph_ph)
                     residue.d_init = str(init)
+
+                    self.update("Residue {}-{} in chain {} is already titratable (initlambda = {})".format(residue.d_resname, residue.d_resid, residue.d_chain, init))
 
             # If the residue in question is neither an ASP nor an ASPT, as an extra
             else: # measure we make sure that nothing is present in the init field.
