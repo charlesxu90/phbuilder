@@ -155,6 +155,7 @@ To-do
 * Separate files for editing structure and running pdb2gmx in gentopol.
 * Format of user update which residues were made titratable using -auto.
 * If you use gentopol -f phprocessed -auto, still give a message that residues ARE titratable.
+* Just make verbosity a flag instead of all the different levels.
 
 ---
 
