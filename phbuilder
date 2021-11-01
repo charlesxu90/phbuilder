@@ -26,7 +26,13 @@ class LambdaType:
 class phbuilder(User):
     # Construct phbuilder object (handles input parsed from cmdline).
     def __init__(self, CLI):
-        super().__init__(CLI.verbosity)
+        # Handle verbosity
+        if CLI.verbosity != None: # If -v flag is set...
+            self.d_verbosity = 3
+        else:
+            self.d_verbosity = 2
+
+        super().__init__(self.d_verbosity)
 
         # Add universal parameters to the universe (used by all three targets).
         self.d_target = CLI.target
@@ -403,6 +409,10 @@ class phbuilder(User):
             else: # measure we make sure that nothing is present in the init field.
                 residue.d_init = ' '
 
+        # Write the modified structure file (input for pdb2gmx).
+        pdb.write('phset.pdb')
+        self.d_file = 'phset.pdb'
+
         # PART IV - HANDLE UNKNOWN RESIDUE TYPES
 
         self.update("Checking if every residue type is present in residuetypes.dat...")
@@ -438,7 +448,6 @@ class phbuilder(User):
 
         if good:
             self.update("everything seems OK.")
-            pdb.write(self.d_output)
 
         else:
             # Create a list knownResidues containing only the known residues
@@ -453,6 +462,7 @@ class phbuilder(User):
             # Write temporary .pdb containing only the known residues
             someTempName = 'pdb2gmxtemp.pdb'
             pdb.write(someTempName)
+            self.d_file = someTempName
 
             # Update value of d_output (so that pdb2gmx is called on the temporary 
             # structure), and backup the final output name as specified by user.
@@ -462,7 +472,7 @@ class phbuilder(User):
         # PART IV - RUN PDB2GMX AND ASK USER FOR INPUT ABOUT IT 
 
         self.update("\nRecommended pdb2gmx command:")
-        self.update("gmx pdb2gmx -f {0} -o {0} -ff {1} -water {2} -ignh".format(self.d_output, self.d_modelFF, self.d_modelwater))
+        self.update("gmx pdb2gmx -f {} -o {} -ff {} -water {} -ignh".format(self.d_file, self.d_output, self.d_modelFF, self.d_modelwater))
 
         # Ask for input for what to do regarding pdb2mgx
         val = self.inputOptionHandler(
@@ -475,7 +485,7 @@ class phbuilder(User):
 
         # Run pdb2gmx:
         if val in [1, 2]:
-            self.gromacs("pdb2gmx -f {0} -o {0} -ff {1} -water {2} -ignh {3}".format(self.d_output, self.d_modelFF, self.d_modelwater, flags), terminal=True)
+            self.gromacs("pdb2gmx -f {} -o {} -ff {} -water {} -ignh {}".format(self.d_file, self.d_output, self.d_modelFF, self.d_modelwater, flags), terminal=True)
 
         # If we do nothing, then return because we do not want to do PART V?
         if val == 0:

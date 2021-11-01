@@ -10,7 +10,7 @@ System builder for constant-pH simulations in [GROMACS](https://www.gromacs.org/
 3. Install using the instructions <a href="https://manual.gromacs.org/documentation/current/install-guide/index.html">here</a>. I personally use the following CMake flags:
 `cmake .. -DGMX_BUILD_OWN_FFTW=ON -DGMX_GPU=CUDA -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=/usr/local/gromacs_constantph`
 4. Clone phbuilder (this) repository.
-5. Set the appropriate environment variables in ~/.bashrc: <br /> `export PYTHONPATH=$PYTHONPATH:/path/to/clone/phbuilder` <br /> `export PHFFIELD=/path/to/clone/ffield` <br /> the ffield dir contains the modified CHARMM36 force field, as well as the lambdagrouptypes.dat file containing cpHMD specific topology data.
+5. Set the appropriate environment variables in `~/.bashrc`: <br /> `export PYTHONPATH=$PYTHONPATH:/path/to/clone/phbuilder` <br /> `export PHFFIELD=/path/to/clone/ffield` <br /> the ffield dir contains the modified CHARMM36 force field, as well as the lambdagrouptypes.dat file containing cpHMD specific topology data.
 
 <b>Required Python packages</b>
 
@@ -41,7 +41,7 @@ OPTIONS
 | `-auto`      | (no) <br /> Toggle automatic mode. | 
 | `-list`      | [\<.txt>] <br /> Provide a subset of resid(ue)s to consider. Helpful if you do not want to manually go through many (unimportant) residues. |
 | `-ph`        | [\<real>] (7.0) <br /> Simulation pH. If the `-auto` flag is set, this (together with the pKa specified in `lambdagrouptypes.dat`) will be used to guess the initial lambda state of the titratable residue(s).|
-| `-v`         | [\<int>] (2) <br /> Verbosity: 0 = no output, 1 = errors and warnings only, 2 = default, 3 = be more verbose. | 
+| `-v`         | [(no) <br /> Be more verbose (helpful for debugging). |
 
 ---
 
@@ -67,7 +67,7 @@ OPTIONS
 | `-nname`     | [\<string>] (CL) <br /> Specify name of negative ion to use. Analogous to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html). |
 | `-conc`      | [\<real>] (0.0) <br /> Specify ion concentration in mol/L. Analogous to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html) but will use the solvent volume for calculating the required number of ions, not the periodic box volume as genion does. |
 | `-nbufs`     | [\<int>] <br /> Manually specify the number of buffer particles to add. If this flag is not set, a (more generous than necessarily required) estimate will be made based on the number of titratable sites. Currently N_buf = N_sites / 2q_max with q_max = 0.3.|
-| `-v`         | [\<int>] (2) <br /> Verbosity: 0 = no output, 1 = errors and warnings only, 2 = default, 3 = be more verbose. |
+| `-v`         | [(no) <br /> Be more verbose (helpful for debugging). |
 
 ---
 
@@ -94,7 +94,7 @@ OPTIONS
 | `-lmass`     | [\<real>] (5.0) <br /> Specify mass of the lambda particle(s). The user should probably not touch this.
 | `-ltau`      | [\<real>] (2.0) <br /> Specify thermostat coupling time for the lambda-particles. The user should probably not touch this.
 | `-inter`     | (no) <br /> If this flag is set, the user can manually specify the height of the bias potential barrier (in kJ/mol) for every titratable group.
-| `-v`         | [\<int>] (2) <br /> Verbosity: 0 = no output, 1 = errors and warnings only, 2 = default, 3 = be more verbose. |
+| `-v`         | [(no) <br /> Be more verbose (helpful for debugging). |
 
 ---
 
@@ -152,8 +152,6 @@ gmx mdrun -v -deffnm MD -c MD.pdb -x MD.xtc
 To-do
 
 * Implement the gmx-api for handling GROMACS calls.
-* Separate files for editing structure and running pdb2gmx in gentopol.
-* Just make verbosity a flag instead of all the different levels.
 
 ---
 
