@@ -125,30 +125,33 @@ class phbuilder(User):
         def str2strList(string):
             return string.split(' ')
 
-        # Do the actual parsing
-        parser = configparser.ConfigParser()
-
-        # Get the path to the ffield directory from the environment variable.
+        # Get the path to the ffield directory from environment.
         self.p_ffield = os.environ.get('PHFFIELD')
 
+        # Error if not set.
         if self.p_ffield == None:
             self.error('PHFFIELD environment variable is not set! Please add PHFFIELD=/path/to/ffield dir to your ~/.bashrc and reload terminal(s).')
 
-        p_lambdagrouptypes = os.path.normpath(self.p_ffield + '/' + 'lambdagrouptypes.dat') # name is hardcoded.
+        # Get path to lambdagrouptypes.dat by combining with path to ffield directory.
+        p_lambdagrouptypes = os.path.normpath(self.p_ffield + '/' + 'lambdagrouptypes.dat')
 
+        # Error if lambdagrouptypes.dat is not present in directory.
         if not os.path.isfile(p_lambdagrouptypes):
             self.error('Did not find lambdagrouptypes.dat in {}. Please check your directory and/or update your PHFFIELD environment variable in your ~/.bashrc and reload terminal(s).'.format(self.p_ffield))
 
+        # User update
         self.verbose('path to ffield dir           = {}'.format(self.p_ffield))
         self.verbose('path to lambdagrouptypes.dat = {}'.format(p_lambdagrouptypes))
 
+        # Do the actual parsing
+        parser = configparser.ConfigParser()
         parser.read(p_lambdagrouptypes)
 
         # Loop through the sections.
         for sect in parser.sections():
             # Parse GROMACS parameters
             if (sect.strip() == "GROMACS"):
-                self.d_gmxpath = parser.get(sect, 'path')
+                self.d_gmxbasepath = parser.get(sect, 'path')
                 continue
 
             # Parse force field parameters
@@ -200,7 +203,7 @@ class phbuilder(User):
             defineLambdaType(groupname, incl, pKa, atoms, qqA, qqB, dvdl)
 
         # USER UPDATE
-
+        self.verbose("gmxpath   = {}".format(self.d_gmxbasepath))
         self.verbose("ffpath    = {}".format(self.d_modelFF))
         self.verbose("water     = {}".format(self.d_modelwater))
 
@@ -221,13 +224,9 @@ class phbuilder(User):
 
     # Function to encapsulate GROMACS calls
     def gromacs(self, command, stdin=[], terminal=False, logFile='builder.log'):
-        print(self.d_gmxpath)
-
-        if os.environ.get('GMXBIN') == None:
-            self.error('GMXBIN environment variable is not set! Please make sure you source the desired GROMACS version (i.e. \'source /usr/local/gromacs_version_you_want/bin/GMXRC\') in your ~/.bashrc and reload terminal(s).')
-        self.verbose('GROMACS location is {}/gmx...'.format(os.environ.get('GMXBIN')))
-
-        command = "gmx {}".format(command)
+        # If we do not pass any envvars to subprocess this will work.
+        path_to_gmx = os.path.normpath(self.d_gmxbasepath + '/' + 'bin/gmx')
+        command = "{} {}".format(path_to_gmx, command)
 
         if stdin:
             xstr = ' << EOF\n'
@@ -238,10 +237,10 @@ class phbuilder(User):
         self.verbose("Running {} ...".format(command))
 
         if terminal:
-            process = subprocess.run(command, shell=True)
+            process = subprocess.run(command, shell=True, env={})
         else:
             with open(logFile, 'a+') as file:
-                process = subprocess.run(command, shell=True, stdout=file, stderr=file)
+                process = subprocess.run(command, shell=True, stdout=file, stderr=file, env={})
         
         if process.returncode != 0:
             if terminal:
