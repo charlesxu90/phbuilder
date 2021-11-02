@@ -224,7 +224,7 @@ class phbuilder(User):
 
     # Function to encapsulate GROMACS calls
     def gromacs(self, command, stdin=[], terminal=False, logFile='builder.log'):
-        # If we do not pass any envvars to subprocess this will work.
+        # If we do not pass any envvars to subprocess (which happens by default) this will work.
         path_to_gmx = os.path.normpath(self.d_gmxbasepath + '/' + 'bin/gmx')
         command = "{} {}".format(path_to_gmx, command)
 
@@ -562,71 +562,6 @@ class phbuilder(User):
 
         self.update("Finished generating topology for constant-pH.")
 
-    # Returns total charge of system from a classical MD perspective.
-    def charge_classic(self, file, topol):
-        QQtotalClassic = 0
-
-        open('charge.mdp', 'w').close() # Generate .tpr file
-        self.gromacs("grompp -f charge.mdp -c {} -p {}".format(file, topol), logFile='charge.log')
-
-        # Grep total charge from output message of grompp
-        for line in open('charge.log').read().splitlines():
-            if "non-zero total charge" in line:
-                QQtotalClassic = float(line.split()[-1])
-                break
-
-        # Cleanup
-        os.remove('charge.mdp'); os.remove('charge.log')
-
-        return QQtotalClassic
-
-    # Returns difference in system charge between classical and cpHMD perspective.
-    def charge_cpHMDdiff(self, pdb):
-        # Error if phrecord.dat wasn't found
-        if not os.path.isfile('phrecord.dat'):
-            self.error("Cannot determine total charge for cpHMD because phrecord.dat was not found.")
-
-        QQinitLambda = 0        # Here we want to answer how much the sum of charges
-        QQmaxProto = 0          # based on initial lambdas is different from the sum
-                                # of charges based on the most protonated state.
-        for residue in pdb.d_residues:
-
-            # If this is a titratable residue (for which an initial lambda value was set)...
-            if residue.d_init != '':
-
-                # Get the associated LambdaType object
-                LambdaType = [lambdaType for lambdaType in self.ph_lambdaTypes if residue.d_resname == lambdaType.d_groupname][0]
-                multistate = len(LambdaType.d_pKa) > 1
-
-                if multistate:
-                    # Charge based on initial lambda value
-                    QQinitLambda += sum(LambdaType.d_qqB[int(residue.d_init) - 1])
-
-                    sums = []
-                    for array in LambdaType.d_qqB:
-                        sums.append(sum(array))
-
-                    # Charge based on most protonated state
-                    QQmaxProto += max(sums)
-
-                if not multistate:
-
-                    # Charge based on initial lambda value
-                    if int(residue.d_init) == 0:
-                        QQinitLambda  += sum(LambdaType.d_qqA)
-
-                    # Charge based on initial lambda value
-                    if int(residue.d_init) == 1:
-                        QQinitLambda  += sum(LambdaType.d_qqB[0])
-
-                    # Charge based on most protonated state
-                    QQmaxProto += max(sum(LambdaType.d_qqA), sum(LambdaType.d_qqB[0]))
-
-        self.verbose("Total charge of titratables based on initial lambdas = {:+.2f}".format(QQinitLambda))
-        self.verbose("Total charge of titratables in most protonated state = {:+.2f}".format(QQmaxProto))
-
-        return QQmaxProto - QQinitLambda
-
     def countRes(self, Structure, resname):
         count = 0
         for residue in Structure.d_residues:
@@ -635,173 +570,6 @@ class phbuilder(User):
         return count
 
     # Add appropriate number ions and buffers to make the system neutral.
-    def neutralizeOld(self):
-        maxChargeOnBuffer = 0.3 # hardcoded
-
-        # I - LOAD DATA, PERFORM SOME CHECKS
-
-        # Load the input structure into d_residues.
-        pdb = Structure(self.d_file, self.d_verbosity)
-
-        # Perform some basic checks for PBC box, solvent, and titratable groups.
-        foundPBC         = hasattr(pdb, 'd_box')
-        foundSolvent     = False
-        foundTitratables = False
-
-        LambdaTypeNames = []
-        for LambdaType in self.ph_lambdaTypes:
-            LambdaTypeNames.append(LambdaType.d_groupname)
-
-        for residue in pdb.d_residues:
-
-            if residue.d_resname == self.d_solname:
-                foundSolvent = True
-
-            elif residue.d_resname in LambdaTypeNames:
-                foundTitratables = True
-
-            if foundSolvent and foundTitratables:
-                break
-
-        # Error if no periodic box was found
-        if not foundPBC:
-            self.error("{} does not have a periodic box! Did you forget to add one?".format(self.d_file))
-
-        # Error if no solvent was found
-        if not foundSolvent:
-            self.error("{} does not seem to have any {} molecules! Did you forget to add solvent? Alternatively you can change the solvent name by setting -solname.".format(self.d_file, self.d_solname))
-
-        # Warning if no titratable residues were found
-        if not foundTitratables:
-            self.warning("{} does not seem to have any titratable groups! Did you forget to run gentopol?".format(self.d_file))
-
-        # II - DO THE IONS PART
-
-        # Get the total charge of the system in classical MD, and at the same time
-        # generate the .tpr file for genion for adding ions:
-
-        QQtotalClassic = 0
-
-        self.update("Getting the total charge of system in classical MD...")
-
-        open('ions.mdp', 'w').close() # Generate .tpr file
-        self.gromacs("grompp -f ions.mdp -c {} -p {} -o ions.tpr".format(self.d_file, self.d_topol), logFile='charge.log')
-
-        # Grep total charge from grompp output message
-        for line in open('charge.log').read().splitlines():
-            if "non-zero total charge" in line:
-                QQtotalClassic = float(line.split()[-1])
-                break
-
-        self.update("Getting the total charge of system in cpHMD...")
-
-        # Get the total charge of the system in cpHMD:
-        QQtotalcpHMD = QQtotalClassic - self.charge_cpHMDdiff(pdb)
-
-        self.update('Total charge of system in classical MD = {:+.2f}'.format(QQtotalClassic))
-        self.update('Total charge of system in cpHMD        = {:+.2f}'.format(QQtotalcpHMD))
-
-        np = 0; nn = 0
-        if QQtotalcpHMD > 0:
-            nn = round(QQtotalcpHMD)
-        elif QQtotalcpHMD < 0:
-            np = round(-QQtotalcpHMD)
-        else:
-            self.update('System seems to be neutral already.')
-
-        def fromBoxVol():
-            Avo    = 6.02214076 * 10 ** 23
-            boxVol = pdb.d_box.d_a * pdb.d_box.d_b * pdb.d_box.d_c
-            return int(round(self.d_conc * Avo * boxVol * 10 ** -27))
-
-        def fromSolVol(Structure):
-            Nwater = self.countRes(Structure, self.d_solname)
-            return int(round(0.01808 * Nwater * self.d_conc))
-
-        if self.d_conc != 0:
-            Nions = fromSolVol(pdb)
-
-            # We only want integers so we want to divide an even number.
-            if (Nions - np - nn) % 2 != 0:
-                Nions += 1
-
-            factor = int((Nions - np - nn)/2.0)
-
-            np += factor
-            nn += factor
-
-            self.update('Specified ion concentration of {} mol/L corresponds to {} ions for given solvent volume'.format(self.d_conc, Nions))
-
-        self.update('Will add {} positive ({}) and {} negative ({}) ions...'.format(np, self.d_pname, nn, self.d_nname))
-        self.update('Total charge to be added via ions      = {:+.2f}'.format(np - nn))
-
-        # Run genion to add the appropriate number of ions.
-        self.gromacs("genion -s ions.tpr -o phions.pdb -p {} -pname {} -nname {} -np {} -nn {}".format(
-            self.d_topol, self.d_pname, self.d_nname, np, nn), stdin=[self.d_solname])
-
-        self.update('Finished adding ions')
-
-        # III - DO THE BUFFER PART
-
-        # Load the structure that now contains the ions.
-        pdb.read('phions.pdb')
-
-        # Obtain the number of buffers that should be added.
-        if not hasattr(self, 'ph_nbufs'):
-            # Count number of titratable residues
-            titratables = 0
-            for residue in pdb.d_residues:
-                if residue.d_resname in LambdaTypeNames:
-                    titratables += 1
-
-            nbufs = int(0.5 * titratables / maxChargeOnBuffer)
-
-            self.update("Will add {} buffer(s) ( = Tsites / 2q_max )".format(nbufs))
-
-        else:
-            nbufs = self.ph_nbufs
-            self.update("Will add {} buffer(s) (user specified)...".format(nbufs))
-
-        # Create .tpr file for gmx genion
-        self.gromacs("grompp -f ions.mdp -c phions.pdb -p {} -o buffers.tpr".format(self.d_topol))
-
-        # Run genion to add the appropriate number of buffers.
-        self.gromacs("genion -s buffers.tpr -o {} -p {} -pname BUF -np {}".format(self.d_output, self.d_topol, nbufs), stdin=[self.d_solname])
-
-        self.update('Finished adding buffers')
-
-        # IV - WRAPUP
-
-        # Remove files
-        os.remove('charge.log')
-        os.remove('ions.mdp')
-        os.remove('ions.tpr')
-        os.remove('buffers.tpr')
-
-        # Check if the correct number of ions and buffers are present in the output file.
-
-        self.update('Checking whether everything was succesful...'.format(self.d_output))
-
-        pdb.read(self.d_output)
-
-        countPions = self.countRes(pdb, self.d_pname)
-        if countPions != np:
-            self.warning('Detected only {}/{} required positive ions'.format(countPions, np))
-        else:
-            self.update('Detected correct number of positive ions.')
-
-        countNions = self.countRes(pdb, self.d_nname)
-        if countNions != nn:
-            self.warning('Detected only {}/{} required negative ions'.format(countNions, nn))
-        else:
-            self.update('Detected correct number of negative ions.')
-
-        countBUFs  = self.countRes(pdb, 'BUF')
-        if countBUFs != nbufs:
-            self.warning('Detected only {}/{} required buffers'.format(countBUFs, nbufs))
-        else:
-            self.update('Detected correct number of buffers.')
-
     def neutralize(self):
         # I - LOAD DATA, PERFORM SOME CHECKS
 
@@ -842,91 +610,86 @@ class phbuilder(User):
 
         # II - DO THE IONS PART
 
-        # Create ions.mdp and add the lambda dynamics parameters.
-        open('ions.mdp', 'w').close()
+        def getcpHMDcharge(name, file, Structure, LambdaTypeNames, constrainCharge):
+            # Create empty name.mdp to append the lambda dynamics parameters to.
+            open('{}.mdp'.format(name), 'w').close()
 
-        # Dummy parameters
-        self.ph_ph    = 7.0; self.ph_nstout = 500
-        self.ph_lmass = 5.0; self.ph_inter  = False
-        self.ph_ltau  = 2.0; self.ph_dwpE   = 7.5
+            # Set dummy parameters
+            self.ph_ph    = 7.0; self.ph_nstout = 500
+            self.ph_lmass = 5.0; self.ph_inter  = False
+            self.ph_ltau  = 2.0; self.ph_dwpE   = 7.5
 
-        # Write the lambda dynamics parameters to ions.mdp
-        self.writeLambda_mdp('ions', pdb, LambdaTypeNames, constrainCharge=False)
+            # Write the lambda dynamics parameters to name.mdp
+            self.writeLambda_mdp(name, Structure, LambdaTypeNames, constrainCharge)
 
-        # Execute grompp on this using cpHMD GROMACS version and direct output to charge.log.
-        self.gromacs("grompp -f ions.mdp -c {} -p {} -o ions.tpr".format(self.d_file, self.d_topol), logFile='charge.log')
+            # Write index groups to name.ndx
+            self.writeLambda_ndx('{}.ndx'.format(name), Structure, LambdaTypeNames, constrainCharge)
 
+            # Execute grompp on this using cpHMD GROMACS version and direct output to charge.log.
+            self.update("Getting the net-charge of the system...")
+            self.gromacs("grompp -f {0}.mdp -c {1} -p {2} -n {0}.ndx -o {0}.tpr".format(name, file, self.d_topol), logFile='{}.log'.format(name))
 
+            # Grep total charge from grompp output message
+            QQtotalcpHMD = 0
+            for line in open('{}.log'.format(name)).read().splitlines():
+                if "non-zero total charge" in line:
+                    QQtotalcpHMD = float(line.split()[-1])
+                    break
 
+            # Cleanup
+            os.remove('{}.mdp'.format(name))
+            os.remove('{}.ndx'.format(name))
+            os.remove('{}.log'.format(name))
 
+            return QQtotalcpHMD
 
+        # Get the cpHMD charge (we set constrainCharge to False because we have no buffers at this point).
+        QQtotalcpHMD = getcpHMDcharge('ions', self.d_file, pdb, LambdaTypeNames, constrainCharge=False)
 
+        self.update('Net-charge of system     = {:+.2f}'.format(QQtotalcpHMD))
 
-        # # Get the total charge of the system in classical MD, and at the same time
-        # # generate the .tpr file for genion for adding ions:
+        np = 0; nn = 0
+        if QQtotalcpHMD > 0:
+            nn = round(QQtotalcpHMD)
+        elif QQtotalcpHMD < 0:
+            np = round(-QQtotalcpHMD)
+        else:
+            self.update('System seems to be neutral already.')
 
-        # QQtotalClassic = 0
+        def fromBoxVol():
+            Avo    = 6.02214076 * 10 ** 23
+            boxVol = pdb.d_box.d_a * pdb.d_box.d_b * pdb.d_box.d_c
+            return int(round(self.d_conc * Avo * boxVol * 10 ** -27))
 
-        # self.update("Getting the total charge of system in classical MD...")
+        def fromSolVol(Structure):
+            Nwater = self.countRes(Structure, self.d_solname)
+            return int(round(0.01808 * Nwater * self.d_conc))
 
-        # open('ions.mdp', 'w').close() # Generate .tpr file
-        # self.writeLambda_mdp('ions', pdb, LambdaTypeNames, constrainCharge=True)
+        if self.d_conc != 0:
+            Nions = fromSolVol(pdb)
 
-        # self.gromacs("grompp -f ions.mdp -c {} -p {} -o ions.tpr".format(self.d_file, self.d_topol), logFile='charge.log')
+            if Nions < abs(QQtotalcpHMD):
+                self.error('Specified ion concentration of {} mol/L is smaller than the minimum concentration required for a net-neutral system. Either remove -conc or increase it.'.format(self.d_conc))
 
-        # # Grep total charge from grompp output message
-        # for line in open('charge.log').read().splitlines():
-        #     if "non-zero total charge" in line:
-        #         QQtotalClassic = float(line.split()[-1])
-        #         break
+            # We only want integers so we want to divide an even number.
+            if (Nions - np - nn) % 2 != 0:
+                Nions += 1
 
-        # self.update("Getting the total charge of system in cpHMD...")
+            factor = int((Nions - np - nn)/2.0)
 
-        # # Get the total charge of the system in cpHMD:
-        # QQtotalcpHMD = QQtotalClassic - self.charge_cpHMDdiff(pdb)
+            np += factor
+            nn += factor
 
-        # self.update('Total charge of system in classical MD = {:+.2f}'.format(QQtotalClassic))
-        # self.update('Total charge of system in cpHMD        = {:+.2f}'.format(QQtotalcpHMD))
+            self.update('Specified ion concentration of {} mol/L corresponds to {} ions for given solvent volume'.format(self.d_conc, Nions))
 
-        # np = 0; nn = 0
-        # if QQtotalcpHMD > 0:
-        #     nn = round(QQtotalcpHMD)
-        # elif QQtotalcpHMD < 0:
-        #     np = round(-QQtotalcpHMD)
-        # else:
-        #     self.update('System seems to be neutral already.')
+        self.update('Will add {} positive ({}) and {} negative ({}) ions...'.format(np, self.d_pname, nn, self.d_nname))
+        self.update('Total charge to be added = {:+.2f}'.format(np - nn))
 
-        # def fromBoxVol():
-        #     Avo    = 6.02214076 * 10 ** 23
-        #     boxVol = pdb.d_box.d_a * pdb.d_box.d_b * pdb.d_box.d_c
-        #     return int(round(self.d_conc * Avo * boxVol * 10 ** -27))
+        # Run genion to add the appropriate number of ions.
+        self.gromacs("genion -s ions.tpr -o phions.pdb -p {} -pname {} -nname {} -np {} -nn {}".format(
+            self.d_topol, self.d_pname, self.d_nname, np, nn), stdin=[self.d_solname])
 
-        # def fromSolVol(Structure):
-        #     Nwater = self.countRes(Structure, self.d_solname)
-        #     return int(round(0.01808 * Nwater * self.d_conc))
-
-        # if self.d_conc != 0:
-        #     Nions = fromSolVol(pdb)
-
-        #     # We only want integers so we want to divide an even number.
-        #     if (Nions - np - nn) % 2 != 0:
-        #         Nions += 1
-
-        #     factor = int((Nions - np - nn)/2.0)
-
-        #     np += factor
-        #     nn += factor
-
-        #     self.update('Specified ion concentration of {} mol/L corresponds to {} ions for given solvent volume'.format(self.d_conc, Nions))
-
-        # self.update('Will add {} positive ({}) and {} negative ({}) ions...'.format(np, self.d_pname, nn, self.d_nname))
-        # self.update('Total charge to be added via ions      = {:+.2f}'.format(np - nn))
-
-        # # Run genion to add the appropriate number of ions.
-        # self.gromacs("genion -s ions.tpr -o phions.pdb -p {} -pname {} -nname {} -np {} -nn {}".format(
-        #     self.d_topol, self.d_pname, self.d_nname, np, nn), stdin=[self.d_solname])
-
-        # self.update('Finished adding ions')
+        self.update('Finished adding ions')
 
         # III - DO THE BUFFER PART
 
@@ -941,40 +704,65 @@ class phbuilder(User):
                 if residue.d_resname in LambdaTypeNames:
                     titratables += 1
 
+            # This is the equation we use to estimate the rquired number of buffers (hardcoded).
             nbufs = int(0.5 * titratables / 0.3)
 
-            self.update("Will add {} buffer(s) ( = Tsites / 2q_max )".format(nbufs))
+            self.update("Will add {} buffer(s) based on guess ( = Tsites / 2q_max )...".format(nbufs))
 
         else:
             nbufs = self.ph_nbufs
             self.update("Will add {} buffer(s) (user specified)...".format(nbufs))
 
-        # Create .tpr file for gmx genion
-        self.gromacs("grompp -f ions.mdp -c phions.pdb -p {} -o buffers.tpr".format(self.d_topol))
+        # We don't need the cpHMD parameters for adding the buffers, therefore
+        # we create a dummy buffers.mdp file (containing nothing).
+        open('buffers.mdp', 'w+').close()
+        self.gromacs("grompp -f buffers.mdp -c phions.pdb -p {} -o buffers.tpr".format(self.d_topol))
 
         # Run genion to add the appropriate number of buffers.
         self.gromacs("genion -s buffers.tpr -o {} -p {} -pname BUF -np {}".format(self.d_output, self.d_topol, nbufs), stdin=[self.d_solname])
 
         self.update('Finished adding buffers')
 
-        # IV - WRAPUP
+        # IV - WRAPUP : CHECK IF EVERYTHING IS NOW CORRECT
 
-        # Remove files
-        os.remove('ions.mdp')
         os.remove('ions.tpr')
+        os.remove('buffers.mdp')
         os.remove('buffers.tpr')
 
-        # Check if the correct number of buffers is present in the output file.
+        # Check if the correct number of ions and buffers are present in the output file.
 
-        self.update('Checking whether everything was succesful...'.format(self.d_output))
+        self.update('Checking whether everything was succesful:'.format(self.d_output))
 
+        # Update internal pdb record to phneutral.pdb
         pdb.read(self.d_output)
+
+        countPions = self.countRes(pdb, self.d_pname)
+        if countPions != np:
+            self.warning('Detected {}/{} required positive ions'.format(countPions, np))
+        else:
+            self.update('Detected correct number of positive ions ({}) - check'.format(np))
+
+        countNions = self.countRes(pdb, self.d_nname)
+        if countNions != nn:
+            self.warning('Detected {}/{} required negative ions'.format(countNions, nn))
+        else:
+            self.update('Detected correct number of negative ions ({}) - check'.format(nn))
 
         countBUFs  = self.countRes(pdb, 'BUF')
         if countBUFs != nbufs:
-            self.warning('Detected only {}/{} required buffers'.format(countBUFs, nbufs))
+            self.warning('Detected {}/{} required buffers'.format(countBUFs, nbufs))
         else:
-            self.update('Detected correct number of buffers.')
+            self.update('Detected correct number of buffers ({}) - check'.format(nbufs))
+
+        # Check if the charge is now neutral.
+
+        QQFinal = getcpHMDcharge('check', self.d_output, pdb, LambdaTypeNames, constrainCharge=True)
+        if QQFinal != 0:
+            self.warning('Output system ({}) is not neutral (net-charge = {:+.2f})! Something went wrong! Check your log files...'.format(self.d_output, QQFinal))
+        else:
+            self.update('Output system ({}) is neutral (net-charge = {:+.2f}) - check'.format(self.d_output, QQFinal))
+
+        os.remove('check.tpr')
 
     # Generate the actual lambda dynamics parameters.
     def writeLambda_mdp(self, Type, Structure, LambdaTypeNames, constrainCharge):

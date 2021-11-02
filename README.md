@@ -151,7 +151,7 @@ gmx mdrun -v -deffnm MD -c MD.pdb -x MD.xtc
 
 To-do
 
-* Implement the gmx-api for handling GROMACS calls.
+* Implement code to handle situation in neutralize where in the input file we are already neutral (and no conc set), and/or we have >= N_bufsrequired.
 
 ---
 
