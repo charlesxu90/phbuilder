@@ -6,11 +6,12 @@ System builder for constant-pH simulations in [GROMACS](https://www.gromacs.org/
 
 <b>Install instructions</b>
 1. If you have a GPU and want to use GPU-acceleration, make sure you first install <a href="https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#pre-installation-actions">CUDA</a>.
-2. Clone <a href="https://bitbucket.org/berkhess/gromacs-constantph/branch/clean-cpHMD-branch">clean-cpHMD-branch</a>.
-3. Install using the instructions <a href="https://manual.gromacs.org/documentation/current/install-guide/index.html">here</a>. I personally use the following CMake flags:
+2. Obtain the GROMACS constant-pH beta build.
+3. Install GROMACS using the instructions <a href="https://manual.gromacs.org/documentation/current/install-guide/index.html">here</a>. Suggested CMake command:
 `cmake .. -DGMX_BUILD_OWN_FFTW=ON -DGMX_GPU=CUDA -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=/usr/local/gromacs_constantph`
 4. Clone phbuilder (this) repository.
-5. Set the appropriate environment variables in `~/.bashrc`: <br /> `export PATH=$PATH:/path/to/clone/phbuilder` <br /> `export PHFFIELD=/path/to/clone/ffield` <br /> the ffield dir contains the modified CHARMM36 force field, as well as the lambdagrouptypes.dat file containing cpHMD specific topology data.
+5. Set the appropriate environment variables in `~/.bashrc`: <br /> `export PATH=$PATH:/path/to/clone/phbuilder` <br /> `export PHFFIELD=/path/to/clone/ffield` <br /> The ffield dir contains the modified CHARMM36 force field, as well as the lambdagrouptypes.dat file containing cpHMD specific topology data.
+6. Make sure that the (base)path to your GROMACS constant-pH build is set correctly in lambdagrouptypes.dat (default = `/usr/local/gromacs_constantph`).
 
 <b>Required Python packages</b>
 
@@ -152,6 +153,7 @@ gmx mdrun -v -deffnm MD -c MD.pdb -x MD.xtc
 To-do
 
 * Implement code to handle situation in neutralize where in the input file we are already neutral (and no conc set), and/or we have >= N_bufsrequired.
+* Combine the -auto and -ph flags for gentopol in a single -auto ph flag?
 
 ---
 

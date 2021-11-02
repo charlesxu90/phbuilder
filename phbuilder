@@ -705,7 +705,8 @@ class phbuilder(User):
                     titratables += 1
 
             # This is the equation we use to estimate the rquired number of buffers (hardcoded).
-            nbufs = int(0.5 * titratables / 0.3)
+            q_max = abs(self.ph_BUF_range[0])
+            nbufs = int(titratables / (2 * q_max))
 
             self.update("Will add {} buffer(s) based on guess ( = Tsites / 2q_max )...".format(nbufs))
 
