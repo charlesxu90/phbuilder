@@ -146,6 +146,10 @@ class phbuilder(User):
 
         # Loop through the sections.
         for sect in parser.sections():
+            # Parse GROMACS parameters
+            if (sect.strip() == "GROMACS"):
+                self.d_gmxpath = parser.get(sect, 'path')
+                continue
 
             # Parse force field parameters
             if (sect.strip() == "FORCEFIELD"):
@@ -217,6 +221,8 @@ class phbuilder(User):
 
     # Function to encapsulate GROMACS calls
     def gromacs(self, command, stdin=[], terminal=False, logFile='builder.log'):
+        print(self.d_gmxpath)
+
         if os.environ.get('GMXBIN') == None:
             self.error('GMXBIN environment variable is not set! Please make sure you source the desired GROMACS version (i.e. \'source /usr/local/gromacs_version_you_want/bin/GMXRC\') in your ~/.bashrc and reload terminal(s).')
         self.verbose('GROMACS location is {}/gmx...'.format(os.environ.get('GMXBIN')))
@@ -630,7 +636,7 @@ class phbuilder(User):
         return count
 
     # Add appropriate number ions and buffers to make the system neutral.
-    def neutralize(self):
+    def neutralizeOld(self):
         maxChargeOnBuffer = 0.3 # hardcoded
 
         # I - LOAD DATA, PERFORM SOME CHECKS
@@ -790,6 +796,180 @@ class phbuilder(User):
             self.warning('Detected only {}/{} required negative ions'.format(countNions, nn))
         else:
             self.update('Detected correct number of negative ions.')
+
+        countBUFs  = self.countRes(pdb, 'BUF')
+        if countBUFs != nbufs:
+            self.warning('Detected only {}/{} required buffers'.format(countBUFs, nbufs))
+        else:
+            self.update('Detected correct number of buffers.')
+
+    def neutralize(self):
+        # I - LOAD DATA, PERFORM SOME CHECKS
+
+        # Load the input structure into d_residues.
+        pdb = Structure(self.d_file, self.d_verbosity)
+
+        # Perform some basic checks for PBC box, solvent, and titratable groups.
+        foundPBC         = hasattr(pdb, 'd_box')
+        foundSolvent     = False
+        foundTitratables = False
+
+        LambdaTypeNames = []
+        for LambdaType in self.ph_lambdaTypes:
+            LambdaTypeNames.append(LambdaType.d_groupname)
+
+        for residue in pdb.d_residues:
+
+            if residue.d_resname == self.d_solname:
+                foundSolvent = True
+
+            elif residue.d_resname in LambdaTypeNames:
+                foundTitratables = True
+
+            if foundSolvent and foundTitratables:
+                break
+
+        # Error if no periodic box was found
+        if not foundPBC:
+            self.error("{} does not have a periodic box! Did you forget to add one?".format(self.d_file))
+
+        # Error if no solvent was found
+        if not foundSolvent:
+            self.error("{} does not seem to have any {} molecules! Did you forget to add solvent? Alternatively you can change the solvent name by setting -solname.".format(self.d_file, self.d_solname))
+
+        # Warning if no titratable residues were found
+        if not foundTitratables:
+            self.warning("{} does not seem to have any titratable groups! Did you forget to run gentopol?".format(self.d_file))
+
+        # II - DO THE IONS PART
+
+        # Create ions.mdp and add the lambda dynamics parameters.
+        open('ions.mdp', 'w').close()
+
+        # Dummy parameters
+        self.ph_ph    = 7.0; self.ph_nstout = 500
+        self.ph_lmass = 5.0; self.ph_inter  = False
+        self.ph_ltau  = 2.0; self.ph_dwpE   = 7.5
+
+        # Write the lambda dynamics parameters to ions.mdp
+        self.writeLambda_mdp('ions', pdb, LambdaTypeNames, constrainCharge=False)
+
+        # Execute grompp on this using cpHMD GROMACS version and direct output to charge.log.
+        self.gromacs("grompp -f ions.mdp -c {} -p {} -o ions.tpr".format(self.d_file, self.d_topol), logFile='charge.log')
+
+
+
+
+
+
+
+        # # Get the total charge of the system in classical MD, and at the same time
+        # # generate the .tpr file for genion for adding ions:
+
+        # QQtotalClassic = 0
+
+        # self.update("Getting the total charge of system in classical MD...")
+
+        # open('ions.mdp', 'w').close() # Generate .tpr file
+        # self.writeLambda_mdp('ions', pdb, LambdaTypeNames, constrainCharge=True)
+
+        # self.gromacs("grompp -f ions.mdp -c {} -p {} -o ions.tpr".format(self.d_file, self.d_topol), logFile='charge.log')
+
+        # # Grep total charge from grompp output message
+        # for line in open('charge.log').read().splitlines():
+        #     if "non-zero total charge" in line:
+        #         QQtotalClassic = float(line.split()[-1])
+        #         break
+
+        # self.update("Getting the total charge of system in cpHMD...")
+
+        # # Get the total charge of the system in cpHMD:
+        # QQtotalcpHMD = QQtotalClassic - self.charge_cpHMDdiff(pdb)
+
+        # self.update('Total charge of system in classical MD = {:+.2f}'.format(QQtotalClassic))
+        # self.update('Total charge of system in cpHMD        = {:+.2f}'.format(QQtotalcpHMD))
+
+        # np = 0; nn = 0
+        # if QQtotalcpHMD > 0:
+        #     nn = round(QQtotalcpHMD)
+        # elif QQtotalcpHMD < 0:
+        #     np = round(-QQtotalcpHMD)
+        # else:
+        #     self.update('System seems to be neutral already.')
+
+        # def fromBoxVol():
+        #     Avo    = 6.02214076 * 10 ** 23
+        #     boxVol = pdb.d_box.d_a * pdb.d_box.d_b * pdb.d_box.d_c
+        #     return int(round(self.d_conc * Avo * boxVol * 10 ** -27))
+
+        # def fromSolVol(Structure):
+        #     Nwater = self.countRes(Structure, self.d_solname)
+        #     return int(round(0.01808 * Nwater * self.d_conc))
+
+        # if self.d_conc != 0:
+        #     Nions = fromSolVol(pdb)
+
+        #     # We only want integers so we want to divide an even number.
+        #     if (Nions - np - nn) % 2 != 0:
+        #         Nions += 1
+
+        #     factor = int((Nions - np - nn)/2.0)
+
+        #     np += factor
+        #     nn += factor
+
+        #     self.update('Specified ion concentration of {} mol/L corresponds to {} ions for given solvent volume'.format(self.d_conc, Nions))
+
+        # self.update('Will add {} positive ({}) and {} negative ({}) ions...'.format(np, self.d_pname, nn, self.d_nname))
+        # self.update('Total charge to be added via ions      = {:+.2f}'.format(np - nn))
+
+        # # Run genion to add the appropriate number of ions.
+        # self.gromacs("genion -s ions.tpr -o phions.pdb -p {} -pname {} -nname {} -np {} -nn {}".format(
+        #     self.d_topol, self.d_pname, self.d_nname, np, nn), stdin=[self.d_solname])
+
+        # self.update('Finished adding ions')
+
+        # III - DO THE BUFFER PART
+
+        # Load the structure that now contains the ions.
+        pdb.read('phions.pdb')
+
+        # Obtain the number of buffers that should be added.
+        if not hasattr(self, 'ph_nbufs'):
+            # Count number of titratable residues
+            titratables = 0
+            for residue in pdb.d_residues:
+                if residue.d_resname in LambdaTypeNames:
+                    titratables += 1
+
+            nbufs = int(0.5 * titratables / 0.3)
+
+            self.update("Will add {} buffer(s) ( = Tsites / 2q_max )".format(nbufs))
+
+        else:
+            nbufs = self.ph_nbufs
+            self.update("Will add {} buffer(s) (user specified)...".format(nbufs))
+
+        # Create .tpr file for gmx genion
+        self.gromacs("grompp -f ions.mdp -c phions.pdb -p {} -o buffers.tpr".format(self.d_topol))
+
+        # Run genion to add the appropriate number of buffers.
+        self.gromacs("genion -s buffers.tpr -o {} -p {} -pname BUF -np {}".format(self.d_output, self.d_topol, nbufs), stdin=[self.d_solname])
+
+        self.update('Finished adding buffers')
+
+        # IV - WRAPUP
+
+        # Remove files
+        os.remove('ions.mdp')
+        os.remove('ions.tpr')
+        os.remove('buffers.tpr')
+
+        # Check if the correct number of buffers is present in the output file.
+
+        self.update('Checking whether everything was succesful...'.format(self.d_output))
+
+        pdb.read(self.d_output)
 
         countBUFs  = self.countRes(pdb, 'BUF')
         if countBUFs != nbufs:

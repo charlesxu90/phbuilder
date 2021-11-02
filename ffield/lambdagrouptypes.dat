@@ -1,3 +1,6 @@
+[ GROMACS ]
+path  = /usr/local/gromacs_constantph
+
 [ FORCEFIELD ]
 path  = charmm36-mar2019-m6.ff
 water = tip3p
