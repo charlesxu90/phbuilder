@@ -41,12 +41,7 @@ class phbuilder(User):
         # If we run gentopol...
         if (CLI.target == 'gentopol'):
             self.d_output = CLI.output
-
-            # Process whether the -auto flag was or wasn't set.
-            if (CLI.auto != None):
-                self.ph_auto = True
-            else:
-                self.ph_auto = False
+            self.ph_auto  = CLI.auto # None if not set, else float
 
             # Process whether the -list flag was or wasn't set.
             if (CLI.list != None):
@@ -55,8 +50,6 @@ class phbuilder(User):
                     resid.append(line.split()[0])
 
                 self.ph_list_resid = [int(i) for i in resid]
-
-            self.ph_ph = CLI.ph
 
         # If we run neutralize...
         elif (CLI.target == 'neutralize'):
@@ -321,8 +314,8 @@ class phbuilder(User):
                 # Store original name here as we'll need it later for a user update.
                 origName = residue.d_resname
 
-                # If -auto was set, do not ask for every residue individually:
-                if not self.ph_auto:
+                # If -auto was set (contains a float), do not ask for every residue individually:
+                if not type(self.ph_auto) == float:
                     # List to hold the various options for the user.
                     options = ["Keep current (static) protonation state"]
 
@@ -355,7 +348,7 @@ class phbuilder(User):
                     residue.d_resname = associatedLambdaType.d_groupname
 
                     # Additionally, use automaticLambdaInits to set the initial lambda values.
-                    init = self.automaticLambdaInits(associatedLambdaType.d_pKa, self.ph_ph)
+                    init = self.automaticLambdaInits(associatedLambdaType.d_pKa, self.ph_auto)
                     residue.d_init = str(init)
 
                     self.update("Made residue {:>4s}-{:<4d} in chain {:1s} titratable (changed name to {}, initlambda = {})".format(origName, residue.d_resid, residue.d_chain, residue.d_resname, init))
@@ -375,8 +368,8 @@ class phbuilder(User):
                 if hasattr(self, 'ph_list_resid') and (residue.d_resid not in list_resid):
                     continue
 
-                # If -auto was set, do not ask for every residue individually:
-                if not self.ph_auto:
+                # If -auto was set (contains a float), do not ask for every residue individually:
+                if not type(self.ph_auto) == float:
 
                     # List to hold the various options for the user.
                     options = []
@@ -409,7 +402,7 @@ class phbuilder(User):
 
                 # Normally, we would not have to do anything. However, if we are
                 else: # missing initial lambda values in the record, we need to add them.
-                    init = self.automaticLambdaInits(associatedLambdaType.d_pKa, self.ph_ph)
+                    init = self.automaticLambdaInits(associatedLambdaType.d_pKa, self.ph_auto)
                     residue.d_init = str(init)
 
                     self.update("Residue {}-{} in chain {} is already titratable (initlambda = {})".format(residue.d_resname, residue.d_resid, residue.d_chain, init))

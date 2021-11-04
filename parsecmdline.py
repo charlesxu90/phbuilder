@@ -6,7 +6,7 @@ import argparse, argcomplete
 def parsecmdline():
     desc_1 = "System builder for constant-pH simulations in GROMACS. phbuilder consists of three tools: gentopol, neutralize, and genparams. Each tool performs a specific task for preparing a constant-pH simulation."
     desc_2 = "Please cite [phbuilder_paper]."
-    desc_3 = "gentopol encapsulates gmx pdb2gmx and allows you to (re)generate the topology for your system using our modified version of the CHARMM36 force field. This is necessary as some dihedral parameters were modified for titratable residues (ref manuscript 2). gentopol by default allows you to interactively set the initial lambda value (protonation state) for each residue associated with a defined lambdagrouptype. This behavior can be automated by setting the -auto flag. In this case, every residue associated with a defined lambdagrouptype will automatically be made titratable, and the initial lambda values will be guessed based on an optional -ph flag that is by default set to 7.0, together with the pKa defined in the lambdagrouptypes.dat file."
+    desc_3 = "gentopol encapsulates gmx pdb2gmx and allows you to (re)generate the topology for your system using our modified version of the CHARMM36 force field. This is necessary as some dihedral parameters were modified for titratable residues (ref manuscript 2). gentopol by default allows you to interactively set the initial lambda value (protonation state) for each residue associated with a defined lambdagrouptype. This behavior can be automated by setting the -auto <ph> flag. In this case, every residue associated with a defined lambdagrouptype will automatically be made titratable, and the initial lambda values will be guessed based on the specified ph, together with the pKa defined in the lambdagrouptypes.dat file. Note that you should use the same pH value for genparams."
     desc_4 = "The purpose of this tool is to ensure a charge-neutral system by adding the appropriate number of ions and buffer particles."
     desc_5 = "genparams generates the .mdp files, including all the required constant-pH parameters. genparams requires the existance of a phrecord.dat file for setting the initial lambda values."
 
@@ -30,25 +30,17 @@ def parsecmdline():
                         default='phprocessed.pdb',
                         help='[<.pdb/.gro>] (phprocessed.pdb) Specify output structure file.')
 
-    parser_1.add_argument('-auto',
-                        required=False,
-                        dest='auto',
-                        action='store_const',
-                        const=1,
-                        help='(no) Toggle automatic mode.')
-
     parser_1.add_argument('-list',
                         required=False,
                         dest='list',
                         action='store',
                         help='[<.txt>] Provide a subset of resid(ue)s to consider. Helpful if you do not want to manually go through many (unimportant) residues.')
 
-    parser_1.add_argument('-ph',
+    parser_1.add_argument('-auto',
                         required=False,
-                        dest='ph',
+                        dest='auto',
                         action='store',
-                        default=7.0,
-                        help='[<real>] (7.0) Simulation pH. If the -auto flag is set, this (together with the pKa specified in lambdagrouptypes.dat) will be used to guess the initial lambda state of the titratable residue(s).',
+                        help='[<real>] Use automatic mode and specify the simulation pH to base guess for initial lambda values on.',
                         type=float)
 
     parser_1.add_argument('-v',

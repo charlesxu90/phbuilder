@@ -31,7 +31,7 @@ SYNOPSIS
 
 DESCRIPTION
 
-gentopol encapsulates [gmx pdb2gmx](https://manual.gromacs.org/current/onlinehelp/gmx-pdb2gmx.html) and allows you to (re)generate the topology for your system using our modified version of the CHARMM36 force field. This is necessary as some dihedral parameters were modified for titratable residues (ref manuscript 2). gentopol by default allows you to interactively set the initial lambda value (protonation state) for each residue associated with a defined lambdagrouptype. This behavior can be automated by setting the `-auto` flag. In this case, every residue associated with a defined lambdagrouptype will automatically be made titratable, and the initial lambda values will be guessed based on an optional `-ph` flag that is by default set to `7.0`, together with the pKa defined in the `lambdagrouptypes.dat` file.
+gentopol encapsulates [gmx pdb2gmx](https://manual.gromacs.org/current/onlinehelp/gmx-pdb2gmx.html) and allows you to (re)generate the topology for your system using our modified version of the CHARMM36 force field. This is necessary as some dihedral parameters were modified for titratable residues (ref manuscript 2). gentopol by default allows you to interactively set the initial lambda value (protonation state) for each residue associated with a defined lambdagrouptype. This behavior can be automated by setting the `-auto <ph>` flag. In this case, every residue associated with a defined lambdagrouptype will automatically be made titratable, and the initial lambda values will be guessed based on the specified `ph`, together with the pKa defined in the `lambdagrouptypes.dat` file. Note that you should use the same pH value for genparams.
 
 OPTIONS
 
@@ -39,9 +39,8 @@ OPTIONS
 |--------------|----------------|
 | `-f`         | [\<.pdb/.gro>] (required) <br /> Specify input structure file. | 
 | `-o`         | [\<.pdb/.gro>] (phprocessed.pdb) <br /> Specify output structure file. | 
-| `-auto`      | (no) <br /> Toggle automatic mode. | 
+| `-auto`      | [\<real>] <br /> Use automatic mode and specify the simulation pH to base guess for initial lambda values on. |
 | `-list`      | [\<.txt>] <br /> Provide a subset of resid(ue)s to consider. Helpful if you do not want to manually go through many (unimportant) residues. |
-| `-ph`        | [\<real>] (7.0) <br /> Simulation pH. If the `-auto` flag is set, this (together with the pKa specified in `lambdagrouptypes.dat`) will be used to guess the initial lambda state of the titratable residue(s).|
 | `-v`         | [(no) <br /> Be more verbose (helpful for debugging). |
 
 ---
@@ -105,9 +104,9 @@ OPTIONS
 
 2. Check whether your structure file contains any moleculetypes that <i>are</i> part of CHARMM36, but for which `pdb2gmx` <i>cannot</i> generate the topology data. Take as an example the lipid POPC. A CHARMM36 topology for POPC exists in the form of a stand-alone POPC.itp file, but if you supply just POPC.pdb to `gmpdb2gmx`, it won't be able to generate topol.top. If your structure file contains such residues, phbuilder can still be used but you'll be prompted for the path to POPC.itp when gentopol is called.
 
-3. Decide which residues you want to have titratable, and in which protonation state those residues should be at t = 0 (i.e. which initial lambda values they should have). If you do not care about this, you can set the `-auto` flag to have gentopol automatically choose the appropriate initial lambda values based on the system pH and pKa.
+3. Decide which residues you want to have titratable, and in which protonation state those residues should be at t = 0 (i.e. which initial lambda values they should have). If you do not care about this, you can use the `-auto <ph>` flag to have gentopol automatically choose the appropriate initial lambda values based on the system pH and pKas of the lambdagrouptypes.
 
-3. (Re)generate the topology using: <br /> `phbuilder gentopol -f input.pdb` <br /> Alternatively, you can set the `-auto` flag and run: <br /> `phbuilder gentopol -f input.pdb -auto` <br /> In this case, the initial lambda values will be guessed based on the system ph (optional flag for gentopol by default set to 7.0) together with the pKa specified in lambdagrouptypes.dat.
+3. (Re)generate the topology using: <br /> `phbuilder gentopol -f input.pdb` <br /> Alternatively, you can set the `-auto` flag and run: <br /> `phbuilder gentopol -f input.pdb -auto <ph>` <br /> In this case, the initial lambda values will be guessed based on the system ph (optional flag for gentopol by default set to 7.0) together with the pKa specified in lambdagrouptypes.dat.
 
 4. Add a periodix box (if not already present) by e.g. (see [gmx editconf](https://manual.gromacs.org/documentation/current/onlinehelp/gmx-editconf.html)): <br /> `gmx editconf -f phprocessed.pdb -o box.pdb -bt cubic -d 1.5`
 
@@ -153,7 +152,7 @@ gmx mdrun -v -deffnm MD -c MD.pdb -x MD.xtc
 To-do
 
 * Implement code to handle situation in neutralize where in the input file we are already neutral (and no conc set), and/or we have >= N_bufsrequired.
-* Combine the -auto and -ph flags for gentopol in a single -auto ph flag?
+* Implement code to warn if you detect ions already in the input file of neutralize.
 
 ---
 
