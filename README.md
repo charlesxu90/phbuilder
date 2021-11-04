@@ -27,7 +27,7 @@ System builder for constant-pH simulations in [GROMACS](https://www.gromacs.org/
 
 SYNOPSIS
 
-`phbuilder gentopol [-h] -f FILE [-o OUTPUT] [-auto] [-list LIST] [-ph PH] [-v {0,1,2,3}]`
+`phbuilder gentopol [-h] -f FILE [-o OUTPUT] [-list LIST] [-auto AUTO] [-v]`
 
 DESCRIPTION
 
@@ -49,7 +49,7 @@ OPTIONS
 
 SYNOPSIS
 
-`phbuilder neutralize [-h] -f FILE [-p TOPOL] [-o OUTPUT] [-solname SOLNAME] [-pname PNAME] [-nname NNAME] [-conc CONC] [-nbufs NBUFS] [-v {0,1,2,3}]`
+`phbuilder neutralize [-h] -f FILE [-p TOPOL] [-o OUTPUT] [-solname SOLNAME] [-pname PNAME] [-nname NNAME] [-conc CONC] [-nbufs NBUFS] [-v]`
 
 DESCRIPTION
 
@@ -75,7 +75,7 @@ OPTIONS
 
 SYNOPSIS
 
-`phbuilder genparams [-h] -f FILE -ph PH [-mdp MDP] [-ndx NDX] [-nstout NSTOUT] [-dwpE DWPE] [-lmass LMASS] [-ltau LTAU] [-inter] [-v {0,1,2,3}]`
+`phbuilder genparams [-h] -f FILE -ph PH [-mdp MDP] [-ndx NDX] [-nstout NSTOUT] [-dwpE DWPE] [-lmass LMASS] [-ltau LTAU] [-inter] [-v]`
 
 DESCRIPTION
 
