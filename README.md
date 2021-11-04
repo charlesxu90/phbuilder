@@ -41,7 +41,7 @@ OPTIONS
 | `-o`         | [\<.pdb/.gro>] (phprocessed.pdb) <br /> Specify output structure file. | 
 | `-auto`      | [\<real>] <br /> Use automatic mode and specify the simulation pH to base guess for initial lambda values on. |
 | `-list`      | [\<.txt>] <br /> Provide a subset of resid(ue)s to consider. Helpful if you do not want to manually go through many (unimportant) residues. |
-| `-v`         | [(no) <br /> Be more verbose (helpful for debugging). |
+| `-v`         | (no) <br /> Be more verbose (helpful for debugging). |
 
 ---
 
@@ -67,7 +67,7 @@ OPTIONS
 | `-nname`     | [\<string>] (CL) <br /> Specify name of negative ion to use. Analogous to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html). |
 | `-conc`      | [\<real>] (0.0) <br /> Specify ion concentration in mol/L. Analogous to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html) but will use the solvent volume for calculating the required number of ions, not the periodic box volume as genion does. |
 | `-nbufs`     | [\<int>] <br /> Manually specify the number of buffer particles to add. If this flag is not set, a (more generous than necessarily required) estimate will be made based on the number of titratable sites. Currently N_buf = N_sites / 2q_max with q_max = 0.3.|
-| `-v`         | [(no) <br /> Be more verbose (helpful for debugging). |
+| `-v`         | (no) <br /> Be more verbose (helpful for debugging). |
 
 ---
 
@@ -94,7 +94,7 @@ OPTIONS
 | `-lmass`     | [\<real>] (5.0) <br /> Specify mass of the lambda particle(s). The user should probably not touch this.
 | `-ltau`      | [\<real>] (2.0) <br /> Specify thermostat coupling time for the lambda-particles. The user should probably not touch this.
 | `-inter`     | (no) <br /> If this flag is set, the user can manually specify the height of the bias potential barrier (in kJ/mol) for every titratable group.
-| `-v`         | [(no) <br /> Be more verbose (helpful for debugging). |
+| `-v`         | (no) <br /> Be more verbose (helpful for debugging). |
 
 ---
 
@@ -150,9 +150,6 @@ gmx mdrun -v -deffnm MD -c MD.pdb -x MD.xtc
 ---
 
 To-do
-
-* Implement code to handle situation in neutralize where in the input file we are already neutral (and no conc set), and/or we have >= N_bufsrequired.
-* Implement code to warn if you detect ions already in the input file of neutralize.
 
 ---
 

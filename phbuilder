@@ -209,11 +209,8 @@ class phbuilder(User):
             self.verbose("qqB       = {}".format(obj.d_qqB))
             self.verbose("dvdl      = {}\n".format(obj.d_dvdl))
 
-        if (self.ph_BUF_dvdl != None):
-            self.verbose("BUF_dvdl  = {}\n".format(self.ph_BUF_dvdl))
-        else:
-            self.warning("dvdl coefficients for buffer were not found in lambdagrouptypes.dat.")
-            self.warning("This is fine if you don't plan on using charge constraining/buffers.")
+        self.verbose("BUF_range = {}".format(self.ph_BUF_range))
+        self.verbose("BUF_dvdl  = {}".format(self.ph_BUF_dvdl))
 
     # Function to encapsulate GROMACS calls
     def gromacs(self, command, stdin=[], terminal=False, logFile='builder.log'):
@@ -636,6 +633,9 @@ class phbuilder(User):
 
             return QQtotalcpHMD
 
+        # boolean to prevent execution for when the system is already neutral.
+        isNeutral = False
+
         # Get the cpHMD charge (we set constrainCharge to False because we have no buffers at this point).
         QQtotalcpHMD = getcpHMDcharge('ions', self.d_file, pdb, LambdaTypeNames, constrainCharge=False)
 
@@ -648,6 +648,7 @@ class phbuilder(User):
             np = round(-QQtotalcpHMD)
         else:
             self.update('System seems to be neutral already.')
+            isNeutral = True
 
         def fromBoxVol():
             Avo    = 6.02214076 * 10 ** 23
@@ -658,36 +659,51 @@ class phbuilder(User):
             Nwater = self.countRes(Structure, self.d_solname)
             return int(round(0.01808 * Nwater * self.d_conc))
 
-        if self.d_conc != 0:
-            Nions = fromSolVol(pdb)
+        if not (isNeutral and self.d_conc == 0):
 
-            if Nions < abs(QQtotalcpHMD):
-                self.error('Specified ion concentration of {} mol/L is smaller than the minimum concentration required for a net-neutral system. Either remove -conc or increase it.'.format(self.d_conc))
+            if self.d_conc != 0:
+                Nions = fromSolVol(pdb)
 
-            # We only want integers so we want to divide an even number.
-            if (Nions - np - nn) % 2 != 0:
-                Nions += 1
+                if Nions < abs(QQtotalcpHMD):
+                    self.error('Specified ion concentration of {} mol/L is smaller than the minimum concentration required for a net-neutral system. Either remove -conc or increase it.'.format(self.d_conc))
 
-            factor = int((Nions - np - nn)/2.0)
+                # We only want integers so we want to divide an even number.
+                if (Nions - np - nn) % 2 != 0:
+                    Nions += 1
 
-            np += factor
-            nn += factor
+                factor = int((Nions - np - nn)/2.0)
 
-            self.update('Specified ion concentration of {} mol/L corresponds to {} ions for given solvent volume'.format(self.d_conc, Nions))
+                np += factor
+                nn += factor
 
-        self.update('Will add {} positive ({}) and {} negative ({}) ions...'.format(np, self.d_pname, nn, self.d_nname))
-        self.update('Total charge to be added = {:+.2f}'.format(np - nn))
+                self.update('Specified ion concentration of {} mol/L corresponds to {} ions for given solvent volume'.format(self.d_conc, Nions))
 
-        # Run genion to add the appropriate number of ions.
-        self.gromacs("genion -s ions.tpr -o phions.pdb -p {} -pname {} -nname {} -np {} -nn {}".format(
-            self.d_topol, self.d_pname, self.d_nname, np, nn), stdin=[self.d_solname])
+            self.update('Will add {} positive ({}) and {} negative ({}) ions...'.format(np, self.d_pname, nn, self.d_nname))
+            self.update('Total charge to be added = {:+.2f}'.format(np - nn))
 
-        self.update('Finished adding ions')
+            # Run genion to add the appropriate number of ions.
+            self.gromacs("genion -s ions.tpr -o phions.pdb -p {} -pname {} -nname {} -np {} -nn {}".format(
+                self.d_topol, self.d_pname, self.d_nname, np, nn), stdin=[self.d_solname])
+
+            self.update('Finished adding ions')
+
+        else:
+            # Get the number of ions (that are already making the system neutral from input file).
+            # We will need these later for the checking part.
+            np = self.countRes(pdb, self.d_pname)
+            nn = self.countRes(pdb, self.d_nname)
+
+            # User update and write internal structure to phions.pdb.
+            self.update("System is already neutral and -conc was not set. Will not add any ions...")
+            pdb.write('phions.pdb')
 
         # III - DO THE BUFFER PART
 
         # Load the structure that now contains the ions.
         pdb.read('phions.pdb')
+
+        # Boolean to prevent execution for when the system already has enough buffers.
+        hasEnoughBUFs = False
 
         # Obtain the number of buffers that should be added.
         if not hasattr(self, 'ph_nbufs'):
@@ -697,7 +713,7 @@ class phbuilder(User):
                 if residue.d_resname in LambdaTypeNames:
                     titratables += 1
 
-            # This is the equation we use to estimate the rquired number of buffers (hardcoded).
+            # This is the equation we use to estimate the required number of buffers (hardcoded).
             q_max = abs(self.ph_BUF_range[0])
             nbufs = int(titratables / (2 * q_max))
 
@@ -707,21 +723,34 @@ class phbuilder(User):
             nbufs = self.ph_nbufs
             self.update("Will add {} buffer(s) (user specified)...".format(nbufs))
 
-        # We don't need the cpHMD parameters for adding the buffers, therefore
-        # we create a dummy buffers.mdp file (containing nothing).
-        open('buffers.mdp', 'w+').close()
-        self.gromacs("grompp -f buffers.mdp -c phions.pdb -p {} -o buffers.tpr".format(self.d_topol))
+        nbufspresent = self.countRes(pdb, 'BUF')
 
-        # Run genion to add the appropriate number of buffers.
-        self.gromacs("genion -s buffers.tpr -o {} -p {} -pname BUF -np {}".format(self.d_output, self.d_topol, nbufs), stdin=[self.d_solname])
+        if nbufspresent == nbufs:
+            self.warning("The number of buffers in {} is already equal to the request number of buffers. Will not add any buffers...".format(self.d_file))
+            hasEnoughBUFs = True
+        
+        elif nbufspresent > nbufs:
+            self.warning("The number of buffers in {} exceeds the requested number of buffers. Will not add any buffers...".format(self.d_file))
+            hasEnoughBUFs = True
 
-        self.update('Finished adding buffers')
+        if not hasEnoughBUFs:
+
+            # We don't need the cpHMD parameters for adding the buffers, therefore
+            # we create a dummy buffers.mdp file (containing nothing).
+            open('buffers.mdp', 'w+').close()
+            self.gromacs("grompp -f buffers.mdp -c phions.pdb -p {} -o buffers.tpr".format(self.d_topol))
+
+            # Run genion to add the appropriate number of buffers.
+            self.gromacs("genion -s buffers.tpr -o {} -p {} -pname BUF -np {}".format(self.d_output, self.d_topol, nbufs), stdin=[self.d_solname])
+
+            self.update('Finished adding buffers')
+
+            os.remove('buffers.mdp')
+            os.remove('buffers.tpr')
 
         # IV - WRAPUP : CHECK IF EVERYTHING IS NOW CORRECT
 
         os.remove('ions.tpr')
-        os.remove('buffers.mdp')
-        os.remove('buffers.tpr')
 
         # Check if the correct number of ions and buffers are present in the output file.
 
