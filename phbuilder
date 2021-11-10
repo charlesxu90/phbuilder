@@ -1,4 +1,4 @@
-#!/bin/python3
+#!/usr/bin/python3
 # PYTHON_ARGCOMPLETE_OK
 
 # Execute this as soon as possible because of the TAB autocomplete thing.
@@ -616,7 +616,7 @@ class phbuilder(User):
             self.writeLambda_ndx('{}.ndx'.format(name), Structure, LambdaTypeNames, constrainCharge)
 
             # Execute grompp on this using cpHMD GROMACS version and direct output to charge.log.
-            self.update("Getting the net-charge of the system...")
+            self.update("Getting the net-charge of the system (running grompp, this can take some time for larger systems)...")
             self.gromacs("grompp -f {0}.mdp -c {1} -p {2} -n {0}.ndx -o {0}.tpr".format(name, file, self.d_topol), logFile='{}.log'.format(name))
 
             # Grep total charge from grompp output message
