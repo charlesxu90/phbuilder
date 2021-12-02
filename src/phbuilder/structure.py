@@ -1,5 +1,5 @@
 import os
-from user import User
+from .user import User
 
 # Stores the information for a residue.
 class Residue:

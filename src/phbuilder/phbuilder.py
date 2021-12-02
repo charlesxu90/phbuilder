@@ -1,15 +1,11 @@
 #!/usr/bin/python3
-# PYTHON_ARGCOMPLETE_OK
-
-# Execute this as soon as possible because of the TAB autocomplete thing.
-from parsecmdline import parsecmdline
-CLI = parsecmdline()
 
 # Import the rest of the modules.
 import configparser, os, subprocess
-from user import User
-from structure import Structure
-from mdp import gen_mdp
+
+from .user import User
+from .structure import Structure
+from .mdp import gen_mdp
 
 # Stores the information for a lambda group type.
 class LambdaType:
@@ -1146,5 +1142,3 @@ class phbuilder(User):
                 return 1 # if pH >= pKa, we are in deproto = 1 state.
 
             return 0 # if pH < pKa, we are in the proto = 0 state.
-
-phbuilder(CLI).runner()
