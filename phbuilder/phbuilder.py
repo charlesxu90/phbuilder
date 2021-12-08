@@ -114,12 +114,10 @@ class phbuilder(User):
         def str2strList(string):
             return string.split(' ')
 
-        # Get the path to the ffield directory from environment.
-        self.p_ffield = os.environ.get('PHFFIELD')
-
-        # Error if not set.
-        if self.p_ffield == None:
-            self.error('PHFFIELD environment variable is not set! Please add PHFFIELD=/path/to/ffield dir to your ~/.bashrc and reload terminal(s).')
+        # Get the path to the ffield directory. ffield is packaging_data and 
+        # will be in the same dir as phbuilder.py so we can do this:
+        tail, _ = os.path.split(__file__)
+        self.p_ffield = os.path.normpath(tail + '/' + 'ffield')
 
         # Get path to lambdagrouptypes.dat by combining with path to ffield directory.
         p_lambdagrouptypes = os.path.normpath(self.p_ffield + '/' + 'lambdagrouptypes.dat')
