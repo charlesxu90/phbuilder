@@ -246,6 +246,8 @@ class phbuilder(User):
             self.update('Running genparams...')
             self.genparams()
 
+        self.pleaseCite()
+
     # Prepare topology.
     def gentopol(self):
         # Part I - COPY FORCE FIELD AND RESIDUETYPES.DAT TO WORKING DIR
@@ -1140,3 +1142,6 @@ class phbuilder(User):
                 return 1 # if pH >= pKa, we are in deproto = 1 state.
 
             return 0 # if pH < pKa, we are in the proto = 0 state.
+
+    def pleaseCite(self):
+        self.update('If this software contributed to your research, please cite <doi_phbuilder_paper>.')
