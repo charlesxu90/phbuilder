@@ -199,4 +199,9 @@ def parsecmdline():
     argcomplete.autocomplete(parser)    # Required for autocompleting using argcomplete.
     CLI = parser.parse_args()           # Do the actual parsing.
 
+    # Prevent Python errors when no subcommand is specified.
+    if vars(CLI) == {}:
+        parser.print_help()
+        quit()
+
     return CLI # object containing all the parsed key-value pairs.
