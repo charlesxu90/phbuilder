@@ -12,7 +12,7 @@ This works for linux and should also work for macOS. If you're on Windows, I str
 2. Obtain the GROMACS constant-pH beta build.
 3. Install GROMACS using the instructions <a href="https://manual.gromacs.org/documentation/current/install-guide/index.html">here</a>. Suggested CMake command: `cmake .. -DGMX_BUILD_OWN_FFTW=ON -DGMX_GPU=CUDA -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=/usr/local/gromacs_constantph`. Note that you MUST use `/usr/local/gromacs_constantph` as a base-path for the cpHMD GROMACS build. This is the default path phbuilder will look.
 4. Install phbuilder using `pip3 install --index-url https://test.pypi.org/simple/ --no-deps phbuilder`<br />
-This is a testing version of the official PyPI repository. The installation includes the modified CHARMM36M force field as well as all lambdagrouptypes.dat file, which contains the cpHMD-topology parameters.
+This is a testing version of the official PyPI repository (to-be-created later). The installation includes the modified CHARMM36M force field as well as all lambdagrouptypes.dat file, which contains the cpHMD-topology parameters.
 <!-- 4. Install phbuilder using `pip3 install phbuilder` -->
 5. phbuilder has [argcomplete](https://pypi.org/project/argcomplete/) functionality. To make sure this works, you should run `activate-global-python-argcomplete --user` once (and reload your terminal(s)).
 
