@@ -5,21 +5,27 @@ System builder for constant-pH simulations in [GROMACS](https://www.gromacs.org/
 ---
 
 <b>Install instructions</b>
+
+This works for linux and should also work for macOS. If you're on Windows, I strongly recommend using WSL.
+
 1. If you have a GPU and want to use GPU-acceleration, make sure you first install <a href="https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#pre-installation-actions">CUDA</a>.
 2. Obtain the GROMACS constant-pH beta build.
-3. Install GROMACS using the instructions <a href="https://manual.gromacs.org/documentation/current/install-guide/index.html">here</a>. Suggested CMake command:
-`cmake .. -DGMX_BUILD_OWN_FFTW=ON -DGMX_GPU=CUDA -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=/usr/local/gromacs_constantph`
-4. Clone phbuilder (this) repository.
-5. Set the appropriate environment variables in `~/.bashrc` or `~/.zprofile`: <br /> `export PATH=$PATH:/path/to/clone/phbuilder` <br /> `export PHFFIELD=/path/to/clone/ffield` <br /> The ffield dir contains the modified CHARMM36 force field, as well as the lambdagrouptypes.dat file containing cpHMD specific topology data.
-6. Make sure that the (base)path to your GROMACS constant-pH build is set correctly in lambdagrouptypes.dat (default = `/usr/local/gromacs_constantph`).
+3. Install GROMACS using the instructions <a href="https://manual.gromacs.org/documentation/current/install-guide/index.html">here</a>. Suggested CMake command: `cmake .. -DGMX_BUILD_OWN_FFTW=ON -DGMX_GPU=CUDA -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=/usr/local/gromacs_constantph`. Note that you MUST use `/usr/local/gromacs_constantph` as a base-path for the cpHMD GROMACS build. This is the default path phbuilder will look.
+5. Install phbuilder using `pip3 install --index-url https://test.pypi.org/simple/ --no-deps phbuilder`
+<!-- 5. Install phbuilder using `pip3 install phbuilder` -->
+6. `phbuilder` has [argcomplete](https://pypi.org/project/argcomplete/) functionality. To make sure this works, you should run `activate-global-python-argcomplete --user` once (and reload your terminal(s)).
 
-<b>Required Python packages</b>
+<!-- 5. Clone phbuilder (this) repository.
+6. Set the appropriate environment variables in `~/.bashrc` or `~/.zprofile`: <br /> `export PATH=$PATH:/path/to/clone/phbuilder` <br /> `export PHFFIELD=/path/to/clone/ffield` <br /> The ffield dir contains the modified CHARMM36 force field, as well as the lambdagrouptypes.dat file containing cpHMD specific topology data.
+7. Make sure that the (base)path to your GROMACS constant-pH build is set correctly in lambdagrouptypes.dat (default = `/usr/local/gromacs_constantph`). -->
+
+<!-- <b>Required Python packages</b>
 
 * argcomplete (requires more than just installing in pip, look into this)
 * argparse (should be a simple `pip3 install argparse`)
 * configparser (should be a simple `pip3 install configparser`)
 * os (should be a simple `pip3 install os`)
-* subprocess (should be a simple `pip3 install subprocess`)
+* subprocess (should be a simple `pip3 install subprocess`) -->
 
 ---
 
@@ -129,10 +135,10 @@ source /usr/local/gromacs_constantph/bin/GMXRC
 gmx grompp -f EM.mdp -c phneutral.pdb -p topol.top -n index.ndx -o EM.tpr -maxwarn 1
 gmx mdrun -v -deffnm EM -c EM.pdb
 
-gmx grompp -f NVT.mdp -c EM.pdb -p topol.top -n index.ndx -o NVT.tpr -r EM.pdb
+gmx grompp -f NVT.mdp -c EM.pdb -p topol.top -n index.ndx -o NVT.tpr
 gmx mdrun -v -deffnm NVT -c NVT.pdb -notunepme
 
-gmx grompp -f NPT.mdp -c NVT.pdb -p topol.top -n index.ndx -o NPT.tpr -r NVT.pdb
+gmx grompp -f NPT.mdp -c NVT.pdb -p topol.top -n index.ndx -o NPT.tpr
 gmx mdrun -v -deffnm NPT -c NPT.pdb -notunepme
 ```
 
@@ -150,6 +156,13 @@ gmx mdrun -v -deffnm MD -c MD.pdb -x MD.xtc
 ---
 
 To-do
+
+* Add please-cite pHbuilder paper.
+* Update install instructions.
+* Update how we handle d_gmxpath.
+* Update version.
+* Update parsecmdline -h message (link to github).
+* Make analysis module also work
 
 ---
 
