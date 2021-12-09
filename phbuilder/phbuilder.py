@@ -632,6 +632,27 @@ class phbuilder(User):
         # boolean to prevent execution for when the system is already neutral.
         isNeutral = False
 
+        # If we already have ions in the input file, give the user an extra update.
+        def getIonConcentration(Structure, Nwater):
+            totalIons = self.countRes(Structure, self.d_pname) + self.countRes(Structure, self.d_nname)
+            return totalIons / (0.01808 * Nwater)
+
+        Nwater         = self.countRes(pdb, self.d_solname)
+        ionConcInInput = getIonConcentration(pdb, Nwater)
+
+        if ionConcInInput:
+            self.update("Detected {} {} and {} {} in {}, corresponding to a concentration of {:.3f} mol/L for given solvent volume.".format(
+                self.countRes(pdb, self.d_pname),
+                self.d_pname,
+                self.countRes(pdb, self.d_nname),
+                self.d_nname,
+                self.d_file,
+                ionConcInInput))
+
+        # If we already have ions in the input file, d_conc can never be smaller than what we ALREADY HAVE.
+        if self.d_conc and ionConcInInput > self.d_conc:
+            self.error('Target ion concentration of {} mol/L is smaller than the current ion concentration in {}. Either remove -conc or increase it.'.format(self.d_conc, self.d_file))
+
         # Get the cpHMD charge (we set constrainCharge to False because we have no buffers at this point).
         QQtotalcpHMD = getcpHMDcharge('ions', self.d_file, pdb, LambdaTypeNames, constrainCharge=False)
 
@@ -651,17 +672,19 @@ class phbuilder(User):
             boxVol = pdb.d_box.d_a * pdb.d_box.d_b * pdb.d_box.d_c
             return int(round(self.d_conc * Avo * boxVol * 10 ** -27))
 
-        def fromSolVol(Structure):
+        # Return the number of ions required to achieve a certain ion concentration.
+        def fromSolVol(Structure, concentration):
             Nwater = self.countRes(Structure, self.d_solname)
-            return int(round(0.01808 * Nwater * self.d_conc))
+            return int(round(0.01808 * Nwater * concentration))
 
         if not (isNeutral and self.d_conc == 0):
 
             if self.d_conc != 0:
-                Nions = fromSolVol(pdb)
+                Nions = fromSolVol(pdb, self.d_conc - ionConcInInput)
+                ionsMinRequired = np + nn               
 
-                if Nions < abs(QQtotalcpHMD):
-                    self.error('Specified ion concentration of {} mol/L is smaller than the minimum concentration required for a net-neutral system. Either remove -conc or increase it.'.format(self.d_conc))
+                if Nions < ionsMinRequired:
+                    self.error('Target ion concentration of {} mol/L is smaller than the minimum (additional) concentration required to neutralize the system. Either remove -conc or increase it.'.format(self.d_conc))
 
                 # We only want integers so we want to divide an even number.
                 if (Nions - np - nn) % 2 != 0:
@@ -672,7 +695,7 @@ class phbuilder(User):
                 np += factor
                 nn += factor
 
-                self.update('Specified ion concentration of {} mol/L corresponds to {} ions for given solvent volume'.format(self.d_conc, Nions))
+                self.update('Specified ion concentration of {} mol/L corresponds to {} (additional) ions for given solvent volume'.format(self.d_conc, Nions))
 
             self.update('Will add {} positive ({}) and {} negative ({}) ions...'.format(np, self.d_pname, nn, self.d_nname))
             self.update('Total charge to be added = {:+.2f}'.format(np - nn))
@@ -750,7 +773,7 @@ class phbuilder(User):
 
         # Check if the correct number of ions and buffers are present in the output file.
 
-        self.update('Checking whether everything was succesful:'.format(self.d_output))
+        self.update('\nChecking whether everything was succesful:\n'.format(self.d_output))
 
         # Update internal pdb record to phneutral.pdb
         pdb.read(self.d_output)
@@ -763,7 +786,7 @@ class phbuilder(User):
 
         countNions = self.countRes(pdb, self.d_nname)
         if countNions != nn:
-            self.warning('Detected {}/{} required negative ions. (ignore this if your input already contained ions).'.format(countNions, nn))
+            self.warning('Detected {}/{} required negative ions (ignore this if your input already contained ions).'.format(countNions, nn))
         else:
             self.update('Detected correct number of negative ions ({}) - check'.format(nn))
 
@@ -772,6 +795,15 @@ class phbuilder(User):
             self.warning('Detected {}/{} required buffers'.format(countBUFs, nbufs))
         else:
             self.update('Detected correct number of buffers ({}) - check'.format(nbufs))
+
+        # Give a user update about the ion concentration in the output file.
+        self.update("{} {} and {} {} in {} corresponds to a concentration of {:.3f} mol/L for given solvent volume...".format(
+            self.countRes(pdb, self.d_pname),
+            self.d_pname,
+            self.countRes(pdb, self.d_nname),
+            self.d_nname,
+            self.d_output,
+            getIonConcentration(pdb, self.countRes(pdb, 'SOL')))) # For some reason genion renames whatever solname we had in the input file to 'SOL'...
 
         # Check if the charge is now neutral.
 
