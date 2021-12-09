@@ -4,17 +4,29 @@ System builder for constant-pH simulations in [GROMACS](https://www.gromacs.org/
 
 ---
 
-<b>Install instructions</b>
+<b>Installation instructions</b>
 
-This works for linux and should also work for macOS. If you're on Windows, I strongly recommend using WSL.
+0. This works for linux and should also work for macOS. If you're on Windows, it is strongly recommended to use [WSL](https://docs.microsoft.com/en-us/windows/wsl/about).
 
-1. If you have a GPU and want to use GPU-acceleration, make sure you first install <a href="https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#pre-installation-actions">CUDA</a>.
-2. Obtain the GROMACS constant-pH beta build.
-3. Install GROMACS using the instructions <a href="https://manual.gromacs.org/documentation/current/install-guide/index.html">here</a>. Suggested CMake command: `cmake .. -DGMX_BUILD_OWN_FFTW=ON -DGMX_GPU=CUDA -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=/usr/local/gromacs_constantph`. Note that you MUST use `/usr/local/gromacs_constantph` as a base-path for the cpHMD GROMACS build. This is the default path phbuilder will look.
-4. Install phbuilder using `pip3 install --index-url https://test.pypi.org/simple/ --no-deps phbuilder`<br />
-This is a testing version of the official PyPI repository (to-be-created later). The installation includes the modified CHARMM36M force field as well as all lambdagrouptypes.dat file, which contains the cpHMD-topology parameters.
-<!-- 4. Install phbuilder using `pip3 install phbuilder` -->
-5. phbuilder has [argcomplete](https://pypi.org/project/argcomplete/) functionality. To make sure this works, you should run `activate-global-python-argcomplete --user` once (and reload your terminal(s)).
+1. If you have a GPU and want to use GPU-acceleration, make sure you first install [CUDA](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#pre-installation-actions).
+
+2. Obtain the GROMACS constant-pH beta build (currently unreleased).
+
+3. Install using the instructions [here](https://manual.gromacs.org/documentation/current/install-guide/index.html). Suggested CMake command:
+    ```
+    cmake .. -DGMX_BUILD_OWN_FFTW=ON -DGMX_GPU=CUDA -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=/usr/local/gromacs_constantph
+    ```
+    Note that you MUST use `/usr/local/gromacs_constantph` as a base-path for the cpHMD GROMACS build. This is the default path phbuilder will look.
+4. Install phbuilder using:
+    ```
+    pip3 install --index-url https://test.pypi.org/simple/ --no-deps phbuilder
+    ```
+    This is a testing version of the official PyPI repository (to-be-created later). The installation includes the modified CHARMM36M force field as well as all lambdagrouptypes.dat file, which contains the cpHMD-topology parameters.
+5. phbuilder has [argcomplete](https://pypi.org/project/argcomplete/) functionality. To make sure this works, you should run:
+    ```
+    activate-global-python-argcomplete --user 
+    ```
+    once (and reload your terminal(s)).
 
 <!-- 5. Clone phbuilder (this) repository.
 6. Set the appropriate environment variables in `~/.bashrc` or `~/.zprofile`: <br /> `export PATH=$PATH:/path/to/clone/phbuilder` <br /> `export PHFFIELD=/path/to/clone/ffield` <br /> The ffield dir contains the modified CHARMM36M force field, as well as the lambdagrouptypes.dat file containing cpHMD specific topology data.
@@ -40,6 +52,10 @@ DESCRIPTION
 
 gentopol encapsulates [gmx pdb2gmx](https://manual.gromacs.org/current/onlinehelp/gmx-pdb2gmx.html) and allows you to (re)generate the topology for your system using our modified version of the CHARMM36M force field. This is necessary as some dihedral parameters were modified for titratable residues (ref manuscript 2). gentopol by default allows you to interactively set the initial lambda value (protonation state) for each residue associated with a defined lambdagrouptype. This behavior can be automated by setting the `-auto <ph>` flag. In this case, every residue associated with a defined lambdagrouptype will automatically be made titratable, and the initial lambda values will be guessed based on the specified `ph`, together with the pKa defined in the `lambdagrouptypes.dat` file. Note that you should use the same pH value for genparams.
 
+LIMITATIONS
+
+* It is important that your protein(s)/molecule(s) containing the titratable groups is <i>at the top</i> of your .pdb/.gro input file. So first the titratable protein(s), and only then solvent, ions, lipids, etc. (the order of the latter components shouldn't matter).
+
 OPTIONS
 
 | Flag___      | Description    |
@@ -61,6 +77,11 @@ SYNOPSIS
 DESCRIPTION
 
 The purpose of this tool is to ensure a charge-neutral system by adding the appropriate number of ions and buffer particles.
+
+LIMITATIONS
+
+* phbuilder neutralize only keeps track of one type of positive (default NA), and one type of negative (default CL) ion. If you have either no ions or only NA and CL in your input structure, things should work. If you have or want to use a different type, you can use the `-pname` and `-nname` options (see below). If you have or want multiple different types of ions in your system, phbuilder is not guaranteed to work.
+* Similar to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html), phbuilder neutralize neutralizes the system by <i>adding</i> ions to the input structure, not by removing or rebalancing existing ones. This implies the ion concentration in your output files cannot and will not be lower than the ion concentration in your input file.
 
 OPTIONS
 
@@ -107,25 +128,60 @@ OPTIONS
 
 <b>Basic workflow</b>
 
-1. Prepare your structure file. <br /> This is an important step, and it applies especially to .pdbs that are straight from [rcsb](https://www.rcsb.org/). Make sure your structure file only contains one MODEL, does not contain alternate location indicators, does not miss certain atoms/residues, etc. etc. It is also strongly recommended that every (non-ion/water) molecule has a chain identifier. If you have only one chain or do not care about this, you can simply set everything to A. One basic check to see if your input file contains mistakes can be to simply run: <br /> `gmx editconf -f input.pdb -o test.pdb` <br /> and see if you get any errors and how test.pdb differs from input.pdb.
+1. Prepare your structure file. <br /> This is an important step, and it applies especially to .pdbs that are straight from [rcsb](https://www.rcsb.org/). Make sure your structure file only contains one MODEL, does not contain alternate location indicators, does not miss certain atoms/residues, etc. etc. It is also important that your protein(s)/molecule(s) containing the titratable groups is <i>at the top</i> of your .pdb/.gro input file. So first the titratable protein(s), and only then solvent, ions, lipids, etc. (the order of the latter components shouldn't matter). Furthermore, it is strongly recommended that every (non-ion/water) molecule has a chain identifier. If you have only one chain or do not care about this, you can simply set everything to A. One basic check to see if your input file contains mistakes can be to simply run: 
+    ```
+    gmx editconf -f input.pdb -o test.pdb
+    ```
+    and see if you get any errors and how test.pdb differs from input.pdb.
 
-2. Check whether your structure file contains any moleculetypes that <i>are</i> part of CHARMM36M, but for which `pdb2gmx` <i>cannot</i> generate the topology data. Take as an example the lipid POPC. A CHARMM36M topology for POPC exists in the form of a stand-alone POPC.itp file, but if you supply just POPC.pdb to `gmpdb2gmx`, it won't be able to generate topol.top. If your structure file contains such residues, phbuilder can still be used but you'll be prompted for the path to POPC.itp when gentopol is called.
+2. Check whether your structure file contains any moleculetypes that <i>are</i> part of CHARMM36M, but for which `gmx pdb2gmx` <i>cannot</i> generate the topology data. Take as an example the lipid POPC. A CHARMM36M topology for POPC exists in the form of a stand-alone POPC.itp file, but if you supply just POPC.pdb to `gmx pdb2gmx`, it won't be able to generate topol.top. If your structure file contains such residues, phbuilder can still be used but you'll be prompted for the path to POPC.itp when gentopol is called.
 
 3. Decide which residues you want to have titratable, and in which protonation state those residues should be at t = 0 (i.e. which initial lambda values they should have). If you do not care about this, you can use the `-auto <ph>` flag to have gentopol automatically choose the appropriate initial lambda values based on the system pH and pKas of the lambdagrouptypes.
 
-3. (Re)generate the topology using: <br /> `phbuilder gentopol -f input.pdb` <br /> Alternatively, you can set the `-auto` flag and run: <br /> `phbuilder gentopol -f input.pdb -auto <ph>` <br /> In this case, the initial lambda values will be guessed based on the system ph (optional flag for gentopol by default set to 7.0) together with the pKa specified in lambdagrouptypes.dat.
+3. (Re)generate the topology using:
+    ```
+    phbuilder gentopol -f input.pdb
+    ``` 
+    Alternatively, you can set the -auto flag and run:
+    ```
+    phbuilder gentopol -f input.pdb -auto <ph>
+    ```
+    In the latter case, the initial lambda values will be guessed based on the system ph together with the pKa specified in lambdagrouptypes.dat.
 
-4. Add a periodix box (if not already present) by e.g. (see [gmx editconf](https://manual.gromacs.org/documentation/current/onlinehelp/gmx-editconf.html)): <br /> `gmx editconf -f phprocessed.pdb -o box.pdb -bt cubic -d 1.5`
+4. Add a periodix box (if not already present) by e.g. (see [gmx editconf](https://manual.gromacs.org/documentation/current/onlinehelp/gmx-editconf.html)):
+    ```
+    gmx editconf -f phprocessed.pdb -o box.pdb -bt cubic -d 1.5
+    ```
 
-5. Add solvent (if not already present) by e.g. (see [gmx solvate](https://manual.gromacs.org/documentation/current/onlinehelp/gmx-solvate.html)): <br /> `gmx solvate -cp box.pdb -p topol.top -o solvated.pdb`
+5. Add solvent (if not already present) by e.g. (see [gmx solvate](https://manual.gromacs.org/documentation/current/onlinehelp/gmx-solvate.html)):
+    ```
+    gmx solvate -cp box.pdb -p topol.top -o solvated.pdb
+    ```
 
-6. Add the appropriate number of positive/negative ions and buffers to ensure a net-neutral system: <br /> `phbuilder neutralize -f solvated.pdb` <br /> Alternatively, if you want a specific ion concentration and/or a specific number of buffer particles , you could do: <br /> `phbuilder neutralize -f solvated.pdb -conc 0.15 -nbufs 20`
+6. Add the appropriate number of positive/negative ions and buffers to ensure a net-neutral system:
+    ```
+    phbuilder neutralize -f solvated.pdb
+    ```
+    Alternatively, if you want a specific ion concentration (in mol/L) and/or a specific number of buffer particles , you could do:
+    ```
+    phbuilder neutralize -f solvated.pdb -conc 0.15 -nbufs 20
+    ```
 
 7. At this point, if everything went correctly both your structure and topology file(s) should be completed and constitute a net-neutral system when running cpHMD. What is now left is the actual simulation part: energy minimization, equilibration and production using the correct MD parameters.
 
 8. Generate the .mdp files for EM/EQ/MD, including the constant-pH parameters for a specific simulation pH: 
-<br /> `phbuilder genparams -f phneutral.pdb -ph 4.0` <br /> This will write the following files: EM.mdp, NVT.mdp, NPT.mdp, MD.mdp, and index.ndx.
+    ```
+    phbuilder genparams -f phneutral.pdb -ph 4.0 
+    ```
+    By default, the following files will be written:
+    * EM.mdp
+    * NVT.mdp
+    * NPT.mdp
+    * MD.mdp
+    * index.ndx
+
 9. Check the generated files and modify parameters specific to your system as required. For example if your system explodes upon starting NVT, you might need to adjust the time step for NVT coupling. Also note that by default no position restraints are used for the protein during NVT and NPT coupling.
+
 10. Perform equilibration using a script such as:
 ```
 #!/bin/bash
