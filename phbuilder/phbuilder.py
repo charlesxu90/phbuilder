@@ -588,7 +588,7 @@ class phbuilder(User):
 
         # Error if no solvent was found
         if not foundSolvent:
-            self.error("{} does not seem to have any {} molecules! Did you forget to add solvent? Alternatively you can change the solvent name by setting -solname.".format(self.d_file, self.d_solname))
+            self.error("{} does not seem to have any solvent with molname {}! Did you forget to add solvent? Alternatively you can change the solvent name by setting -solname.".format(self.d_file, self.d_solname))
 
         # Warning if no titratable residues were found
         if not foundTitratables:
@@ -679,7 +679,7 @@ class phbuilder(User):
 
             # Run genion to add the appropriate number of ions.
             self.gromacs("genion -s ions.tpr -o phions.pdb -p {} -pname {} -nname {} -np {} -nn {}".format(
-                self.d_topol, self.d_pname, self.d_nname, np, nn), stdin=[self.d_solname])
+                self.d_topol, self.d_pname, self.d_nname, np, nn), stdin=['SOL']) # this is always SOL, even if the molname is e.g. HOH...
 
             self.update('Finished adding ions')
 
@@ -737,7 +737,7 @@ class phbuilder(User):
             self.gromacs("grompp -f buffers.mdp -c phions.pdb -p {} -o buffers.tpr".format(self.d_topol))
 
             # Run genion to add the appropriate number of buffers.
-            self.gromacs("genion -s buffers.tpr -o {} -p {} -pname BUF -np {}".format(self.d_output, self.d_topol, nbufs), stdin=[self.d_solname])
+            self.gromacs("genion -s buffers.tpr -o {} -p {} -pname BUF -np {}".format(self.d_output, self.d_topol, nbufs), stdin=['SOL']) # this is always SOL, even if the molname is e.g. HOH...
 
             self.update('Finished adding buffers')
 
@@ -782,6 +782,7 @@ class phbuilder(User):
             self.update('Output system ({}) is neutral (net-charge = {:+.2f}) - check'.format(self.d_output, QQFinal))
 
         os.remove('check.tpr')
+        self.update("Finished phbuilder neutralize.")
 
     # Generate the actual lambda dynamics parameters.
     def writeLambda_mdp(self, Type, Structure, LambdaTypeNames, constrainCharge):
@@ -1100,6 +1101,8 @@ class phbuilder(User):
 
         self.writeLambda_ndx(self.d_ndx, pdb, LambdaTypeNames, constrainCharge)
 
+        self.update('Finished phbuilder genparams.')
+
     # Handle user input.
     def inputOptionHandler(self, message, options):
 
@@ -1144,4 +1147,4 @@ class phbuilder(User):
             return 0 # if pH < pKa, we are in the proto = 0 state.
 
     def pleaseCite(self):
-        self.update('If this software contributed to your research, please cite <doi_phbuilder_paper>.')
+        self.update('If this software contributed to your research, then please cite <doi_phbuilder_paper>.')
