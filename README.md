@@ -166,6 +166,7 @@ OPTIONS
     ```
     phbuilder neutralize -f solvated.pdb -conc 0.15 -nbufs 20
     ```
+    Note that phbuilder neutralize neutralizes the system by <i>adding</i> ions to the input structure, not by removing or rebalancing existing ones. This implies the ion concentration in your output files cannot and will not be lower than the ion concentration in your input file.
 
 7. At this point, if everything went correctly both your structure and topology file(s) should be completed and constitute a net-neutral system when running cpHMD. What is now left is the actual simulation part: energy minimization, equilibration and production using the correct MD parameters.
 
