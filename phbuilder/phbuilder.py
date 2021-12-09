@@ -433,7 +433,7 @@ class phbuilder(User):
         good = True
         for val in unknownResTypeNames:
             self.warning("residue type {} in {} wasn't found in residuetypes.dat associated with {}".format(val, self.d_file, self.d_modelFF))
-            path = input("phbuilder : Specify /path/to/some.itp file (or enter to ignore): ")
+            path = input("phbuilder : Specify /path/to/some.itp file (or enter to ignore) (ions can be ignored): ")
 
             skipList.append(val)
             pathList.append(path)
@@ -757,13 +757,13 @@ class phbuilder(User):
 
         countPions = self.countRes(pdb, self.d_pname)
         if countPions != np:
-            self.warning('Detected {}/{} required positive ions'.format(countPions, np))
+            self.warning('Detected {}/{} required positive ions (ignore this if your input already contained ions).'.format(countPions, np))
         else:
             self.update('Detected correct number of positive ions ({}) - check'.format(np))
 
         countNions = self.countRes(pdb, self.d_nname)
         if countNions != nn:
-            self.warning('Detected {}/{} required negative ions'.format(countNions, nn))
+            self.warning('Detected {}/{} required negative ions. (ignore this if your input already contained ions).'.format(countNions, nn))
         else:
             self.update('Detected correct number of negative ions ({}) - check'.format(nn))
 
@@ -777,9 +777,9 @@ class phbuilder(User):
 
         QQFinal = getcpHMDcharge('check', self.d_output, pdb, LambdaTypeNames, constrainCharge=True)
         if QQFinal != 0:
-            self.warning('Output system ({}) is not neutral (net-charge = {:+.2f})! Something went wrong! Check your log files...'.format(self.d_output, QQFinal))
+            self.warning('Output system ({}) is not neutral at cpHMD (net-charge = {:+.2f})! Something went wrong! Check your log files...'.format(self.d_output, QQFinal))
         else:
-            self.update('Output system ({}) is neutral (net-charge = {:+.2f}) - check'.format(self.d_output, QQFinal))
+            self.update('Output system ({}) is neutral at cpHMD (net-charge = {:+.2f}) - check'.format(self.d_output, QQFinal))
 
         os.remove('check.tpr')
         self.update("Finished phbuilder neutralize.")
@@ -1101,7 +1101,7 @@ class phbuilder(User):
 
         self.writeLambda_ndx(self.d_ndx, pdb, LambdaTypeNames, constrainCharge)
 
-        self.update('Finished phbuilder genparams.')
+        self.update('Finished phbuilder genparams. Please check the parameters in the generated .mdp files.')
 
     # Handle user input.
     def inputOptionHandler(self, message, options):
@@ -1147,4 +1147,4 @@ class phbuilder(User):
             return 0 # if pH < pKa, we are in the proto = 0 state.
 
     def pleaseCite(self):
-        self.update('If this software contributed to your research, then please cite <doi_phbuilder_paper>.')
+        self.update('If this software contributed to your research, please cite <doi_phbuilder_paper>.')
