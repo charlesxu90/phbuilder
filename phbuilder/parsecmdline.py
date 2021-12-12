@@ -14,7 +14,7 @@ def parsecmdline():
 
     subparsers = parser.add_subparsers(required=False)
 
-    parser_1  = subparsers.add_parser('gentopol', help=desc_3)
+    parser_1  = subparsers.add_parser('gentopol', help=desc_3, epilog=desc_2)
     required1 = parser_1.add_argument_group("required arguments")
 
     required1.add_argument('-f', 
@@ -52,7 +52,7 @@ def parsecmdline():
 
     parser_1.set_defaults(target='gentopol')
 
-    parser_2  = subparsers.add_parser('neutralize', help=desc_4)
+    parser_2  = subparsers.add_parser('neutralize', help=desc_4, epilog=desc_2)
     required2 = parser_2.add_argument_group("required arguments")
 
     required2.add_argument('-f', 
@@ -120,7 +120,7 @@ def parsecmdline():
 
     parser_2.set_defaults(target='neutralize')
 
-    parser_3  = subparsers.add_parser('genparams', help=desc_5)
+    parser_3  = subparsers.add_parser('genparams', help=desc_5, epilog=desc_2)
     required3 = parser_3.add_argument_group("required arguments")
 
     required3.add_argument('-f', 
