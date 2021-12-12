@@ -277,14 +277,14 @@ class TwoState:
 
 class MultiState:
     '''Holds data for a multistate-state (HIS) titratable group.'''
-    
-    def __init__(self, idx, resname, resid, chain, t, x1, x2, x3):
+
+    def __init__(self, idx, resname, resid, chain, t1, t2, t3, x1, x2, x3):
         self.d_idx      = [idx, idx +1, idx +2]
         self.d_fname    = ['lambda_{}.dat'.format(idx), 'lambda_{}.dat'.format(idx+1), 'lambda_{}.dat'.format(idx+2)]
         self.d_resname  = resname
         self.d_resid    = resid
         self.d_chain    = chain
-        self.d_t        = t
+        self.d_t        = [t1, t2, t3]
         self.d_x        = [x1, x2, x3]
 
 class Buffer:
@@ -350,8 +350,10 @@ class Analysis:
                     residue.d_resname,
                     residue.d_resid,
                     residue.d_chain,
-                    loadCol('lambda_{}.dat'.format(idx), col=1)[self.d_dump:],
-                    loadCol('lambda_{}.dat'.format(idx), col=2)[self.d_dump:],
+                    loadCol('lambda_{}.dat'.format(idx),   col=1)[self.d_dump:],
+                    loadCol('lambda_{}.dat'.format(idx+1), col=1)[self.d_dump:],
+                    loadCol('lambda_{}.dat'.format(idx+2), col=1)[self.d_dump:],
+                    loadCol('lambda_{}.dat'.format(idx),   col=2)[self.d_dump:],
                     loadCol('lambda_{}.dat'.format(idx+1), col=2)[self.d_dump:],
                     loadCol('lambda_{}.dat'.format(idx+2), col=2)[self.d_dump:]))
 
@@ -405,7 +407,8 @@ class Analysis:
             plt.legend(loc='upper center')
 
             # Save as .png
-            plt.savefig('{}/{}.png'.format(self.d_dir, group.d_fname))
+            plt.savefig('{}/traj_{}_{}_{}.png'.format(self.d_dir, group.d_chain, group.d_resid, group.d_resname))
+            # plt.savefig('{}/traj_{}_{}_{}.pdf'.format(self.d_dir, group.d_chain, group.d_resid, group.d_resname))
 
             # Clear
             plt.clf(); plt.close()
@@ -458,15 +461,16 @@ class Analysis:
 
             # Save and clear
             plt.savefig('{}/hist_{:03d}-{}.png'.format(self.d_dir, group.d_resid, group.d_resname))
+            # plt.savefig('{}/hist_{:03d}-{}.pdf'.format(self.d_dir, group.d_resid, group.d_resname))
             plt.clf(); plt.close()
 
     def plotHIS_traj(self):
         for group in self.d_multiStateList:
             print('plotting {}...'.format(group.d_fname[0]), end='\r')
 
-            plt.plot(group.d_t, group.d_x[0], linewidth=0.5, label='state 1 (double proto) ({})'.format(group.d_fname[0]))
-            plt.plot(group.d_t, group.d_x[1], linewidth=0.5, label='state 2 (anti) ({})'.format(group.d_fname[1]))
-            plt.plot(group.d_t, group.d_x[2], linewidth=0.5, label='state 3 (syn) ({})'.format(group.d_fname[2]))
+            plt.plot(group.d_t[0], group.d_x[0], linewidth=0.5, label='state 1 (double proto) ({})'.format(group.d_fname[0]))
+            plt.plot(group.d_t[1], group.d_x[1], linewidth=0.5, label='state 2 (anti) ({})'.format(group.d_fname[1]))
+            plt.plot(group.d_t[2], group.d_x[2], linewidth=0.5, label='state 3 (syn) ({})'.format(group.d_fname[2]))
 
             plt.title('{}-{} in chain {} in {}\n({}, {}, {}), pH={}'.format(
                 group.d_resname,
@@ -486,8 +490,8 @@ class Analysis:
             plt.grid()
             plt.legend()
 
-            # Save as .png
-            plt.savefig('{}/{}.png'.format(self.d_dir, group.d_fname[0]))
+            plt.savefig('{}/traj_{}_{}_{}.png'.format(self.d_dir, group.d_chain, group.d_resid, group.d_resname))
+            # plt.savefig('{}/traj_{}_{}_{}.pdf'.format(self.d_dir, group.d_chain, group.d_resid, group.d_resname))
 
             # Clear
             plt.clf(); plt.close()
@@ -511,7 +515,7 @@ class Analysis:
 
             # I - PLOT OLD HISTOGRAM
             ####################################################################
-            
+
             plt.figure(figsize=(8, 6))
             plt.hist(x1, density=True, bins=200, label='state 1 (double proto.)', histtype='step')
             plt.hist(x2, density=True, bins=200, label='state 2 (anti)', histtype='step')
@@ -537,14 +541,23 @@ class Analysis:
 
             # Save and clear
             plt.savefig('{}/hist_{:03d}-{}_old.png'.format(self.d_dir, group.d_resid, group.d_resname))
+            # plt.savefig('{}/hist_{:03d}-{}_old.pdf'.format(self.d_dir, group.d_resid, group.d_resname))
             plt.clf(); plt.close()
 
             # II - PLOT NEW HISTOGRAM
             ####################################################################
             # https://stackoverflow.com/questions/8437788/how-to-correctly-generate-a-3d-histogram-using-numpy-or-matplotlib-built-in-func
 
-            xAmplitudes = x1 # state 1, else axes are messed up
-            yAmplitudes = x2 # state 2, else axes are messed up
+            # Length needs to be equal
+            if len(x1) > len(x2):
+                xAmplitudes = x1[:len(x2)]
+                yAmplitudes = x2
+            elif len(x1) < len(x2):
+                xAmplitudes = x1
+                yAmplitudes = x2[:len(x1)]
+            else:
+                xAmplitudes = x1
+                yAmplitudes = x2
 
             x = np.array(xAmplitudes)   #turn x,y data into numpy arrays
             y = np.array(yAmplitudes)
@@ -581,6 +594,7 @@ class Analysis:
 
             # Save and clear
             plt.savefig('{}/hist_{:03d}-{}.png'.format(self.d_dir, group.d_resid, group.d_resname))
+            # plt.savefig('{}/hist_{:03d}-{}.pdf'.format(self.d_dir, group.d_resid, group.d_resname))
             plt.clf(); plt.close()
 
     def plotBuffer(self):
@@ -591,7 +605,7 @@ class Analysis:
 
         # Convert lambda coordinate to charge
         charge = [(val - 0.5) for val in group.d_x]
-        
+
         # Plot charge
         plt.plot(group.d_t, charge, linewidth=0.5, label='buffer charge')
 
@@ -607,9 +621,41 @@ class Analysis:
 
         # Save as .png
         plt.savefig('{}/buffer.png'.format(self.d_dir))
+        # plt.savefig('{}/buffer.pdf'.format(self.d_dir))
 
         # Clear
         plt.clf(); plt.close()
+
+    def checkConvergence(self):
+        numChains   = 5 # number of numChains five-fold symmetric protein, hardcoded.
+        resPerChain = int(len(self.d_twoStateList)/numChains)
+        chains = ['A', 'B', 'C', 'D', 'E']
+
+        for ii in range(0, resPerChain):
+
+            # For convenient access
+            group = self.d_twoStateList[ii]
+
+            # Make the plot
+            for jj in range(0, numChains):
+                obj = self.d_twoStateList[ii + resPerChain * jj]
+                plt.plot(obj.d_t, self.__movingDeprotonation(obj.d_x), label='chain {}'.format(chains[jj]))
+
+            plt.title('Moving deprotonation for {}-{}'.format(group.d_resname, group.d_resid))
+
+            # Axes and stuff
+            plt.ylim(-0.1, 1.1)
+            plt.xlabel("Time (ps)")
+            plt.ylabel(r"$\lambda$-coordinate")
+            plt.ticklabel_format(axis='x', style='sci', scilimits=(0, 3))
+            plt.grid()
+            plt.legend(loc='upper center')
+
+            plt.savefig('{}/conv_{}_{}.png'.format(self.d_dir, group.d_resid, group.d_resname))
+            # plt.savefig('{}/conv_{}_{}.pdf'.format(self.d_dir, group.d_resid, group.d_resname))
+
+            # Clear
+            plt.clf(); plt.close()
 
     def __movingDeprotonation(self, xList, cutoff=0.80):
         Av = len(xList) * [0]
