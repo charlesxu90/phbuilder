@@ -1,6 +1,6 @@
 firstLine = True # For formatting of title
 
-# Write a default .mdp file
+# Write a generic .mdp file
 def gen_mdp(Type, nsteps, nstxout, membrane=False):
 
     # Sanitize input for Type

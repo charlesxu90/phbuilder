@@ -604,9 +604,10 @@ class phbuilder(User):
         if not foundSolvent:
             self.error("{} does not seem to have any solvent with molname {}! Did you forget to add solvent? Alternatively you can change the solvent name by setting -solname.".format(self.d_file, self.d_solname))
 
-        # Warning if no titratable residues were found
+        # Error if no titratable residues were found
+        # We need to throw an error here and not a warning because grompp in getcpHMDcharge will not compile without at least one lambda group being present.
         if not foundTitratables:
-            self.warning("{} does not seem to have any titratable groups! Did you forget to run gentopol?".format(self.d_file))
+            self.error("{} does not seem to have any titratable groups! Did you forget to run gentopol?".format(self.d_file))
 
         # II - DO THE IONS PART
 
@@ -1111,20 +1112,20 @@ class phbuilder(User):
             self.warning("No BUF(s) found. Will not use charge constraining...")
 
         gen_mdp(Type='EM', nsteps=5000, nstxout=0)
-        self.update('Wrote a default EM.mdp file (for energy minimization)...')
+        self.update('Wrote a generic EM.mdp file (for energy minimization)...')
 
         gen_mdp(Type='NVT', nsteps=5000, nstxout=0)
-        self.update('Wrote a default NPT.mdp file (for temperature coupling)...')
+        self.update('Wrote a generic NPT.mdp file (for temperature coupling)...')
 
         val = self.inputOptionHandler("Simulating a membrane protein? (this will modify some barostat parameters)", ['No', 'Yes'])
 
         gen_mdp(Type='NPT', nsteps=5000, nstxout=0, membrane=val)
-        self.update('Wrote a default NVT.mdp file (for pressure coupling)...')
+        self.update('Wrote a generic NVT.mdp file (for pressure coupling)...')
 
-        # If no existing .mdp file is specified using the -mdp flag, write a default one.
+        # If no existing .mdp file is specified using the -mdp flag, write a generic one.
         if self.d_mdp == None:
             gen_mdp('MD', 50000, 5000, membrane=val)
-            self.update('Wrote a default MD.mdp file (for production)...')
+            self.update('Wrote a generic MD.mdp file (for production)...')
 
         # Move this warning here so that we can also build normal MD sims with phbuilder.
         if not anyTitratables:
@@ -1139,9 +1140,9 @@ class phbuilder(User):
 
         # PART III - WRITE LAMBBDA INDEX GROUPS
 
-        # If no .ndx file was specified on the command line, generate our default one:
+        # If no .ndx file was specified on the command line, generate our generic one:
         if self.d_ndx == None:
-            self.update('No .ndx file was specified. Creating a default index.ndx file...')
+            self.update('No .ndx file was specified. Creating a generic index.ndx file...')
             self.gromacs("make_ndx -f {}".format(self.d_file), stdin=['q'])
             self.d_ndx = 'index.ndx'
 

@@ -6,6 +6,16 @@ import math
 import matplotlib.pyplot as plt
 from phbuilder.structure import Structure
 
+def loadxvg(fname, col=[0, 1]):
+    data = [ [] for _ in range(len(col)) ]
+    for stringLine in open(fname).read().splitlines():
+        if stringLine[0] in ['@', '#', '&']:
+            continue
+        listLine = stringLine.split()
+        for idx in col:
+            data[idx].append(float(listLine[col[idx]]))
+    return data
+
 def loadCol(fileName, col, start=0, stop=0):
     data = []
 

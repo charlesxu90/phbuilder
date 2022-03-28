@@ -108,7 +108,7 @@ def parsecmdline():
                         required=False,
                         dest='nbufs',
                         action='store',
-                        help='[<int>] Manually specify the number of buffer particles to add. If this flag is not set, a (more generous than necessarily required) estimate will be made based on the number of titratable sites. Currently N_buf = N_sites / 2q_max with q_max = 0.3.',
+                        help='[<int>] Manually specify the number of buffer particles to add. If this flag is not set, a (more generous than necessarily required) estimate will be made based on the number of titratable sites. Currently N_buf = N_sites / 2q_max with q_max = 0.5.',
                         type=int)
 
     parser_2.add_argument('-v',
