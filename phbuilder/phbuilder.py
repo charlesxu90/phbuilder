@@ -139,6 +139,20 @@ class phbuilder(User):
             # Parse GROMACS parameters
             if (sect.strip() == "GROMACS"):
                 self.d_gmxbasepath = parser.get(sect, 'path')
+
+                # Check if there actually is a GROMACS installation in this path.
+                if not os.path.isdir(self.d_gmxbasepath):
+                    self.verbose("Default path GROMACS base path {} does not seem to exist, will instead use GMXPH_BASEPATH".format(self.d_gmxbasepath))
+                    # Get the GROMACS base apth from the environment variable.
+                    fromEnvVar = os.getenv('GMXPH_BASEPATH')
+
+                    if fromEnvVar == None: # If empty...
+                        self.error("Default GROMACS base path {} does not seem to exist, and GMXPH_BASEPATH is not set. Please update your GMXPH_BASEPATH environment variable.".format(self.d_gmxbasepath))
+                    if not os.path.isdir(fromEnvVar): # If not empty but not valid...
+                        self.error("GMXPTH_BASEPATH was found but the specified path {} does not seem to exist. Please update your GMXPH_BASEPATH environment variable.".format(fromEnvVar))
+
+                    self.d_gmxbasepath = fromEnvVar
+
                 continue
 
             # Parse force field parameters

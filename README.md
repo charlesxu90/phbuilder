@@ -16,7 +16,7 @@ System builder for constant-pH simulations in [GROMACS](https://www.gromacs.org/
     ```
     cmake .. -DGMX_BUILD_OWN_FFTW=ON -DGMX_GPU=CUDA -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=/usr/local/gromacs_constantph
     ```
-    Note that you MUST use `/usr/local/gromacs_constantph` as a base-path for the cpHMD GROMACS build. This is the default path phbuilder will look.
+    The default path phbuilder will look for the GROMACS CpHMD install is `/usr/local/gromacs_constantph`. If GROMACS was installed in a different location, you are required to set the `GMXPH_BASEPATH` environment variable (e.g. in your `~/.bashrc`).
 4. Install phbuilder using:
     ```
     pip3 install --index-url https://test.pypi.org/simple/ --no-deps phbuilder
