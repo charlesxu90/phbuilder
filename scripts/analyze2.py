@@ -247,20 +247,14 @@ ullman = { # unpublished
     'HSPT-277' : 1
 }
 
-def loadCol(fileName, col, start=0, stop=0):
-    data = []
-
-    try:
-        for x, y in enumerate(open(fileName)):
-            if start == 0 and stop == 0 and (y.split()[0][0] not in ['@','#','&']):
-                data.append(float(y.split()[col-1]))
-
-            elif (x >= start-1) and (x <= stop-1):
-                data.append(float(y.split()[col-1]))
-
-    except IndexError:
-        pass
-
+def loadxvg(fname, col=[0, 1]):
+    data = [ [] for _ in range(len(col)) ]
+    for stringLine in open(fname).read().splitlines():
+        if stringLine[0] in ['@', '#', '&']:
+            continue
+        listLine = stringLine.split()
+        for idx in col:
+            data[idx].append(float(listLine[col[idx]]))
     return data
 
 class TwoState:
@@ -268,7 +262,7 @@ class TwoState:
 
     def __init__(self, idx, resname, resid, chain, t, x):
         self.d_idx      = idx
-        self.d_fname    = 'lambda_{}.dat'.format(idx)
+        self.d_fname    = 'cphmd-coord-{}.xvg'.format(idx)
         self.d_resname  = resname
         self.d_resid    = resid
         self.d_chain    = chain
@@ -280,7 +274,7 @@ class MultiState:
 
     def __init__(self, idx, resname, resid, chain, t1, t2, t3, x1, x2, x3):
         self.d_idx      = [idx, idx +1, idx +2]
-        self.d_fname    = ['lambda_{}.dat'.format(idx), 'lambda_{}.dat'.format(idx+1), 'lambda_{}.dat'.format(idx+2)]
+        self.d_fname    = ['cphmd-coord-{}.xvg'.format(idx), 'cphmd-coord-{}.xvg'.format(idx+1), 'cphmd-coord-{}.xvg'.format(idx+2)]
         self.d_resname  = resname
         self.d_resid    = resid
         self.d_chain    = chain
@@ -291,7 +285,7 @@ class Buffer:
     '''Holds data for the buffer group.'''
     def __init__(self, idx, t, x, count):
         self.d_idx     = idx
-        self.d_fname   = 'lambda_{}.dat'.format(idx)
+        self.d_fname   = 'cphmd-coord-{}.xvg'.format(idx)
         self.d_resname = 'BUF'
         self.d_t       = t
         self.d_x       = x
@@ -331,13 +325,15 @@ class Analysis:
             if residue.d_resname in ['ASPT', 'GLUT']:
                 print('Loading {}-{} in chain {}...'.format(residue.d_resname, residue.d_resid, residue.d_chain), end='\r')
 
+                xvgdata = loadxvg('cphmd-coord-{}.xvg'.format(idx))
+
                 self.d_twoStateList.append(TwoState(
                     idx, 
                     residue.d_resname, 
                     residue.d_resid,
-                    residue.d_chain, 
-                    loadCol('lambda_{}.dat'.format(idx), col=1)[self.d_dump:],
-                    loadCol('lambda_{}.dat'.format(idx), col=2)[self.d_dump:]
+                    residue.d_chain,
+                    xvgdata[0][self.d_dump:], # time
+                    xvgdata[1][self.d_dump:]  # coordinates
                     ))
 
                 idx += 1
@@ -345,27 +341,33 @@ class Analysis:
             if residue.d_resname == 'HSPT':
                 print('Loading {}-{} in chain {}...'.format(residue.d_resname, residue.d_resid, residue.d_chain), end='\r')
 
+                xvgdata1 = loadxvg('cphmd-coord-{}.xvg'.format(idx))
+                xvgdata2 = loadxvg('cphmd-coord-{}.xvg'.format(idx+1))
+                xvgdata3 = loadxvg('cphmd-coord-{}.xvg'.format(idx+2))
+
                 self.d_multiStateList.append(MultiState(
                     idx,
                     residue.d_resname,
                     residue.d_resid,
                     residue.d_chain,
-                    loadCol('lambda_{}.dat'.format(idx),   col=1)[self.d_dump:],
-                    loadCol('lambda_{}.dat'.format(idx+1), col=1)[self.d_dump:],
-                    loadCol('lambda_{}.dat'.format(idx+2), col=1)[self.d_dump:],
-                    loadCol('lambda_{}.dat'.format(idx),   col=2)[self.d_dump:],
-                    loadCol('lambda_{}.dat'.format(idx+1), col=2)[self.d_dump:],
-                    loadCol('lambda_{}.dat'.format(idx+2), col=2)[self.d_dump:]))
+                    xvgdata1[0][self.d_dump:],  # file 1 time
+                    xvgdata1[1][self.d_dump:],  # file 1 coordinates
+                    xvgdata2[0][self.d_dump:],  # file 2 time
+                    xvgdata2[1][self.d_dump:],  # file 2 coordinates
+                    xvgdata3[0][self.d_dump:],  # file 3 time
+                    xvgdata3[1][self.d_dump:])) # file 3 coordinates
 
                 idx += 3
 
             if residue.d_resname == 'BUF' and not foundBUF:
                 print('Loading buffer data')
 
+                xvgdata = loadxvg('cphmd-coord-{}.xvg'.format(idx))
+
                 self.d_buffer = Buffer(
                     idx,
-                    loadCol('lambda_{}.dat'.format(idx), col=1),    # no data dump
-                    loadCol('lambda_{}.dat'.format(idx), col=2),    # no data dump
+                    xvgdata[0],    # no data dump
+                    xvgdata[1],    # no data dump
                     count=185)
 
                 foundBUF = True
@@ -395,7 +397,7 @@ class Analysis:
                 self.d_name,
                 group.d_fname,
                 self.d_pH,
-                self.__deprotonation(group.d_x)
+                self.deprotonation(group.d_x)
             ))
 
             # Axes and stuff
@@ -441,7 +443,7 @@ class Analysis:
                 group.d_resid,
                 self.d_name,
                 self.d_pH,
-                self.__deprotonation(x)))
+                self.deprotonation(x)))
 
             # Axes and stuff
             plt.axis([-0.1, 1.1, -0.1, 12])
@@ -672,7 +674,7 @@ class Analysis:
 
         return Av
 
-    def __deprotonation(self, xList, cutoff=0.80):
+    def deprotonation(self, xList, cutoff=0.80):
 
         lambda_proto   = 0
         lambda_deproto = 0
