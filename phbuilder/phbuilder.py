@@ -478,27 +478,43 @@ class phbuilder(User):
             self.d_output_orig = self.d_output
             self.d_output      = someTempName
 
-        # PART IV - RUN PDB2GMX AND ASK USER FOR INPUT ABOUT IT 
+        # PART IV - RUN PDB2GMX AND ASK USER FOR INPUT ABOUT IT
 
-        self.update("\nRecommended pdb2gmx command:")
-        self.update("gmx pdb2gmx -f {} -o {} -ff {} -water {} -ignh".format(self.d_file, self.d_output, self.d_modelFF, self.d_modelwater))
+        # FIX: If 'pdb2gmxtemp.pdb' is empty (e.g. because ALL residuestypes are 
+        # unrecognized) pdb2gmx will crash. We therefore skip this part entirely.
+        if len(pdb.d_residues) == 0:
 
-        # Ask for input for what to do regarding pdb2mgx
-        val = self.inputOptionHandler(
-            "Choose whether to", 
-            ["Do nothing", "Run", "Add additional flags (https://manual.gromacs.org/documentation/current/onlinehelp/gmx-pdb2gmx.html)"])
+            self.update('skipping pdb2gmx step entirely as there are no recognized residues.')
+            with open('topol.top', 'w+') as file:
+                file.write('; Include forcefield parameters\n')
+                file.write('#include \"{}.ff/forcefield.itp\"\n\n'.format(self.d_modelFF))
+                file.write('; Include water topology\n')
+                file.write('#include \"{}.ff/{}.itp\"\n\n'.format(self.d_modelFF, self.d_modelwater))
+                file.write('; Include topology for ions\n')
+                file.write('#include \"{}.ff/ions.itp\"\n\n'.format(self.d_modelFF))
+                file.write('[ system ]\n; Name\n{}\n\n'.format(pdb.d_title))
+                file.write('[ molecules ]\n; Compounds  #mols\n')
 
-        flags = ""
-        if val == 2:
-            flags += input("phbuilder : Enter flags: ")
+        else:
+            self.update("\nRecommended pdb2gmx command:")
+            self.update("gmx pdb2gmx -f {} -o {} -ff {} -water {} -ignh".format(self.d_file, self.d_output, self.d_modelFF, self.d_modelwater))
 
-        # Run pdb2gmx:
-        if val in [1, 2]:
-            self.gromacs("pdb2gmx -f {} -o {} -ff {} -water {} -ignh {}".format(self.d_file, self.d_output, self.d_modelFF, self.d_modelwater, flags), terminal=True)
+            # Ask for input for what to do regarding pdb2mgx
+            val = self.inputOptionHandler(
+                "Choose whether to", 
+                ["Do nothing", "Run", "Add additional flags (https://manual.gromacs.org/documentation/current/onlinehelp/gmx-pdb2gmx.html)"])
 
-        # If we do nothing, then return because we do not want to do PART V?
-        if val == 0:
-            return
+            flags = ""
+            if val == 2:
+                flags += input("phbuilder : Enter flags: ")
+
+            # Run pdb2gmx:
+            if val in [1, 2]:
+                self.gromacs("pdb2gmx -f {} -o {} -ff {} -water {} -ignh {}".format(self.d_file, self.d_output, self.d_modelFF, self.d_modelwater, flags), terminal=True)
+
+            # If we do nothing, then return because we do not want to do PART V?
+            if val == 0:
+                return
 
         # PART V - MERGE THE .PDB FILES
 
