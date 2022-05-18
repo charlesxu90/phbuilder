@@ -60,6 +60,9 @@ class phbuilder(User):
             # Optional
             if (CLI.nbufs != None):
                 self.ph_nbufs = CLI.nbufs
+            
+            # this needs to be defined because neutralize calls writeLambda_mdp
+            self.ph_cal = False
 
         # If we run genparams...
         elif (CLI.target == 'genparams'):
@@ -76,6 +79,12 @@ class phbuilder(User):
                 self.ph_inter = True
             else:
                 self.ph_inter = False
+
+            # Process whether the -cal flag was or wasn't set
+            if (CLI.cal != None):
+                self.ph_cal = True
+            else:
+                self.ph_cal = False
 
         # User information.
         self.verbose("Parsed the following input from the command line:")
@@ -870,7 +879,7 @@ class phbuilder(User):
             addParam('lambda-dynamics-charge-constraints', 'yes')
 
         # If we are doing EM/NVT/NPT, we do not want the lambdas to move:
-        if Type in ['EM', 'NVT', 'NPT']:
+        if Type in ['EM', 'NVT', 'NPT'] or self.ph_cal:
             addParam('lambda-dynamics-calibration', 'yes')
 
         # We need to count how many titratable residues in total we have in the

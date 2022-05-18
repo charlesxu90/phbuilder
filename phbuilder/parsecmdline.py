@@ -187,6 +187,13 @@ def parsecmdline():
                         const=1,
                         help='(no) If this flag is set, the user can manually specify the height of the bias potential barrier (in kJ/mol) for every titratable group.')
 
+    parser_3.add_argument('-cal',
+                        required=False,
+                        dest='cal',
+                        action='store_const',
+                        const=1,
+                        help='(no) If this flag is set, the CpHMD simulation will be run in calibration mode: forces on the lambdas are computed, but they will not be updated. This is used for calibration purposes.')
+
     parser_3.add_argument('-v',
                         required=False,
                         dest='verbosity',
