@@ -351,10 +351,10 @@ class Analysis:
                     residue.d_resid,
                     residue.d_chain,
                     xvgdata1[0][self.d_dump:],  # file 1 time
-                    xvgdata1[1][self.d_dump:],  # file 1 coordinates
                     xvgdata2[0][self.d_dump:],  # file 2 time
-                    xvgdata2[1][self.d_dump:],  # file 2 coordinates
                     xvgdata3[0][self.d_dump:],  # file 3 time
+                    xvgdata1[1][self.d_dump:],  # file 1 coordinates
+                    xvgdata2[1][self.d_dump:],  # file 2 coordinates
                     xvgdata3[1][self.d_dump:])) # file 3 coordinates
 
                 idx += 3
