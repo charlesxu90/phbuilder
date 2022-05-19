@@ -238,8 +238,43 @@ class GLICSims:
                 plt.savefig('lambdaplots/{}_{:03d}-{}.png'.format(self.d_replicaSet[ii].d_name, group.d_resid, group.d_resname))
                 plt.clf(); plt.close()
 
-    def convergence(self):
-        pass
+    def convergence(self, window):
+        totalResidues = len(self.d_replicaSet[0].d_replica[0].d_twoStateList)
+        chains = 5
+        residuesPerChain = int(totalResidues / chains)
+        
+        # Outer most loop is over the ReplicaSets (4HFI_4, 4HFI_7, etc.):
+        for ii in range(0, len(self.d_replicaSet)):
+            # Second loop is over the titratable residues:
+            for jj in range(0, residuesPerChain):
+                # Third loop is over the four replicas:
+                for kk in range(0, len(self.d_replicaSet)): # 4 replicas...
+                    # And fourth loop is over the five chains:
+                    for ll in range(0, chains): # ...x5 chains = 20 samples
+
+                        # GET THE DATA
+                        t = self.d_replicaSet[ii].d_replica[kk].d_twoStateList[jj + residuesPerChain * ll].d_t
+                        x = self.d_replicaSet[ii].d_replica[kk].d_twoStateList[jj + residuesPerChain * ll].d_x
+                        x = [1.0 - val for val in x] # Mirror in vertical x=0.5 axis
+
+                        # PLOT
+                        a, b = self.movingDeprotonation(t, x, window)
+                        plt.plot(a, b)
+
+                # MAKE PLOT MORE NICE
+                plt.title(self.d_replicaSet[ii].d_name, fontsize=18)
+                plt.ylim(-0.1, 1.1)
+                plt.xlabel("Time (ps)")
+                plt.ylabel("Protonation running average")
+                plt.ticklabel_format(axis='x', style='sci', scilimits=(0, 3))
+                plt.grid()
+
+                group = self.d_replicaSet[0].d_replica[0].d_twoStateList[jj]
+
+                # SAVE AND CLEAR
+                plt.tight_layout()
+                plt.savefig('lambdaplots/{}_{:03d}-{}_conv.png'.format(self.d_replicaSet[ii].d_name, group.d_resid, group.d_resname))
+                plt.clf(); plt.close()
 
     def histidine(self):
         pass
