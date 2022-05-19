@@ -303,11 +303,11 @@ class Analysis:
         dump: number of ns to burn
         """
 
-        # Loaded
+# Loaded
         self.d_file   = file
         self.d_name   = name
         self.d_pH     = pH
-        self.d_dump   = int((1000 * dump) / (0.002 * nstOut))
+        self.d_dump   = int((100 * dump) / (0.002 * nstOut))
 
         # Load d_residues
         self.d_residues = Structure(self.d_file, 2).d_residues
@@ -325,7 +325,14 @@ class Analysis:
             if residue.d_resname in ['ASPT', 'GLUT']:
                 print('Loading {}-{} in chain {}...'.format(residue.d_resname, residue.d_resid, residue.d_chain), end='\r')
 
-                xvgdata = loadxvg('cphmd-coord-{}.xvg'.format(idx))
+                xvgdata1 = loadxvg('cphmd-coord-{}.xvg'.format(idx))
+
+                # hack to prevent memory being too full
+                xvgdata = [[], []]
+                for ijk in range(0, len(xvgdata1[0])):
+                    if ijk % 10 == 0:
+                        xvgdata[0].append(xvgdata1[0][ijk])
+                        xvgdata[1].append(xvgdata1[1][ijk])
 
                 self.d_twoStateList.append(TwoState(
                     idx, 
