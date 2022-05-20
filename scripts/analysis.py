@@ -345,6 +345,75 @@ class GLICSims:
                 plt.savefig('lambdaplots/{}_{:03d}-{}.png'.format(self.d_replicaSet[ii].d_name, group.d_resid, group.d_resname))
                 plt.clf(); plt.close()
 
+    def hisheatmap(self):
+        totalResidues = len(self.d_replicaSet[0].d_replica[0].d_multiStateList)
+        chains = 5
+        residuesPerChain = int(totalResidues / chains)
+
+        # Outer most loop is over the ReplicaSets (4HFI_4, 4HFI_7, etc.):
+        for ii in range(0, len(self.d_replicaSet)):
+            # Second loop is over the titratable residues (01, 02, etc.):
+            for jj in range(0, residuesPerChain):
+                # Start figure here
+                plt.figure(figsize=(8, 6))
+                # Third loop is over the three lambda groups:
+                for kk in [0, 1, 2]:
+                    # Set valuesList to zero.
+                    valuesList = []
+                    # Fourth loop is over the four replicas:
+                    for ll in range(0, len(self.d_replicaSet)): # 4 replicas...
+                        # And fifth loop is over the five chains:
+                        for mm in range(0, chains): # ...x5 chains = 20 samples
+
+                            # GET THE DATA
+                            x = self.d_replicaSet[ii].d_replica[kk].d_multiStateList[jj + residuesPerChain * ll].d_x[kk]
+                            x = [1.0 - val for val in x] # Mirror in vertical x=0.5 axis
+
+                            # GET HISTOGRAM VALUES, BINS
+                            values, bins = np.histogram(x, density=True, bins=200, range=(-0.1, 1.1))
+                            valuesList.append(values)
+
+                    # COMPUTE MEAN AND STANDARD ERROR
+                    meanList  = len(values) * [0] # 200, to hold mean for each bin
+                    errorList = len(values) * [0] # 200, to hold error for each bin
+
+                    for ll in range(0, len(values)): # 200
+
+                        # Create list of 20 values
+                        temp = [0] * len(valuesList) # 4*5=20
+                        for mm in range(0, len(valuesList)): # 4*5=20
+                            temp[mm] = valuesList[mm][ll]
+
+                        meanList[ll] = np.mean(temp)
+                        errorList[ll] = np.std(temp)
+
+                    # PLOT MEAN AND SHADED REGION (ERROR)
+                    A = []; B = []
+                    for ll in range(0, len(meanList)):
+                        A.append(meanList[ll] + errorList[ll])
+                        B.append(meanList[ll] - errorList[ll])
+
+                    description = ['state 1 (double proto)', 'state 2 (anti)', 'state 3 (syn)']
+                    color = ['#1f77b4', '#ff7f0e', '#2ca02c']
+
+                    plt.plot(bins[1:], meanList, color=color[kk], label=description[kk])
+                    plt.fill_between(bins[1:], A, B, alpha=0.4, color=color[kk])
+
+                # MAKE PLOT MORE NICE
+                plt.title(self.d_replicaSet[ii].d_name, fontsize=18)
+                plt.axis([-0.1, 1.1, -0.1, 12])
+                plt.xlabel(r"$\lambda$-coordinate")
+                plt.xticks(ticks=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0], labels=[1.0, 0.8, 0.6, 0.4, 0.2, 0.0]) # because we mirror in vertical x=0.5 axis
+                plt.grid()
+                plt.legend(loc='upper center')
+
+                group = self.d_replicaSet[0].d_replica[0].d_multiStateList[jj]
+
+                # SAVE AND CLEAR
+                plt.tight_layout()
+                plt.savefig('lambdaplots/{}_{:03d}-{}.png'.format(self.d_replicaSet[ii].d_name, group.d_resid, group.d_resname))
+                plt.clf(); plt.close()
+
     def doFinalPlots(self):
         os.chdir('lambdaplots')
         for res in ['127-HSPT', '235-HSPT', '277-HSPT']:
