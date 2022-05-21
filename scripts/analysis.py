@@ -354,82 +354,72 @@ class GLICSims:
         for ii in range(0, len(self.d_replicaSet)):
             # Second loop is over the titratable residues (01, 02, etc.):
             for jj in range(0, residuesPerChain):
-                # Holds the means of bins of lambda1 and lambda2
-                listofMeanList = []
+                # Holds lambda1 and lambda2
+                lambdaList = [[], []]
                 # Third loop is over the three lambda groups:
                 for kk in [0, 1]:
-                    # Set valuesList to zero.
-                    valuesList = []
                     # Fourth loop is over the four replicas:
                     for ll in range(0, len(self.d_replicaSet)): # 4 replicas...
                         # And fifth loop is over the five chains:
                         for mm in range(0, chains): # ...x5 chains = 20 samples
-
                             # GET THE DATA
-                            x = self.d_replicaSet[ii].d_replica[kk].d_multiStateList[jj + residuesPerChain * ll].d_x[kk]
-                            # x = [1.0 - val for val in x] # Mirror in vertical x=0.5 axis
+                            lambdaList[kk] += self.d_replicaSet[ii].d_replica[kk].d_multiStateList[jj + residuesPerChain * ll].d_x[kk]
 
-                            # GET HISTOGRAM VALUES, BINS
-                            values, bins = np.histogram(x, density=True, bins=200, range=(-0.1, 1.1))
-                            valuesList.append(values)
+                # MAKE HISTOGRAM
+                Nbins = 11
+                lambda1 = lambdaList[0]
+                lambda2 = lambdaList[1]
 
-                    # COMPUTE MEAN AND STANDARD ERROR
-                    meanList  = len(values) * [0] # 200, to hold mean for each bin
-                    errorList = len(values) * [0] # 200, to hold error for each bin
+                # Fix slightly uneven length problem
+                if len(lambda1) > len(lambda2):
+                    lambda1 = lambda1[0:len(lambda2)]
+                elif len(lambda1) < len(lambda2):
+                    lambda2 = lambda2[0:len(lambda1)]
 
-                    for ll in range(0, len(values)): # 200
-
-                        # Create list of 20 values
-                        temp = [0] * len(valuesList) # 4*5=20
-                        for mm in range(0, len(valuesList)): # 4*5=20
-                            temp[mm] = valuesList[mm][ll]
-
-                        meanList[ll] = np.mean(temp)
-                        errorList[ll] = np.std(temp)
-
-                    listofMeanList.append(meanList)
-
-                # CREATE HISTOGRAM
-                x = listofMeanList[0]
-                y = listofMeanList[1]
-                Nbins = 31
-                H, b = np.histogramdd((x, y), bins=(Nbins, Nbins), range=((-0.1, 1.1), (-0.1, 1.1)), density=True)
+                H, b = np.histogramdd((lambda1, lambda2), bins=(Nbins, Nbins), range=((-0.1, 1.1), (-0.1, 1.1)), density=True)
 
                 # code from Pavel I don't understand but is necessary
                 interp_dict = dict()
                 binx = np.linspace(0, 1, Nbins)
-                for i, x in enumerate(binx):
-                    for j, y in enumerate(binx):
+                for i, _ in enumerate(binx):
+                    for j, _ in enumerate(binx):
                         interp_dict[(i, j)] = H[i, j]
 
                 # TRIANGLE PLOTTING USING TERNARY
                 fig, tax = ternary.figure(scale=Nbins-1)
+                tax.heatmap(interp_dict, cmap="OrRd", colorbar=False, vmin=0, vmax=20)
 
-                # tax.heatmap(interp_dict, cmap="OrRd", colorbar=False, vmin=0, vmax=30000)
-                tax.heatmap(interp_dict, cmap="OrRd", colorbar=False)
+                # MAKE PLOT MORE NICE                
                 tax.boundary(linewidth=1.0)
-                tax.right_corner_label("double", fontsize=11, offset=0.15)
-                tax.top_corner_label("anti", fontsize=11, offset=0.15)
-                tax.left_corner_label("   syn", fontsize=11, offset=0.15)
-
                 tax.set_title('{}\n'.format(self.d_replicaSet[ii].d_name), fontsize=13)
                 tax.get_axes().axis('off')
                 tax.clear_matplotlib_ticks()
-                
+                tax.right_corner_label("double", fontsize=11, offset=0.15)
+                tax.top_corner_label("anti", fontsize=11, offset=0.15)
+                tax.left_corner_label("   syn", fontsize=11, offset=0.15)
                 fig.gca().set_aspect('equal')
                 group = self.d_replicaSet[0].d_replica[0].d_multiStateList[jj]
 
-                # SAVE AND CLEAR
-                # fig.tight_layout()
-                tax.savefig('lambdaplots/{}_{:03d}-{}.png'.format(self.d_replicaSet[ii].d_name, group.d_resid, group.d_resname))
+                # SAVE, TRIM, AND RESIZE
+                fname = 'lambdaplots/heat_{}_{:03d}-{}.png'.format(self.d_replicaSet[ii].d_name, group.d_resid, group.d_resname)
+                tax.savefig(fname)
+                os.system('convert {} -trim {}'.format(fname, fname))
+                os.system('convert {} -resize 74% {}'.format(fname, fname))
 
     def doFinalPlots(self):
         os.chdir('lambdaplots')
         for res in ['127-HSPT', '235-HSPT', '277-HSPT']:
-            # CREATE FINAL HISTOGRAMS FOR HISTIDINE
+            # CREATE *OLD* FINAL HISTOGRAMS FOR HISTIDINE
             os.system('convert 6ZGD_7_{}.png 4HFI_7_{}.png +append temp1.png'.format(res, res))
             os.system('convert 6ZGD_4_{}.png 4HFI_4_{}.png +append temp2.png'.format(res, res))
             os.system('convert temp1.png temp2.png -append hist_{}.png'.format(res))
+            # CREATE *NEW* FINAL HISTOGRAMS FOR HISTIDINE
+            os.system('convert heat_6ZGD_7_{}.png heat_4HFI_7_{}.png +append temp1.png'.format(res, res))
+            os.system('convert heat_6ZGD_4_{}.png heat_4HFI_4_{}.png +append temp2.png'.format(res, res))
+            os.system('convert temp1.png temp2.png -append heat_{}.png'.format(res))
+            # MERGE BOTH TO CREATE FINAL PLOTS
+            os.system('convert hist_{}.png heat_{}.png +append final_{}.png'.format(res, res, res))
+
         for res in ['013-ASPT', '014-GLUT', '026-GLUT', '031-ASPT', '032-ASPT', '035-GLUT', '049-ASPT', '055-ASPT', '067-GLUT', '069-GLUT', '075-GLUT', '082-GLUT', '086-ASPT', '088-ASPT', '091-ASPT', '097-ASPT', '104-GLUT', '115-ASPT', '122-ASPT', '136-ASPT', '145-ASPT', '147-GLUT', '153-ASPT', '154-ASPT', '161-ASPT', '163-GLUT', '177-GLUT', '178-ASPT', '181-GLUT', '185-ASPT', '222-GLUT', '243-GLUT', '272-GLUT', '282-GLUT']:
             # CREATE FINAL HISTOGRAMS FOR ASPARTIC AND GLUTAMIC ACID
             os.system('convert 6ZGD_7_{}.png 4HFI_7_{}.png +append temp1.png'.format(res, res))
