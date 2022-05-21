@@ -1,7 +1,7 @@
 #!/bin/python3
 
 # IMPORT MODULES
-import os, numpy as np, matplotlib.pyplot as plt
+import os, numpy as np, matplotlib.pyplot as plt, ternary
 from phbuilder.structure import Structure
 from data import biophys, nury2010, fritsch2011, lev2017, nemecz2017
 
@@ -354,10 +354,10 @@ class GLICSims:
         for ii in range(0, len(self.d_replicaSet)):
             # Second loop is over the titratable residues (01, 02, etc.):
             for jj in range(0, residuesPerChain):
-                # Start figure here
-                plt.figure(figsize=(8, 6))
+                # Holds the means of bins of lambda1 and lambda2
+                listofMeanList = []
                 # Third loop is over the three lambda groups:
-                for kk in [0, 1, 2]:
+                for kk in [0, 1]:
                     # Set valuesList to zero.
                     valuesList = []
                     # Fourth loop is over the four replicas:
@@ -367,7 +367,7 @@ class GLICSims:
 
                             # GET THE DATA
                             x = self.d_replicaSet[ii].d_replica[kk].d_multiStateList[jj + residuesPerChain * ll].d_x[kk]
-                            x = [1.0 - val for val in x] # Mirror in vertical x=0.5 axis
+                            # x = [1.0 - val for val in x] # Mirror in vertical x=0.5 axis
 
                             # GET HISTOGRAM VALUES, BINS
                             values, bins = np.histogram(x, density=True, bins=200, range=(-0.1, 1.1))
@@ -387,32 +387,41 @@ class GLICSims:
                         meanList[ll] = np.mean(temp)
                         errorList[ll] = np.std(temp)
 
-                    # PLOT MEAN AND SHADED REGION (ERROR)
-                    A = []; B = []
-                    for ll in range(0, len(meanList)):
-                        A.append(meanList[ll] + errorList[ll])
-                        B.append(meanList[ll] - errorList[ll])
+                    listofMeanList.append(meanList)
 
-                    description = ['state 1 (double proto)', 'state 2 (anti)', 'state 3 (syn)']
-                    color = ['#1f77b4', '#ff7f0e', '#2ca02c']
+                # CREATE HISTOGRAM
+                x = listofMeanList[0]
+                y = listofMeanList[1]
+                Nbins = 31
+                H, b = np.histogramdd((x, y), bins=(Nbins, Nbins), range=((-0.1, 1.1), (-0.1, 1.1)), density=True)
 
-                    plt.plot(bins[1:], meanList, color=color[kk], label=description[kk])
-                    plt.fill_between(bins[1:], A, B, alpha=0.4, color=color[kk])
+                # code from Pavel I don't understand but is necessary
+                interp_dict = dict()
+                binx = np.linspace(0, 1, Nbins)
+                for i, x in enumerate(binx):
+                    for j, y in enumerate(binx):
+                        interp_dict[(i, j)] = H[i, j]
 
-                # MAKE PLOT MORE NICE
-                plt.title(self.d_replicaSet[ii].d_name, fontsize=18)
-                plt.axis([-0.1, 1.1, -0.1, 12])
-                plt.xlabel(r"$\lambda$-coordinate")
-                plt.xticks(ticks=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0], labels=[1.0, 0.8, 0.6, 0.4, 0.2, 0.0]) # because we mirror in vertical x=0.5 axis
-                plt.grid()
-                plt.legend(loc='upper center')
+                # TRIANGLE PLOTTING USING TERNARY
+                fig, tax = ternary.figure(scale=Nbins-1)
 
+                # tax.heatmap(interp_dict, cmap="OrRd", colorbar=False, vmin=0, vmax=30000)
+                tax.heatmap(interp_dict, cmap="OrRd", colorbar=False)
+                tax.boundary(linewidth=1.0)
+                tax.right_corner_label("double", fontsize=11, offset=0.15)
+                tax.top_corner_label("anti", fontsize=11, offset=0.15)
+                tax.left_corner_label("   syn", fontsize=11, offset=0.15)
+
+                tax.set_title('{}\n'.format(self.d_replicaSet[ii].d_name), fontsize=13)
+                tax.get_axes().axis('off')
+                tax.clear_matplotlib_ticks()
+                
+                fig.gca().set_aspect('equal')
                 group = self.d_replicaSet[0].d_replica[0].d_multiStateList[jj]
 
                 # SAVE AND CLEAR
-                plt.tight_layout()
-                plt.savefig('lambdaplots/{}_{:03d}-{}.png'.format(self.d_replicaSet[ii].d_name, group.d_resid, group.d_resname))
-                plt.clf(); plt.close()
+                # fig.tight_layout()
+                tax.savefig('lambdaplots/{}_{:03d}-{}.png'.format(self.d_replicaSet[ii].d_name, group.d_resid, group.d_resname))
 
     def doFinalPlots(self):
         os.chdir('lambdaplots')
