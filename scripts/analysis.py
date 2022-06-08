@@ -214,10 +214,10 @@ class GLICSims:
                 plt.fill_between(bins[1:], A, B, alpha=0.4, color='#1f77b4')
 
                 # MAKE PLOT MORE NICE
-                plt.text(x = 1, y = 12.2, s='Proto\n$q = 0$', ha='center', fontsize=12)
-                plt.text(x = 0, y = 12.1, s='Deproto\n$q = -1$', ha='center', fontsize=12)
+                plt.text(x = 1, y = 17.7, s='Proto\n$q = 0$', ha='center', fontsize=12)
+                plt.text(x = 0, y = 17.6, s='Deproto\n$q = -1$', ha='center', fontsize=12)
                 plt.title(self.d_replicaSet[ii].d_name, fontsize=18)
-                plt.axis([-0.1, 1.1, -0.1, 12])
+                plt.axis([-0.1, 1.1, -0.1, 17.5])
                 plt.xlabel(r"$\lambda$-coordinate")
                 plt.xticks(ticks=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0], labels=[1.0, 0.8, 0.6, 0.4, 0.2, 0.0]) # because we mirror in vertical x=0.5 axis
                 plt.grid()
@@ -238,11 +238,76 @@ class GLICSims:
                 plt.savefig('lambdaplots/{}_{:03d}-{}.png'.format(self.d_replicaSet[ii].d_name, group.d_resid, group.d_resname))
                 plt.clf(); plt.close()
 
-    def convergence(self, window):
+    def convergence(self):
         totalResidues = len(self.d_replicaSet[0].d_replica[0].d_twoStateList)
         chains = 5
         residuesPerChain = int(totalResidues / chains)
         
+        # Outer most loop is over the ReplicaSets (4HFI_4, 4HFI_7, etc.):
+        for ii in range(0, len(self.d_replicaSet)):
+            # Second loop is over the titratable residues:
+            for jj in range(0, residuesPerChain):
+                # Set valuelist to zero.
+                valuesList = []
+                # Third loop is over the four replicas:
+                for kk in range(0, len(self.d_replicaSet)): # 4 replicas...
+                    # And fourth loop is over the five chains:
+                    for ll in range(0, chains): # ...x5 chains = 20 samples
+                        # GET THE DATA
+                        t = self.d_replicaSet[ii].d_replica[kk].d_twoStateList[jj + residuesPerChain * ll].d_t
+                        x = self.d_replicaSet[ii].d_replica[kk].d_twoStateList[jj + residuesPerChain * ll].d_x
+                        x = [1.0 - val for val in x] # Mirror in vertical x=0.5 axis
+                        valuesList.append(x)
+
+                # COMPUTE MEAN AND STANDARD ERROR
+                meanList  = []
+                errorList = []
+
+                for kk in range(0, len(x)): # 200
+
+                    # Create list of 20 values
+                    temp = [0] * len(valuesList) # 4*5=20
+                    for ll in range(0, len(valuesList)): # 4*5=20
+                        temp[ll]  = valuesList[ll][kk]
+
+                    meanList.append(np.mean(temp))
+                    errorList.append(np.std(temp))
+
+                # PLOT MEAN AND SHADED REGION (ERROR)
+                A = []; B = []
+                for kk in range(0, len(meanList)):
+                    A.append(meanList[kk] + errorList[kk])
+                    B.append(meanList[kk] - errorList[kk])
+
+                t = [val * 0.001 for val in t]
+
+                plt.figure(figsize=(8, 6))
+                plt.plot(t, meanList)
+                plt.fill_between(t, A, B, alpha=0.4, color='#1f77b4')
+
+                # # PLOT
+                # a, b = self.movingDeprotonation(t, x, window)
+                # plt.plot(a, b)
+
+                # MAKE PLOT MORE NICE
+                plt.title(self.d_replicaSet[ii].d_name, fontsize=18)
+                plt.ylim(-0.1, 1.1)
+                plt.xlabel("Time (ns)")
+                plt.ylabel("Protonation")
+                plt.grid()
+
+                group = self.d_replicaSet[0].d_replica[0].d_twoStateList[jj]
+
+                # SAVE AND CLEAR
+                plt.tight_layout()
+                plt.savefig('lambdaplots/{}_{:03d}-{}_conv.png'.format(self.d_replicaSet[ii].d_name, group.d_resid, group.d_resname))
+                plt.clf(); plt.close()
+
+    def convergence_old(self, window):
+        totalResidues = len(self.d_replicaSet[0].d_replica[0].d_twoStateList)
+        chains = 5
+        residuesPerChain = int(totalResidues / chains)
+
         # Outer most loop is over the ReplicaSets (4HFI_4, 4HFI_7, etc.):
         for ii in range(0, len(self.d_replicaSet)):
             # Second loop is over the titratable residues:
@@ -332,7 +397,7 @@ class GLICSims:
 
                 # MAKE PLOT MORE NICE
                 plt.title(self.d_replicaSet[ii].d_name, fontsize=18)
-                plt.axis([-0.1, 1.1, -0.1, 12])
+                plt.axis([-0.1, 1.1, -0.1, 17.5])
                 plt.xlabel(r"$\lambda$-coordinate")
                 plt.xticks(ticks=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0], labels=[1.0, 0.8, 0.6, 0.4, 0.2, 0.0]) # because we mirror in vertical x=0.5 axis
                 plt.grid()
@@ -403,8 +468,9 @@ class GLICSims:
                 # SAVE, TRIM, AND RESIZE
                 fname = 'lambdaplots/heat_{}_{:03d}-{}.png'.format(self.d_replicaSet[ii].d_name, group.d_resid, group.d_resname)
                 tax.savefig(fname)
-                os.system('convert {} -trim {}'.format(fname, fname))
-                os.system('convert {} -resize 74% {}'.format(fname, fname))
+                os.system('convert {} -trim {}'.format(fname, fname)) # trim all whitespace
+                os.system('convert -bordercolor white -border 6 {} {}'.format(fname, fname)) # add 6 pixels back on all sides
+                os.system('convert {} -resize 73% {}'.format(fname, fname)) # resize so it fits with other HSPT histograms
 
     def doFinalPlots(self):
         os.chdir('lambdaplots')
