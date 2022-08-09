@@ -315,6 +315,7 @@ class GLICSims:
                 # Third loop is over the four replicas:
                 for kk in range(0, len(self.d_replicaSet[ii].d_replica)): # 4 replicas...
                     # And fourth loop is over the five chains:
+                    chainName = ['A', 'B', 'C', 'D', 'E']
                     for ll in range(0, chains): # ...x5 chains = 20 samples
 
                         # GET THE DATA
@@ -324,15 +325,16 @@ class GLICSims:
 
                         # PLOT
                         a, b = self.movingDeprotonation(t, x, window)
-                        plt.plot(a, b)
+                        a = [val * 0.001 for val in a]
+                        plt.plot(a, b, label=chainName[ll])
 
                 # MAKE PLOT MORE NICE
                 plt.title(self.d_replicaSet[ii].d_name, fontsize=18)
                 plt.ylim(-0.1, 1.1)
-                plt.xlabel("Time (ps)")
+                plt.xlabel("Time (ns)")
                 plt.ylabel("Protonation running average")
-                plt.ticklabel_format(axis='x', style='sci', scilimits=(0, 3))
                 plt.grid()
+                # plt.legend()
 
                 group = self.d_replicaSet[0].d_replica[0].d_twoStateList[jj]
 
@@ -424,7 +426,7 @@ class GLICSims:
                 # Third loop is over the three lambda groups:
                 for kk in [0, 1]:
                     # Fourth loop is over the four replicas:
-                    for ll in range(0, len(self.d_replicaSet)): # 4 replicas...
+                    for ll in range(0, len(self.d_replicaSet[ii].d_replica)): # 4 replicas...
                         # And fifth loop is over the five chains:
                         for mm in range(0, chains): # ...x5 chains = 20 samples
                             # GET THE DATA
