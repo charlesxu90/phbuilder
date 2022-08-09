@@ -177,7 +177,7 @@ class GLICSims:
                 # Set valuesList to zero:
                 valuesList = []
                 # Third loop is over the four replicas:
-                for kk in range(0, len(self.d_replicaSet)): # 4 replicas...
+                for kk in range(0, len(self.d_replicaSet[ii].d_replica)): # 4 replicas...
                     # And fourth loop is over the five chains:
                     for ll in range(0, chains): # ...x5 chains = 20 samples
 
@@ -313,7 +313,7 @@ class GLICSims:
             # Second loop is over the titratable residues:
             for jj in range(0, residuesPerChain):
                 # Third loop is over the four replicas:
-                for kk in range(0, len(self.d_replicaSet)): # 4 replicas...
+                for kk in range(0, len(self.d_replicaSet[ii].d_replica)): # 4 replicas...
                     # And fourth loop is over the five chains:
                     for ll in range(0, chains): # ...x5 chains = 20 samples
 
@@ -357,7 +357,7 @@ class GLICSims:
                     # Set valuesList to zero.
                     valuesList = []
                     # Fourth loop is over the four replicas:
-                    for ll in range(0, len(self.d_replicaSet)): # 4 replicas...
+                    for ll in range(0, len(self.d_replicaSet[ii].d_replica)): # 4 replicas...
                         # And fifth loop is over the five chains:
                         for mm in range(0, chains): # ...x5 chains = 20 samples
 
