@@ -165,6 +165,17 @@ class GLICSims:
 
         return t, x
 
+    # FUNCTION FOR OBTAINING PROTONATION FRACTION
+    def protonation(self, xList, cutoff=0.8):
+        proto = 0
+        depro = 0
+        for val in xList:
+            if val > cutoff:
+                proto += 1
+            elif val < 1 - cutoff:
+                depro += 1
+        return proto / float(proto + depro)
+
     def histograms(self):
         totalResidues = len(self.d_replicaSet[0].d_replica[0].d_twoStateList)
         chains = 5
@@ -174,8 +185,9 @@ class GLICSims:
         for ii in range(0, len(self.d_replicaSet)):
             # Second loop is over the titratable residues:
             for jj in range(0, residuesPerChain):
-                # Set valuesList to zero:
+                # Set valuesList and protoFracList to zero:
                 valuesList = []
+                protoFracList = []
                 # Third loop is over the four replicas:
                 for kk in range(0, len(self.d_replicaSet[ii].d_replica)): # 4 replicas...
                     # And fourth loop is over the five chains:
@@ -184,6 +196,9 @@ class GLICSims:
                         # GET THE DATA
                         x = self.d_replicaSet[ii].d_replica[kk].d_twoStateList[jj + residuesPerChain * ll].d_x
                         x = [1.0 - val for val in x] # Mirror in vertical x=0.5 axis
+
+                        # GET PROTONATION FRACTION
+                        protoFracList.append(self.protonation(x))
 
                         # GET HISTOGRAM VALUES
                         values, bins = np.histogram(x, density=True, bins=200, range=(-0.1, 1.1))
@@ -223,6 +238,10 @@ class GLICSims:
                 plt.grid()
 
                 group = self.d_replicaSet[0].d_replica[0].d_twoStateList[jj]
+
+                # PRINT LIST OF PROTONATIONS TO TEXT FILE
+                with open('lambdaplots/{}_protonation.txt'.format(self.d_replicaSet[ii].d_name), 'a') as file:
+                    file.write('{:03d}-{} {:.2f}\n'.format(group.d_resid, group.d_resname, np.mean(protoFracList)))
 
                 # ADD EXPERIMENTAL DATA FOR PH=4 CASE
                 if float(self.d_replicaSet[ii].d_name[5:]) == 4.0:
