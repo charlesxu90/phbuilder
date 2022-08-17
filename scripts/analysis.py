@@ -176,7 +176,7 @@ class GLICSims:
                 depro += 1
         return proto / float(proto + depro)
 
-    def histograms(self):
+    def histograms(self, b):
         totalResidues = len(self.d_replicaSet[0].d_replica[0].d_twoStateList)
         chains = 5
         residuesPerChain = int(totalResidues / chains)
@@ -195,6 +195,7 @@ class GLICSims:
 
                         # GET THE DATA
                         x = self.d_replicaSet[ii].d_replica[kk].d_twoStateList[jj + residuesPerChain * ll].d_x
+                        x = x[b:] # Only analyse starting from the b=frame.
                         x = [1.0 - val for val in x] # Mirror in vertical x=0.5 axis
 
                         # GET PROTONATION FRACTION
@@ -362,7 +363,7 @@ class GLICSims:
                 plt.savefig('lambdaplots/{}_{:03d}-{}_conv.png'.format(self.d_replicaSet[ii].d_name, group.d_resid, group.d_resname))
                 plt.clf(); plt.close()
 
-    def histidine(self):
+    def histidine(self, b):
         totalResidues = len(self.d_replicaSet[0].d_replica[0].d_multiStateList)
         chains = 5
         residuesPerChain = int(totalResidues / chains)
@@ -384,6 +385,7 @@ class GLICSims:
 
                             # GET THE DATA
                             x = self.d_replicaSet[ii].d_replica[kk].d_multiStateList[jj + residuesPerChain * ll].d_x[kk]
+                            x = x[b:] # Only analyse starting from the b=frame.
                             x = [1.0 - val for val in x] # Mirror in vertical x=0.5 axis
 
                             # GET HISTOGRAM VALUES, BINS
@@ -431,7 +433,7 @@ class GLICSims:
                 plt.savefig('lambdaplots/{}_{:03d}-{}.png'.format(self.d_replicaSet[ii].d_name, group.d_resid, group.d_resname))
                 plt.clf(); plt.close()
 
-    def hisheatmap(self):
+    def hisheatmap(self, b):
         totalResidues = len(self.d_replicaSet[0].d_replica[0].d_multiStateList)
         chains = 5
         residuesPerChain = int(totalResidues / chains)
@@ -449,7 +451,9 @@ class GLICSims:
                         # And fifth loop is over the five chains:
                         for mm in range(0, chains): # ...x5 chains = 20 samples
                             # GET THE DATA
-                            lambdaList[kk] += self.d_replicaSet[ii].d_replica[kk].d_multiStateList[jj + residuesPerChain * ll].d_x[kk]
+                            x = self.d_replicaSet[ii].d_replica[kk].d_multiStateList[jj + residuesPerChain * ll].d_x[kk]
+                            x = x[b:] # Only analyse starting from the b=frame.
+                            lambdaList[kk] += x
 
                 # MAKE HISTOGRAM
                 Nbins = 11
@@ -462,7 +466,7 @@ class GLICSims:
                 elif len(lambda1) < len(lambda2):
                     lambda2 = lambda2[0:len(lambda1)]
 
-                H, b = np.histogramdd((lambda1, lambda2), bins=(Nbins, Nbins), range=((-0.1, 1.1), (-0.1, 1.1)), density=True)
+                H, _ = np.histogramdd((lambda1, lambda2), bins=(Nbins, Nbins), range=((-0.1, 1.1), (-0.1, 1.1)), density=True)
 
                 # code from Pavel I don't understand but is necessary
                 interp_dict = dict()
@@ -493,7 +497,7 @@ class GLICSims:
                 os.system('convert -bordercolor white -border 6 {} {}'.format(fname, fname)) # add 6 pixels back on all sides
                 os.system('convert {} -resize 73% {}'.format(fname, fname)) # resize so it fits with other HSPT histograms
 
-    def doFinalPlots(self):
+def doFinalPlots(self):
         os.chdir('lambdaplots')
         for res in ['127-HSPT', '235-HSPT', '277-HSPT']:
             # CREATE *OLD* FINAL HISTOGRAMS FOR HISTIDINE
