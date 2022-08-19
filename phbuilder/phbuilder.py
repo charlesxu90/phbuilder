@@ -813,7 +813,7 @@ class phbuilder(User):
 
         # Check if the correct number of ions and buffers are present in the output file.
 
-        self.update('\nChecking whether everything was succesful:\n'.format(self.d_output))
+        self.update('\nChecking whether everything was succesful:\n')
 
         # Update internal pdb record to phneutral.pdb
         pdb.read(self.d_output)
