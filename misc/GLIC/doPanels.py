@@ -1,31 +1,10 @@
 #!/bin/python3
 
-import os
 import matplotlib.pyplot as plt
 import numpy as np
-import subprocess
 
 import MDAnalysis
 import MDAnalysis.analysis.rms
-
-# Function to encapsulate GROMACS calls
-def gromacs(command, stdin=[]):
-    d_gmxbasepath = '/usr/local/gromacs_constantph'
-
-    # If we do not pass any envvars to subprocess (which happens by default) this will work.
-    path_to_gmx = os.path.normpath(d_gmxbasepath + '/' + 'bin/gmx')
-    command = "{} {}".format(path_to_gmx, command)
-
-    if stdin:
-        xstr = ' << EOF\n'
-        for val in stdin:
-            xstr += '{}\n'.format(val)
-        command += xstr + 'EOF'
-
-    process = subprocess.run(command, shell=True, env={})
-
-    if process.returncode != 0:
-        print("Failed to run \"{}\" (exitcode {}).".format(command, process.returncode))
 
 def loadxvg(fname, col=[0, 1], dt=1, b=0):
     """
