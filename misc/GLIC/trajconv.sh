@@ -4,7 +4,7 @@ do
     for rep in 01 02 03 04
     do
         cd $rep
-        echo 1 0 | gmx trjconv -f MD.xtc -o MD_conv.xtc -s MD.tpr -e 1000000 -dt 1000 -pbc mol -center
+        echo 1 | gmx trjconv -f MD.xtc -o MD_whole.xtc -s MD.tpr -e 1000000 -dt 1000 -pbc whole
         rm -f \#*\#
         cd ..
     done
