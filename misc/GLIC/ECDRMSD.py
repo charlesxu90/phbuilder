@@ -13,7 +13,7 @@ for sim in ['4HFI_4', '4HFI_7', '6ZGD_4', '6ZGD_7']:
         u = MDAnalysis.Universe(path1, path2)
 
         for seg in ['A', 'B', 'C', 'D', 'E']:
-            R = MDAnalysis.analysis.rms.RMSD(u, select='segid {} and backbone and resid 18-200'.format(seg))
+            R = MDAnalysis.analysis.rms.RMSD(u, select='segid {} and (name C CA N) and resid 18-200'.format(seg))
             R.run()
 
             t  = [val / 1000.0 for val in R.rmsd.T[1]]
@@ -32,9 +32,9 @@ for sim in ['4HFI_4', '4HFI_7', '6ZGD_4', '6ZGD_7']:
         plt.clf(); plt.close()
 
 # Make the final image and cleanup
-os.system('convert 4HFI_4_0*.png +append A.png')
-os.system('convert 4HFI_7_0*.png +append B.png')
-os.system('convert 6ZGD_4_0*.png +append C.png')
-os.system('convert 6ZGD_7_0*.png +append D.png')
+os.system('convert 4HFI_4_*.png +append A.png')
+os.system('convert 4HFI_7_*.png +append B.png')
+os.system('convert 6ZGD_4_*.png +append C.png')
+os.system('convert 6ZGD_7_*.png +append D.png')
 os.system('convert A.png B.png C.png D.png -append ECDRMSD.png')
 os.system('rm -f A.png B.png C.png D.png 4HFI_*.png 6ZGD_*.png')
