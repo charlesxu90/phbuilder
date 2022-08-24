@@ -1,7 +1,6 @@
 #!/bin/python3
 
 import matplotlib.pyplot as plt
-import numpy as np
 import MDAnalysis
 import MDAnalysis.analysis.rms
 import os, subprocess
@@ -127,13 +126,13 @@ def chargePlot(sim, rep, res):
         x    = [1.0 - val for val in data[1]] # deprotonation -> protonation
         store.append(x)
 
-        plt.plot(t, x, linewidth=0.5, label=chain[idx])
+        plt.plot(t, x, linewidth=1, label=chain[idx])
 
     # PLOT MEAN PROTONATION
-    average = [0] * len(store[0])
-    for idx in range(0, len(store[0])):
-        average[idx] = store[0] + store[1] + store[2] + store[3] + store[4]
-    plt.plot(t, x, linewidth=1.5, label='mean', color='b', linestyle=':')
+    # average = [0] * len(store[0])
+    # for idx in range(0, len(store[0])):
+    #     average[idx] = store[0] + store[1] + store[2] + store[3] + store[4]
+    # plt.plot(t, x, linewidth=1.5, label='mean', color='b', linestyle=':')
 
     plt.ylabel('Protonation')
     plt.xlabel('Time (ns)')
@@ -175,6 +174,7 @@ def RMSDPlot(sim, rep, sel):
     plt.xlabel("time (ns)")
     plt.ylabel(r"RMSD ($\AA$)")
     plt.xlim(0, 1000)
+    plt.ylim(0, 5)
     plt.title('{} RMSD segment {}'.format(sim, sel))
     plt.legend()
     plt.tight_layout()
@@ -214,7 +214,7 @@ def mindistPlot(sim, rep, resid1, resid2, chain1, chain2, name):
         data = loadxvg('mindist.xvg')
         t = [val / 1000.0 for val in data[0]]
         x = data[1]
-        plt.plot(t, x, linewidth=1, label=chain)
+        plt.plot(t, x, linewidth=0.5, label=chain)
 
     os.system('rm -f mindist.ndx \\#*\\#')
     os.chdir('../..')
@@ -248,7 +248,7 @@ def mindistIonsPlot(sim, rep, resid, name):
     gromacs('make_ndx -f CA.pdb -o mindist.ndx', stdin=stdin)
 
     for chain in ['A', 'B', 'C', 'D', 'E']:
-        gromacs('mindist -s MD.tpr -f MD_conv.xtc -n mindist.ndx', stdin=['r_{}_&_ch{}'.format(resid, chain), 18]) # 18 is NA
+        gromacs('mindist -s MD.tpr -f MD_conv.xtc -n mindist.ndx -dt 10', stdin=['r_{}_&_ch{}'.format(resid, chain), 18]) # 18 is NA
 
         data = loadxvg('mindist.xvg')
         t = [val / 1000.0 for val in data[0]]
@@ -260,6 +260,7 @@ def mindistIonsPlot(sim, rep, resid, name):
 
     plt.xlabel("time (ns)")
     plt.xlim(0, 1000)
+    plt.ylim(0, 5)
     plt.ylabel("Minimum distance (nm)")
     plt.title('{} mindist {}'.format(sim, name))
     plt.legend()
@@ -267,33 +268,33 @@ def mindistIonsPlot(sim, rep, resid, name):
     plt.savefig('panels/mindst_{}_{}.png'.format(sim, name))
     plt.clf(); plt.close()
 
-for sim in ['4HFI_4']:
+for sim in ['4HFI_4', '4HFI_7', '6ZGD_4', '6ZGD_7']:
     rep = 1
 
     # ECD
 
-    chargePlot(sim, rep, 'E26')
-    chargePlot(sim, rep, 'E104')
-    chargePlot(sim, rep, 'E177')
-    chargePlot(sim, rep, 'D178')
-    chargePlot(sim, rep, 'E181')
-    RMSDPlot(sim, rep, '172-185') # loopC
+    # chargePlot(sim, rep, 'E26')
+    # chargePlot(sim, rep, 'E104')
+    # chargePlot(sim, rep, 'E177')
+    # chargePlot(sim, rep, 'D178')
+    # chargePlot(sim, rep, 'E181')
+    # RMSDPlot(sim, rep, '172-185') # loopC
 
     # ECD-TMD
 
     # chargePlot(sim, rep, 'E26')
-    chargePlot(sim, rep, 'E35')
-    chargePlot(sim, rep, 'D122')
-    chargePlot(sim, rep, 'E243')
-    RMSDPlot(sim, rep, '32-35') # b1-b2 loop
-    mindistIonsPlot(sim, rep, '35', name='E35-Na+')
-    mindistPlot(sim, rep,  35, 158, ['A','B','C','D','E'], ['E','A','B','C','D'], name='E35-T158')
-    mindistPlot(sim, rep, 243, 248, ['A','B','C','D','E'], ['A','B','C','D','E'], name='E243-K248')
+    # chargePlot(sim, rep, 'E35')
+    # chargePlot(sim, rep, 'D122')
+    # chargePlot(sim, rep, 'E243')
+    # RMSDPlot(sim, rep, '32-35') # b1-b2 loop
+    # mindistIonsPlot(sim, rep, '35', name='E35-Na+')
+    # mindistPlot(sim, rep,  35, 158, ['A','B','C','D','E'], ['E','A','B','C','D'], name='E35-T158')
+    # mindistPlot(sim, rep, 243, 248, ['A','B','C','D','E'], ['A','B','C','D','E'], name='E243-K248')
 
     # TMD
 
     # chargePlot(sim, rep, 'E243')
-    chargePlot(sim, rep, 'H235')
-    chargePlot(sim, rep, 'E222')
-    RMSDPlot(sim, rep, '220-245') # M2
+    # chargePlot(sim, rep, 'H235')
+    # chargePlot(sim, rep, 'E222')
+    # RMSDPlot(sim, rep, '220-245') # M2
     RMSDPlot(sim, rep, '246-252') # M2-M3 loop
