@@ -9,11 +9,11 @@ for sim in ['4HFI_4', '4HFI_7', '6ZGD_4', '6ZGD_7']:
     for rep in [1, 2, 3, 4]:
 
         path1 = '{}/{:02d}/CA.pdb'.format(sim, rep)
-        path2 = '{}/{:02d}/MD_whole.xtc'.format(sim, rep)
+        path2 = '{}/{:02d}/MD_conv.xtc'.format(sim, rep)
         u = MDAnalysis.Universe(path1, path2)
 
         for seg in ['A', 'B', 'C', 'D', 'E']:
-            R = MDAnalysis.analysis.rms.RMSD(u, select='segid {} and (name C CA N) and resid 18-200'.format(seg))
+            R = MDAnalysis.analysis.rms.RMSD(u, select='segid {} and resid 18-200'.format(seg))
             R.run()
 
             t  = [val / 1000.0 for val in R.rmsd.T[1]]
