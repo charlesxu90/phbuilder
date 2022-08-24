@@ -181,13 +181,13 @@ def RMSDPlot(sim, rep, sel):
     plt.savefig('panels/rmsd_{}_{}.png'.format(sim, sel))
     plt.clf(); plt.close()
 
-def mindistPlot(sim, rep, sel1, sel2, chain1, chain2, name):
+def mindistPlot(sim, rep, resid1, resid2, chain1, chain2, name):
     """
     Creates mindists plots between sel1 and sel2. Uses MD_conv.xtc.
     sim: the simulation, e.g. '4HFI_4'
     rep: the replica, e.g. 1
-    sel1: selection1, e.g. 'resid 35'
-    sel2: selection2, e.g. 'resid 158'
+    resid1: residue 1, e.g. 35
+    resid1: residue 2, e.g. 158
     chain1: chains to match e.g. ['A', 'B', 'C', 'D', 'E']
     chain2: chains to match e.g. ['E', 'A', 'B', 'C', 'D']
     name: file/title name, e.g. 'E35-T158'
@@ -196,32 +196,33 @@ def mindistPlot(sim, rep, sel1, sel2, chain1, chain2, name):
     if len(chain1) != len(chain2):
         raise Exception('chain1 and chain2 must be same length')
 
-    path1 = '{}/{:02d}/CA.pdb'.format(sim, rep)
-    path2 = '{}/{:02d}/MD_conv.xtc'.format(sim, rep)
-    u = MDAnalysis.Universe(path1, path2)
+    os.chdir('{}/{:02d}'.format(sim, rep))
+
+    stdin = ['q']
+    for chain in ['A', 'B', 'C', 'D', 'E'][::-1]:
+        stdin.insert(0, 'r {} & chain {}'.format(resid1, chain))
+        stdin.insert(0, 'r {} & chain {}'.format(resid2, chain))
+
+    gromacs('make_ndx -f CA.pdb -o mindist.ndx', stdin=stdin)
 
     for idx in range(0, len(chain1)):
-        # print('segid {} and {}'.format(chain1[idx], sel1)) # debug
-        # print('segid {} and {}'.format(chain2[idx], sel2)) # debug
+        sel1 = 'r_{}_&_ch{}'.format(resid1, chain1[idx])
+        sel2 = 'r_{}_&_ch{}'.format(resid2, chain2[idx])
 
-        selA = u.select_atoms('segid {} and {}'.format(chain1[idx], sel1))
-        selB = u.select_atoms('segid {} and {}'.format(chain2[idx], sel2))
+        gromacs('mindist -s MD.tpr -f MD_conv.xtc -n mindist.ndx -dt 10', stdin=[sel1, sel2])
 
-        t = []; d = []
-        for _ in u.trajectory: # [::100]
-            com1 = selA.center_of_mass()
-            com2 = selB.center_of_mass()
+        data = loadxvg('mindist.xvg')
+        t = [val / 1000.0 for val in data[0]]
+        x = data[1]
+        plt.plot(t, x, linewidth=1, label=chain)
 
-            t.append(u.trajectory.time)
-            d.append(np.linalg.norm(com1 - com2))
-
-        t = [val / 1000.0 for val in t] # ps -> ns
-
-        plt.plot(t, d, linewidth=0.5, label='{}-{}'.format(chain1[idx], chain2[idx]))
+    os.system('rm -f mindist.ndx \\#*\\#')
+    os.chdir('../..')
 
     plt.xlabel("time (ns)")
     plt.xlim(0, 1000)
-    plt.ylabel(r"Minimum distance ($\AA$)")
+    plt.ylim(0, 1)
+    plt.ylabel("Minimum distance (nm)")
     plt.title('{} mindist {}'.format(sim, name))
     plt.legend()
     plt.tight_layout()
@@ -244,22 +245,22 @@ def mindistIonsPlot(sim, rep, resid, name):
     for chain in ['A', 'B', 'C', 'D', 'E']:
         stdin.insert(0, 'r {} & chain {}'.format(resid, chain))
 
-    gromacs('make_ndx -f CA.pdb -o rmsd.ndx', stdin=stdin)
+    gromacs('make_ndx -f CA.pdb -o mindist.ndx', stdin=stdin)
 
     for chain in ['A', 'B', 'C', 'D', 'E']:
-        gromacs('mindist -s MD.tpr -f MD_conv.xtc -n rmsd.ndx', stdin=['r_{}_&_ch{}'.format(resid, chain), 18]) # 18 is NA
+        gromacs('mindist -s MD.tpr -f MD_conv.xtc -n mindist.ndx', stdin=['r_{}_&_ch{}'.format(resid, chain), 18]) # 18 is NA
 
         data = loadxvg('mindist.xvg')
         t = [val / 1000.0 for val in data[0]]
         x = data[1]
         plt.plot(t, x, linewidth=0.5, label=chain)
 
-    os.system('rm -f rmsd.ndx \\#*\\#')
+    os.system('rm -f mindist.ndx \\#*\\#')
     os.chdir('../..')
 
     plt.xlabel("time (ns)")
     plt.xlim(0, 1000)
-    plt.ylabel(r"Minimum distance (nm)")
+    plt.ylabel("Minimum distance (nm)")
     plt.title('{} mindist {}'.format(sim, name))
     plt.legend()
     plt.tight_layout()
@@ -271,28 +272,28 @@ for sim in ['4HFI_4']:
 
     # ECD
 
-    # chargePlot(sim, rep, 'E26')
-    # chargePlot(sim, rep, 'E104')
-    # chargePlot(sim, rep, 'E177')
-    # chargePlot(sim, rep, 'D178')
-    # chargePlot(sim, rep, 'E181')
-    # RMSDPlot(sim, rep, '172-185') # loopC
+    chargePlot(sim, rep, 'E26')
+    chargePlot(sim, rep, 'E104')
+    chargePlot(sim, rep, 'E177')
+    chargePlot(sim, rep, 'D178')
+    chargePlot(sim, rep, 'E181')
+    RMSDPlot(sim, rep, '172-185') # loopC
 
     # ECD-TMD
 
     # chargePlot(sim, rep, 'E26')
-    # chargePlot(sim, rep, 'E35')
-    # chargePlot(sim, rep, 'D122')
-    # chargePlot(sim, rep, 'E243')
-    # RMSDPlot(sim, rep, '32-35') # b1-b2 loop
-    # mindistIonsPlot(sim, rep, '35', name='E35-Na+')
-    mindistPlot(sim, rep, 'resid 35', 'resid 158', ['A','B','C','D','E'], ['E','A','B','C','D'], name='E35-T158')
-    mindistPlot(sim, rep, 'resid 243', 'resid 248', ['A','B','C','D','E'], ['A','B','C','D','E'], name='E243-K248')
+    chargePlot(sim, rep, 'E35')
+    chargePlot(sim, rep, 'D122')
+    chargePlot(sim, rep, 'E243')
+    RMSDPlot(sim, rep, '32-35') # b1-b2 loop
+    mindistIonsPlot(sim, rep, '35', name='E35-Na+')
+    mindistPlot(sim, rep,  35, 158, ['A','B','C','D','E'], ['E','A','B','C','D'], name='E35-T158')
+    mindistPlot(sim, rep, 243, 248, ['A','B','C','D','E'], ['A','B','C','D','E'], name='E243-K248')
 
     # TMD
 
     # chargePlot(sim, rep, 'E243')
-    # chargePlot(sim, rep, 'H235')
-    # chargePlot(sim, rep, 'E222')
-    # RMSDPlot(sim, rep, '220-245') # M2
-    # RMSDPlot(sim, rep, '246-252') # M2-M3 loop
+    chargePlot(sim, rep, 'H235')
+    chargePlot(sim, rep, 'E222')
+    RMSDPlot(sim, rep, '220-245') # M2
+    RMSDPlot(sim, rep, '246-252') # M2-M3 loop
