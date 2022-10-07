@@ -8,7 +8,9 @@ import os, subprocess
 # MDANALYSIS DOES NOT KNOW WHAT THE BACKBONE OF ASPT GLUT HSPT ARE!!!!!
 
 def gromacs(command, stdin=[]):
-    d_gmxbasepath = '/usr/local/gromacs_constantph'
+    '''Handles GROMACS calls. Any user input may be provided as a stdin list.'''
+
+    d_gmxbasepath = '/usr/local/gromacs_constantph' # hardcoded.
 
     # If we do not pass any envvars to subprocess (which happens by default) this will work.
     path_to_gmx = os.path.normpath(d_gmxbasepath + '/' + 'bin/gmx')
@@ -51,30 +53,6 @@ def loadxvg(fname, col=[0, 1], dt=1, b=0):
         for idx in col:
             data[idx].append(float(listLine[col[idx]]))
     return data
-
-def inputOptionHandler(message, options):
-    """
-    Function for handling user input.
-    message: the string you would like to prompt the user.
-    options: a list of strings containing the options.
-    """
-
-    valids = []
-    msgstring = "{}:".format(message)
-
-    for idx in range(0, len(options)):
-        msgstring += "\n{}. {}".format(idx, options[idx])
-        valids.append(str(idx))
-        
-    while True:
-        print(msgstring)
-        val = input("Type a number: ")
-
-        if val in valids:
-            print()
-            return int(val)
-
-        print("{} is not a valid option, please try again:\n".format(val))
 
 def getLambdaFileIndices(structure, resid):
     """
@@ -127,15 +105,16 @@ class PanelBuilder:
     target: <int> the target resid e.g. 35
     resids: <list> the contacts you'd like to check, e.g. [158c, 'NA']
     rmsd: <string> optional, e.g. 'resid 15 to 22'
-    test: <bool> is this a test run? (faster)
+    test: <bool> is this a test run? (will run faster)
     """
 
     def __init__(self, target, resids, rmsd='', test=False):
-        self.target   = target
-        self.resids   = resids
-        self.rmsd     = rmsd
-        self.test     = test
+        self.target   = target  # the main residue of interest
+        self.resids   = resids  # the contact targets u want to know about
+        self.rmsd     = rmsd    # MDAnalysis style selection string for rmsd
+        self.test     = test    # bool for if this is a test
 
+        # Currently hardcoded that we only use replica 1.
         if self.test:
             self.sims = ['4HFI_4']
             self.reps = [1]
@@ -149,7 +128,7 @@ class PanelBuilder:
                 # CREATE THE CHARGE PLOTS
                 if notExists("proto_{}_{}.png".format(sim, self.target)):
                     self.chargePlot(sim, rep)
-                
+
                 # CREATE THE MINIMUM DISTANCE PLOTS
                 for resid in self.resids:
                     if notExists('mindist_{}_{}-{}.png'.format(sim, self.target, resid)):
@@ -167,7 +146,7 @@ class PanelBuilder:
 
     def chargePlot(self, sim, rep):
         """
-        Make the charge plot in time for residue. Does not work for histidines.
+        Make the charge plot in time for residue. Does not currently work for histidines.
         sim: the simulation, e.g. '4HFI_4'
         rep: the replica, e.g. 1
         res: the residue, e.g. 35
@@ -203,7 +182,7 @@ class PanelBuilder:
 
     def mindistPlot(self, sim, rep, resid):
         """
-        Currently a wrapper for GROMACS mindist. Makes the minimum distance plots in time. Uses MD_conv.xtc.
+        Wrapper for GROMACS mindist. Makes the minimum distance plots in time. Uses MD_conv.xtc.
         sim: the simulation, e.g. '4HFI_4'
         rep: the replica, e.g. 1
         resid: the residue it makes contacts with, e.g. 158c
@@ -213,7 +192,7 @@ class PanelBuilder:
         # Go to the simulation directory
         os.chdir('{}/{:02d}'.format(sim, rep))
 
-        # Process the principal vs complementary identifier.
+        # Process ions / the principal vs complementary identifier.
         # Note: 158c gives the correct distances using these lists, and 158 is 
         # in fact complementary to 35 so these chain2 orders are correct.
         # Also, we need to make an exception for NA, CL, as shown below.
@@ -251,9 +230,9 @@ class PanelBuilder:
                 sel2 = 'r_{}_&_ch{}'.format(temp, chain2[idx])
 
             if self.test:
-                # Speed things up significantly if this is just a test run.
+                # Speed things up if this is just a test run.
                 gromacs('mindist -s MD.tpr -f MD_conv.xtc -n mindist.ndx -dt 10000', stdin=[sel1, sel2])
-            else:
+            else: # Normal case.
                 gromacs('mindist -s MD.tpr -f MD_conv.xtc -n mindist.ndx -dt 10', stdin=[sel1, sel2])
 
             data = loadxvg('mindist.xvg')
@@ -266,8 +245,8 @@ class PanelBuilder:
 
         plt.xlabel("time (ns)")
         plt.xlim(0, 1000)
-        if temp in ['NA', 'CL']:
-            plt.ylim(0, 2)          # Use 2 nm for ions and 1 nm for rest.
+        if temp in ['NA', 'CL']: # Use 2 nm for ions and 1 nm for rest.
+            plt.ylim(0, 2)
         else:
             plt.ylim(0, 1)
         plt.ylabel("Minimum distance (nm)")
