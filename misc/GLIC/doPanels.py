@@ -7,7 +7,6 @@ import os, subprocess
 
 # MDANALYSIS DOES NOT KNOW WHAT THE BACKBONE OF ASPT GLUT HSPT ARE!!!!!
 
-# Function to encapsulate GROMACS calls
 def gromacs(command, stdin=[]):
     d_gmxbasepath = '/usr/local/gromacs_constantph'
 
@@ -77,47 +76,49 @@ def inputOptionHandler(message, options):
 
         print("{} is not a valid option, please try again:\n".format(val))
 
-def getLambdaFileIndices(structure, residue):
+def getLambdaFileIndices(structure, resid):
     """
     Returns an array containing the lambda-file indices for the specified residue.
-    Example: MD.pdb, residue: E35
+    Example: MD.pdb, residue: 35
     """
 
-    u     = MDAnalysis.Universe(structure).segments[0].atoms
-    array = []
-
-    for res in u.select_atoms('resname ASPT GLUT HSPT').residues:
-
-        resname = str(res.resname)
-        for idx in range(0, 3):
-            if resname == ['ASPT','GLUT','HSPT'][idx]:
-                resname = ['D','E','H'][idx]
-                break
-
-        array.append(resname + str(res.resid))
-
-    count  = 1
-    factor = len(u.select_atoms('resname ASPT GLUT').residues) + 3 * len(u.select_atoms('resname HSPT').residues)
+    u                  = MDAnalysis.Universe(structure)
+    numChains          = len(u.segments) - 1
+    segmentAatoms      = u.segments[0].atoms
+    titratableAtoms    = segmentAatoms .select_atoms('resname ASPT GLUT HSPT')
+    titratableResnames = list(titratableAtoms.residues.resnames)
+    titratableResids   = list(titratableAtoms.residues.resids)
+    targetid           = 1 + titratableResids.index(resid)
     
-    for idx in range(0, len(array)):
-        if array[idx] == residue:
-            return [count, count+factor, count+factor*2, count+factor*3, count+factor*4]
-        
-        if array[idx][0] in ['D','E']:
+    numASPTGLUT        = len(segmentAatoms.select_atoms('resname ASPT GLUT').residues)
+    numHSPT            = len(segmentAatoms.select_atoms('resname HSPT').residues)
+    factor             = numASPTGLUT + 3 * numHSPT
+
+    count = 1
+    for idx in range(0, len(titratableResnames)):
+
+        if idx + 1 == targetid:
+            array = []
+            for ii in range(0, numChains):
+                array.append(count + ii * factor)
+            return array
+
+        if titratableResnames[idx] in ['ASPT', 'GLUT']:
             count += 1
-        elif array[idx][0] == 'H':
+
+        elif titratableResnames[idx] == 'HSPT':
             count += 3
 
-def chargePlot(sim, rep, res):
+def chargePlot(sim, rep, resid):
     """
     Make the charge plot in time for residue. Does not work for histidines.
     sim: the simulation, e.g. '4HFI_4'
     rep: the replica, e.g. 1
-    res: the residue, e.g. 'E35'
+    res: the residue, e.g. 35
     """
 
     chain = ['A', 'B', 'C', 'D', 'E']
-    array = getLambdaFileIndices('{}/{:02d}/CA.pdb'.format(sim, rep), res)
+    array = getLambdaFileIndices('{}/{:02d}/CA.pdb'.format(sim, rep), resid)
 
     store = []
     for idx in range(0, len(array)):
@@ -137,10 +138,10 @@ def chargePlot(sim, rep, res):
     plt.ylabel('Protonation')
     plt.xlabel('Time (ns)')
     plt.axis([0, 1000, -0.1, 1.1])
-    plt.title('{} protonation {}'.format(sim, res))
+    plt.title('{} protonation {}'.format(sim, resid))
     plt.legend()
     plt.tight_layout()
-    plt.savefig('panels/proto_{}_{}.png'.format(sim, res))
+    plt.savefig('panels/proto_{}_{}.png'.format(sim, resid))
     plt.clf(); plt.close()
 
 def RMSDPlot(sim, rep, sel):
@@ -158,14 +159,14 @@ def RMSDPlot(sim, rep, sel):
     # INDIVIDUAL CHAINS
     chain = ['A', 'B', 'C', 'D', 'E']
     for idx in range(0, len(chain)):
-        R = MDAnalysis.analysis.rms.RMSD(u, select='segid {} and resid {}'.format(chain[idx], sel))
+        R = MDAnalysis.analysis.rms.RMSD(u, select='segid {} and {}'.format(chain[idx], sel))
         R.run(step=2)
         t  = [val / 1000.0 for val in R.rmsd.T[1]]
         x1 = R.rmsd.T[2]
         plt.plot(t, x1, linewidth=0.5, label=chain[idx])
 
     # ALL CHAINS
-    R = MDAnalysis.analysis.rms.RMSD(u, select='(segid A B C D E) and resid {}'.format(sel))
+    R = MDAnalysis.analysis.rms.RMSD(u, select='(segid A B C D E) and {}'.format(sel))
     R.run(step=2)
     t  = [val / 1000.0 for val in R.rmsd.T[1]]
     x1 = R.rmsd.T[2]
@@ -214,7 +215,7 @@ def mindistPlot(sim, rep, resid1, resid2, chain1, chain2, name):
         data = loadxvg('mindist.xvg')
         t = [val / 1000.0 for val in data[0]]
         x = data[1]
-        plt.plot(t, x, linewidth=0.5, label=chain)
+        plt.plot(t, x, linewidth=0.5, label='{}-{}'.format(chain1[idx], chain2[idx]))
 
     os.system('rm -f mindist.ndx \\#*\\#')
     os.chdir('../..')
@@ -229,7 +230,7 @@ def mindistPlot(sim, rep, resid1, resid2, chain1, chain2, name):
     plt.savefig('panels/mindst_{}_{}.png'.format(sim, name))
     plt.clf(); plt.close()
 
-def mindistIonsPlot(sim, rep, resid, name):
+def mindistIonsPlot(sim, rep, resid, ion, name):
     """
     Creates mindists plots between sel1 and sel2. Uses MD_conv.xtc.
     sim: the simulation, e.g. '4HFI_4'
@@ -248,7 +249,12 @@ def mindistIonsPlot(sim, rep, resid, name):
     gromacs('make_ndx -f CA.pdb -o mindist.ndx', stdin=stdin)
 
     for chain in ['A', 'B', 'C', 'D', 'E']:
-        gromacs('mindist -s MD.tpr -f MD_conv.xtc -n mindist.ndx -dt 10', stdin=['r_{}_&_ch{}'.format(resid, chain), 18]) # 18 is NA
+        if ion == 'NA':
+            ndx = 18 # 18 is NA
+        elif ion == 'CL':
+            ndx = 19 # 19 is CL
+
+        gromacs('mindist -s MD.tpr -f MD_conv.xtc -n mindist.ndx -dt 10', stdin=['r_{}_&_ch{}'.format(resid, chain), ndx])
 
         data = loadxvg('mindist.xvg')
         t = [val / 1000.0 for val in data[0]]
@@ -268,8 +274,72 @@ def mindistIonsPlot(sim, rep, resid, name):
     plt.savefig('panels/mindst_{}_{}.png'.format(sim, name))
     plt.clf(); plt.close()
 
-for sim in ['4HFI_4', '4HFI_7', '6ZGD_4', '6ZGD_7']:
-    rep = 1
+def notExists(fname):
+    """Returns True if the file 'panels/fname' does not yet exist."""
+    path = "panels/{}".format(fname)
+    
+    if os.path.exists(path):
+        print('{} already exists, not creating it again...'.format(path))
+        return False
+    
+    return True
+
+def doPanel(target, resids, rmsd=[], test=False):
+    """
+    Combines multiple functions and tries to create the entire panel at once.
+    target: <int> the target resid e.g. 35
+    resids: <list> the contacts e.g. [158, 'NA']
+    rmsd: <string> optional, e.g. 'resid 15 to 22'
+    test: <bool> is this a test run (faster)?
+    """
+
+    for sim in ['4HFI_4']:
+    # for sim in ['4HFI_4', '4HFI_7', '6ZGD_4', '6ZGD_7']:
+        rep = 1
+    
+        # CREATE THE CHARGE PLOTS
+        if notExists("proto_{}_{}.png".format(sim, target)):
+            chargePlot(sim, rep, target)
+
+doPanel(243, [1])
+
+
+
+
+
+# for sim in ['4HFI_4']:
+# # for sim in ['4HFI_4', '4HFI_7', '6ZGD_4', '6ZGD_7']:
+#     rep = 1
+
+#     # Add: "if file exists... skip" to all analysis functions
+#     # Add a function that automatically builds the panels
+#     # Add loops to reduce the number of function lines here?
+
+#     # E26
+#     chargePlot(sim, rep, 'E26')
+#     mindistPlot(sim, rep, 26, 105, ['A','B','C','D','E'], ['A','B','C','D','E'], name='E26-105')
+#     mindistPlot(sim, rep, 26, 79, ['A','B','C','D','E'], ['B','C','D','E','A'], name='E26-V79c')
+#     mindistPlot(sim, rep, 26, 155, ['A','B','C','D','E'], ['A','B','C','D','E'], name='E26-V155')
+
+#     # D32
+#     chargePlot(sim, rep, 'D32')
+#     mindistPlot(sim, rep, 32, 122, ['A','B','C','D','E'], ['A','B','C','D','E'], name='D32-D122')
+#     mindistPlot(sim, rep, 32, 192, ['A','B','C','D','E'], ['A','B','C','D','E'], name='D32-R192')
+
+#     # E35
+#     chargePlot(sim, rep, 'E35')
+#     mindistPlot(sim, rep,  35, 158, ['A','B','C','D','E'], ['E','A','B','C','D'], name='E35-T158c')
+#     mindistPlot(sim, rep, 35, 29, ['A','B','C','D','E'], ['E','A','B','C','D'], name='E35-S29c')
+#     # mindist backbone loopF
+#     mindistIonsPlot(sim, rep, '222', ion='NA', name='E222-Na+')
+
+    # # E67
+    # chargePlot(sim, rep, 'E67')
+    # mindistPlot(sim, rep, 67, yy, ['A','B','C','D','E'], ['A','B','C','D','E'], name='xx-yy')
+
+    # # E69
+    # chargePlot(sim, rep, 'E69')
+    # mindistPlot(sim, rep, 69, yy, ['A','B','C','D','E'], ['A','B','C','D','E'], name='xx-yy')
 
     # ECD
 
@@ -286,7 +356,7 @@ for sim in ['4HFI_4', '4HFI_7', '6ZGD_4', '6ZGD_7']:
     # chargePlot(sim, rep, 'E35')
     # chargePlot(sim, rep, 'D122')
     # chargePlot(sim, rep, 'E243')
-    # RMSDPlot(sim, rep, '32-35') # b1-b2 loop
+    # RMSDPlot(sim, rep, 'resid 32-35') # b1-b2 loop
     # mindistIonsPlot(sim, rep, '35', name='E35-Na+')
     # mindistPlot(sim, rep,  35, 158, ['A','B','C','D','E'], ['E','A','B','C','D'], name='E35-T158')
     # mindistPlot(sim, rep, 243, 248, ['A','B','C','D','E'], ['A','B','C','D','E'], name='E243-K248')
@@ -296,5 +366,16 @@ for sim in ['4HFI_4', '4HFI_7', '6ZGD_4', '6ZGD_7']:
     # chargePlot(sim, rep, 'E243')
     # chargePlot(sim, rep, 'H235')
     # chargePlot(sim, rep, 'E222')
-    # RMSDPlot(sim, rep, '220-245') # M2
-    RMSDPlot(sim, rep, '246-252') # M2-M3 loop
+    # RMSDPlot(sim, rep, 'resid 220-245') # M2
+    # RMSDPlot(sim, rep, 'resid 246-252') # M2-M3 loop
+
+    # BOTTOM OF TMD + VMD ######################################################
+
+    # chargePlot(sim, rep, 'E222') # good
+    # mindistIonsPlot(sim, rep, '222', ion='NA', name='E222-Na+') # bad
+    # mindistIonsPlot(sim, rep, '222', ion='CL', name='E222-Cl-') # bad
+    # mindistPlot(sim, rep, 222, 220, ['A','B','C','D','E'], ['A','B','C','D','E'], name='E222-S220')
+    # mindistPlot(sim, rep, 277, 221, ['A','B','C','D','E'], ['A','B','C','D','E'], name='H277-Y221') # good
+
+    # Idea Berk
+    # RMSDPlot(sim, rep, 'resid 35 ')
