@@ -159,50 +159,6 @@ def RMSDPlot(sim, rep, sel):
     plt.savefig('panels/rmsd_{}_{}.png'.format(sim, sel))
     plt.clf(); plt.close()
 
-def mindistIonsPlot(sim, rep, resid, ion, name):
-    """
-    Creates mindists plots between sel1 and sel2. Uses MD_conv.xtc.
-    sim: the simulation, e.g. '4HFI_4'
-    rep: the replica, e.g. 1
-    sel: selection, e.g. 35
-    ionName: name of the ion, e.g. 'NA'
-    name: file/title name, e.g. 'E35-Na+'
-    """
-
-    os.chdir('{}/{:02d}'.format(sim, rep))
-
-    stdin = ['q']
-    for chain in ['A', 'B', 'C', 'D', 'E']:
-        stdin.insert(0, 'r {} & chain {}'.format(resid, chain))
-
-    gromacs('make_ndx -f CA.pdb -o mindist.ndx', stdin=stdin)
-
-    for chain in ['A', 'B', 'C', 'D', 'E']:
-        if ion == 'NA':
-            ndx = 18 # 18 is NA
-        elif ion == 'CL':
-            ndx = 19 # 19 is CL
-
-        gromacs('mindist -s MD.tpr -f MD_conv.xtc -n mindist.ndx -dt 10', stdin=['r_{}_&_ch{}'.format(resid, chain), ndx])
-
-        data = loadxvg('mindist.xvg')
-        t = [val / 1000.0 for val in data[0]]
-        x = data[1]
-        plt.plot(t, x, linewidth=0.5, label=chain)
-
-    os.system('rm -f mindist.ndx \\#*\\#')
-    os.chdir('../..')
-
-    plt.xlabel("time (ns)")
-    plt.xlim(0, 1000)
-    plt.ylim(0, 5)
-    plt.ylabel("Minimum distance (nm)")
-    plt.title('{} mindist {}'.format(sim, name))
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig('panels/mindst_{}_{}.png'.format(sim, name))
-    plt.clf(); plt.close()
-
 class PanelBuilder:
     """
     Combines multiple functions and tries to create the entire panel at once.
@@ -240,7 +196,7 @@ class PanelBuilder:
                 # CREATE THE RMSD PLOTS
                 if self.rmsd != '':
                     if notExists('rmsd_{}_{}.png'.format(sim, self.target)):
-                        self.RMSDPlot(sim, rep, sel=self.rmsd)
+                        self.RMSDPlot(sim, rep)
 
         # STUFF RELATED TO THE PANELS
         self.rowCount = 0
@@ -285,7 +241,7 @@ class PanelBuilder:
 
     def mindistPlot(self, sim, rep, resid):
         """
-        Currently a wrapper for GROMACS mindist. Makes the minimum distance plots in time.
+        Currently a wrapper for GROMACS mindist. Makes the minimum distance plots in time. Uses MD_conv.xtc.
         sim: the simulation, e.g. '4HFI_4'
         rep: the replica, e.g. 1
         resid: the residue it makes contacts with, e.g. 158c
@@ -298,32 +254,39 @@ class PanelBuilder:
         # Process the principal vs complementary identifier.
         # Note: 158c gives the correct distances using these lists, and 158 is 
         # in fact complementary to 35 so these chain2 orders are correct.
-
+        # Also, we need to make an exception for NA, CL, as shown below.
         chain1 = ['A','B','C','D','E']
-        if resid[-1] == 'c':
-            chain2 = ['E','A','B','C','D']
-            xyz = int(resid[:-1])
-        elif resid[-1] == 'p':
-            chain2 = ['B','C','D','E','A']
-            xyz = int(resid[:-1])
+        if resid not in ['NA', 'CL']:
+            if resid[-1] == 'c':
+                chain2 = ['E','A','B','C','D']
+                temp = int(resid[:-1])
+            elif resid[-1] == 'p':
+                chain2 = ['B','C','D','E','A']
+                temp = int(resid[:-1])
+            else:
+                chain2 = ['A','B','C','D','E']
+                temp = int(resid)
         else:
-            chain2 = ['A','B','C','D','E']
-            xyz = int(resid)
+            temp = resid
+            chain2 = 5 * [temp]
 
         # Create the index file required for the analysis
         stdin = ['q']
         for chain in ['A', 'B', 'C', 'D', 'E'][::-1]:
             stdin.insert(0, 'r {} & chain {}'.format(self.target, chain))
-            stdin.insert(0, 'r {} & chain {}'.format(xyz, chain))
+            stdin.insert(0, 'r {} & chain {}'.format(temp, chain))
 
         gromacs('make_ndx -f CA.pdb -o mindist.ndx', stdin=stdin)
 
         # Call GROMACS mindist using the mindist.ndx we just created:
         for idx in range(0, len(chain1)):
             sel1 = 'r_{}_&_ch{}'.format(self.target, chain1[idx])
-            sel2 = 'r_{}_&_ch{}'.format(xyz, chain2[idx])
-
-            print(self.test)
+            if resid == 'NA':
+                sel2 = 18 # this group number corresponds to NA
+            elif resid == 'CL':
+                sel2 = 19 # this group number corresponds to CL
+            else: # business as usual
+                sel2 = 'r_{}_&_ch{}'.format(temp, chain2[idx])
 
             if self.test:
                 # Speed things up significantly if this is just a test run.
@@ -341,7 +304,10 @@ class PanelBuilder:
 
         plt.xlabel("time (ns)")
         plt.xlim(0, 1000)
-        plt.ylim(0, 1)
+        if temp in ['NA', 'CL']:
+            plt.ylim(0, 2)          # Use 2 nm for ions and 1 nm for rest.
+        else:
+            plt.ylim(0, 1)
         plt.ylabel("Minimum distance (nm)")
         plt.title('{} mindist {}-{}'.format(sim, self.target, resid))
         plt.legend()
@@ -349,7 +315,7 @@ class PanelBuilder:
         plt.savefig('panels/mindist_{}_{}-{}.png'.format(sim, self.target, resid))
         plt.clf(); plt.close()
 
-    def RMSDPlot(self, sel):
+    def RMSDPlot(self, sim, rep):
         pass
 
     def createPanelRows(self):
@@ -393,4 +359,4 @@ class PanelBuilder:
         os.system('convert {} -append panels/panel_{}.png'.format(str, self.target))
 
 if __name__ == "__main__":
-    PanelBuilder(35, ['158c'])
+    PanelBuilder(35, ['158c', 'NA', 'CL'])
