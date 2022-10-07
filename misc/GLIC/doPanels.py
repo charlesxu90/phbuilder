@@ -78,18 +78,18 @@ def inputOptionHandler(message, options):
 
 def getLambdaFileIndices(structure, resid):
     """
-    Returns an array containing the lambda-file indices for the specified residue.
-    Example: MD.pdb, residue: 35
+    Returns an array containing the lambda-file indices for the specified resid.
+    Example: CA.pdb, residue: 35.
     """
 
     u                  = MDAnalysis.Universe(structure)
     numChains          = len(u.segments) - 1
     segmentAatoms      = u.segments[0].atoms
-    titratableAtoms    = segmentAatoms .select_atoms('resname ASPT GLUT HSPT')
+    titratableAtoms    = segmentAatoms.select_atoms('resname ASPT GLUT HSPT')
     titratableResnames = list(titratableAtoms.residues.resnames)
     titratableResids   = list(titratableAtoms.residues.resids)
-    targetid           = 1 + titratableResids.index(resid)
-    
+    targetidx          = titratableResids.index(resid)
+
     numASPTGLUT        = len(segmentAatoms.select_atoms('resname ASPT GLUT').residues)
     numHSPT            = len(segmentAatoms.select_atoms('resname HSPT').residues)
     factor             = numASPTGLUT + 3 * numHSPT
@@ -97,7 +97,7 @@ def getLambdaFileIndices(structure, resid):
     count = 1
     for idx in range(0, len(titratableResnames)):
 
-        if idx + 1 == targetid:
+        if idx == targetidx:
             array = []
             for ii in range(0, numChains):
                 array.append(count + ii * factor)
@@ -109,40 +109,17 @@ def getLambdaFileIndices(structure, resid):
         elif titratableResnames[idx] == 'HSPT':
             count += 3
 
-def chargePlot(sim, rep, resid):
-    """
-    Make the charge plot in time for residue. Does not work for histidines.
-    sim: the simulation, e.g. '4HFI_4'
-    rep: the replica, e.g. 1
-    res: the residue, e.g. 35
-    """
+    raise Exception('how did we end up here?')
 
-    chain = ['A', 'B', 'C', 'D', 'E']
-    array = getLambdaFileIndices('{}/{:02d}/CA.pdb'.format(sim, rep), resid)
-
-    store = []
-    for idx in range(0, len(array)):
-        data = loadxvg('{}/{:02d}/cphmd-coord-{}.xvg'.format(sim, rep, array[idx]), dt=5000, b=0)
-        t    = [val / 1000.0 for val in data[0]] # ps -> ns
-        x    = [1.0 - val for val in data[1]] # deprotonation -> protonation
-        store.append(x)
-
-        plt.plot(t, x, linewidth=1, label=chain[idx])
-
-    # PLOT MEAN PROTONATION
-    # average = [0] * len(store[0])
-    # for idx in range(0, len(store[0])):
-    #     average[idx] = store[0] + store[1] + store[2] + store[3] + store[4]
-    # plt.plot(t, x, linewidth=1.5, label='mean', color='b', linestyle=':')
-
-    plt.ylabel('Protonation')
-    plt.xlabel('Time (ns)')
-    plt.axis([0, 1000, -0.1, 1.1])
-    plt.title('{} protonation {}'.format(sim, resid))
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig('panels/proto_{}_{}.png'.format(sim, resid))
-    plt.clf(); plt.close()
+def notExists(fname):
+    """Returns True if the file 'panels/fname' does not yet exist."""
+    path = "panels/{}".format(fname)
+    
+    if os.path.exists(path):
+        print('{} already exists, not creating it again...'.format(path))
+        return False
+    
+    return True
 
 def RMSDPlot(sim, rep, sel):
     """
@@ -274,108 +251,114 @@ def mindistIonsPlot(sim, rep, resid, ion, name):
     plt.savefig('panels/mindst_{}_{}.png'.format(sim, name))
     plt.clf(); plt.close()
 
-def notExists(fname):
-    """Returns True if the file 'panels/fname' does not yet exist."""
-    path = "panels/{}".format(fname)
-    
-    if os.path.exists(path):
-        print('{} already exists, not creating it again...'.format(path))
-        return False
-    
-    return True
-
-def doPanel(target, resids, rmsd=[], test=False):
+class PanelBuilder:
     """
     Combines multiple functions and tries to create the entire panel at once.
     target: <int> the target resid e.g. 35
     resids: <list> the contacts e.g. [158, 'NA']
     rmsd: <string> optional, e.g. 'resid 15 to 22'
-    test: <bool> is this a test run (faster)?
+    test: <bool> is this a test run? (faster)
     """
 
-    for sim in ['4HFI_4']:
-    # for sim in ['4HFI_4', '4HFI_7', '6ZGD_4', '6ZGD_7']:
-        rep = 1
-    
-        # CREATE THE CHARGE PLOTS
-        if notExists("proto_{}_{}.png".format(sim, target)):
-            chargePlot(sim, rep, target)
+    def __init__(self, target, resids, rmsd='', test=False):
+        self.target   = target
+        self.resids   = resids
+        self.rmsd     = rmsd
+        self.test     = test
 
-doPanel(243, [1])
+        if self.test:
+            self.sims = ['4HFI_4']
+            self.reps = [1]
+        else:
+            self.sims = ['4HFI_4', '4HFI_7', '6ZGD_4', '6ZGD_7']
+            self.reps = [1]
 
+        for sim in self.sims:
+            for rep in self.reps:
 
+                # CREATE THE CHARGE PLOTS
+                if notExists("proto_{}_{}.png".format(sim, self.target)):
+                    self.chargePlot(sim, rep, self.target)
 
+        self.rowCount = 0
+        self.createPanelRows()
+        self.createPanelColumns()
 
+    def chargePlot(self, sim, rep, resid):
+        """
+        Make the charge plot in time for residue. Does not work for histidines.
+        sim: the simulation, e.g. '4HFI_4'
+        rep: the replica, e.g. 1
+        res: the residue, e.g. 35
+        """
+        print('Creating charge plot')
 
-# for sim in ['4HFI_4']:
-# # for sim in ['4HFI_4', '4HFI_7', '6ZGD_4', '6ZGD_7']:
-#     rep = 1
+        chain = ['A', 'B', 'C', 'D', 'E']
+        array = getLambdaFileIndices('{}/{:02d}/CA.pdb'.format(sim, rep), resid)
 
-#     # Add: "if file exists... skip" to all analysis functions
-#     # Add a function that automatically builds the panels
-#     # Add loops to reduce the number of function lines here?
+        store = []
+        for idx in range(0, len(array)):
+            data = loadxvg('{}/{:02d}/cphmd-coord-{}.xvg'.format(sim, rep, array[idx]), dt=5000, b=0)
+            t    = [val / 1000.0 for val in data[0]] # ps -> ns
+            x    = [1.0 - val for val in data[1]] # deprotonation -> protonation
+            store.append(x)
 
-#     # E26
-#     chargePlot(sim, rep, 'E26')
-#     mindistPlot(sim, rep, 26, 105, ['A','B','C','D','E'], ['A','B','C','D','E'], name='E26-105')
-#     mindistPlot(sim, rep, 26, 79, ['A','B','C','D','E'], ['B','C','D','E','A'], name='E26-V79c')
-#     mindistPlot(sim, rep, 26, 155, ['A','B','C','D','E'], ['A','B','C','D','E'], name='E26-V155')
+            plt.plot(t, x, linewidth=1, label=chain[idx])
 
-#     # D32
-#     chargePlot(sim, rep, 'D32')
-#     mindistPlot(sim, rep, 32, 122, ['A','B','C','D','E'], ['A','B','C','D','E'], name='D32-D122')
-#     mindistPlot(sim, rep, 32, 192, ['A','B','C','D','E'], ['A','B','C','D','E'], name='D32-R192')
+        # PLOT MEAN PROTONATION
+        # average = [0] * len(store[0])
+        # for idx in range(0, len(store[0])):
+        #     average[idx] = store[0] + store[1] + store[2] + store[3] + store[4]
+        # plt.plot(t, x, linewidth=1.5, label='mean', color='b', linestyle=':')
 
-#     # E35
-#     chargePlot(sim, rep, 'E35')
-#     mindistPlot(sim, rep,  35, 158, ['A','B','C','D','E'], ['E','A','B','C','D'], name='E35-T158c')
-#     mindistPlot(sim, rep, 35, 29, ['A','B','C','D','E'], ['E','A','B','C','D'], name='E35-S29c')
-#     # mindist backbone loopF
-#     mindistIonsPlot(sim, rep, '222', ion='NA', name='E222-Na+')
+        plt.ylabel('Protonation')
+        plt.xlabel('Time (ns)')
+        plt.axis([0, 1000, -0.1, 1.1])
+        plt.title('{} protonation {}'.format(sim, resid))
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig('panels/proto_{}_{}.png'.format(sim, resid))
+        plt.clf(); plt.close()
 
-    # # E67
-    # chargePlot(sim, rep, 'E67')
-    # mindistPlot(sim, rep, 67, yy, ['A','B','C','D','E'], ['A','B','C','D','E'], name='xx-yy')
+    def createPanelRows(self):
+        """Creates the (temporary) panel rows."""
+        print("Creating panel rows")
 
-    # # E69
-    # chargePlot(sim, rep, 'E69')
-    # mindistPlot(sim, rep, 69, yy, ['A','B','C','D','E'], ['A','B','C','D','E'], name='xx-yy')
+        # THE FIRST ROW IS ALWAYS A ROW OF CHARGE PLOTS.
+        A = 'panels/proto_6ZGD_7_{}.png'.format(self.target)
+        B = 'panels/proto_6ZGD_4_{}.png'.format(self.target)
+        C = 'panels/proto_4HFI_7_{}.png'.format(self.target)
+        D = 'panels/proto_4HFI_4_{}.png'.format(self.target)
+        self.rowCount += 1
+        os.system('convert {} {} {} {} +append panels/row_{}.png'.format(A, B, C, D, self.rowCount))
 
-    # ECD
+        # THE ROWS BELOW COME FROM MINDIST BETWEEN RESIDS
+        for resid in self.resids:
+            A = 'panels/mindist_6ZGD_7_{}-{}.png'.format(self.target, resid)
+            B = 'panels/mindist_6ZGD_4_{}-{}.png'.format(self.target, resid)
+            C = 'panels/mindist_4HFI_7_{}-{}.png'.format(self.target, resid)
+            D = 'panels/mindist_4HFI_4_{}-{}.png'.format(self.target, resid)
+            self.rowCount += 1
+            os.system('convert {} {} {} {} +append panels/row_{}.png'.format(A, B, C, D, self.rowCount))
 
-    # chargePlot(sim, rep, 'E26')
-    # chargePlot(sim, rep, 'E104')
-    # chargePlot(sim, rep, 'E177')
-    # chargePlot(sim, rep, 'D178')
-    # chargePlot(sim, rep, 'E181')
-    # RMSDPlot(sim, rep, '172-185') # loopC
+        # THE FINAL ROW IS OPTIONAL AND COMES FROM RMSD
+        if self.rmsd != '':
+            A = 'panels/rmsd_6ZGD_7_{}.png'.format(self.target)
+            B = 'panels/rmsd_6ZGD_4_{}.png'.format(self.target)
+            C = 'panels/rmsd_4HFI_7_{}.png'.format(self.target)
+            D = 'panels/rmsd_4HFI_4_{}.png'.format(self.target)
+            self.rowCount += 1
+            os.system('convert {} {} {} {} +append panels/row_{}.png'.format(A, B, C, D, self.rowCount))
 
-    # ECD-TMD
+    def createPanelColumns(self):
+        '''Joins the (temporary) panel rows together to make the final panel.'''
+        print("Creating final panel")
 
-    # chargePlot(sim, rep, 'E26')
-    # chargePlot(sim, rep, 'E35')
-    # chargePlot(sim, rep, 'D122')
-    # chargePlot(sim, rep, 'E243')
-    # RMSDPlot(sim, rep, 'resid 32-35') # b1-b2 loop
-    # mindistIonsPlot(sim, rep, '35', name='E35-Na+')
-    # mindistPlot(sim, rep,  35, 158, ['A','B','C','D','E'], ['E','A','B','C','D'], name='E35-T158')
-    # mindistPlot(sim, rep, 243, 248, ['A','B','C','D','E'], ['A','B','C','D','E'], name='E243-K248')
+        str = ""
+        for num in range(1, self.rowCount + 1):
+            str += 'panels/row_{}.png '.format(num)
 
-    # TMD
+        os.system('convert {} -append panels/panel_{}.png'.format(str, self.target))
 
-    # chargePlot(sim, rep, 'E243')
-    # chargePlot(sim, rep, 'H235')
-    # chargePlot(sim, rep, 'E222')
-    # RMSDPlot(sim, rep, 'resid 220-245') # M2
-    # RMSDPlot(sim, rep, 'resid 246-252') # M2-M3 loop
-
-    # BOTTOM OF TMD + VMD ######################################################
-
-    # chargePlot(sim, rep, 'E222') # good
-    # mindistIonsPlot(sim, rep, '222', ion='NA', name='E222-Na+') # bad
-    # mindistIonsPlot(sim, rep, '222', ion='CL', name='E222-Cl-') # bad
-    # mindistPlot(sim, rep, 222, 220, ['A','B','C','D','E'], ['A','B','C','D','E'], name='E222-S220')
-    # mindistPlot(sim, rep, 277, 221, ['A','B','C','D','E'], ['A','B','C','D','E'], name='H277-Y221') # good
-
-    # Idea Berk
-    # RMSDPlot(sim, rep, 'resid 35 ')
+if __name__ == "__main__":
+    PanelBuilder(35, ['158c'])
