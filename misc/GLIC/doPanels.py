@@ -121,44 +121,6 @@ def notExists(fname):
     
     return True
 
-def RMSDPlot(sim, rep, sel):
-    """
-    Creates RMSD plots for a selection of residues. Loads MD_conv.xtc.
-    sim: the simulation, e.g. '4HFI_4'
-    rep: the replica, e.g. 1
-    sel: selection, e.g. '32-35'
-    """
-
-    path1 = '{}/{:02d}/CA.pdb'.format(sim, rep)
-    path2 = '{}/{:02d}/MD_conv.xtc'.format(sim, rep)
-    u = MDAnalysis.Universe(path1, path2)
-
-    # INDIVIDUAL CHAINS
-    chain = ['A', 'B', 'C', 'D', 'E']
-    for idx in range(0, len(chain)):
-        R = MDAnalysis.analysis.rms.RMSD(u, select='segid {} and {}'.format(chain[idx], sel))
-        R.run(step=2)
-        t  = [val / 1000.0 for val in R.rmsd.T[1]]
-        x1 = R.rmsd.T[2]
-        plt.plot(t, x1, linewidth=0.5, label=chain[idx])
-
-    # ALL CHAINS
-    R = MDAnalysis.analysis.rms.RMSD(u, select='(segid A B C D E) and {}'.format(sel))
-    R.run(step=2)
-    t  = [val / 1000.0 for val in R.rmsd.T[1]]
-    x1 = R.rmsd.T[2]
-    plt.plot(t, x1, linewidth=0.5, label='all', color='black')
-
-    plt.xlabel("time (ns)")
-    plt.ylabel(r"RMSD ($\AA$)")
-    plt.xlim(0, 1000)
-    plt.ylim(0, 5)
-    plt.title('{} RMSD segment {}'.format(sim, sel))
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig('panels/rmsd_{}_{}.png'.format(sim, sel))
-    plt.clf(); plt.close()
-
 class PanelBuilder:
     """
     Combines multiple functions and tries to create the entire panel at once.
@@ -316,7 +278,48 @@ class PanelBuilder:
         plt.clf(); plt.close()
 
     def RMSDPlot(self, sim, rep):
-        pass
+        """
+        Creates RMSD plots for a selection of residues. Loads MD_conv.xtc.
+        sim: the simulation, e.g. '4HFI_4'
+        rep: the replica, e.g. 1
+        MDAnalysis style selection, e.g. 'resid 32-35'
+        """
+        print("Creating RMSD plot")
+
+        path1 = '{}/{:02d}/CA.pdb'.format(sim, rep)
+        path2 = '{}/{:02d}/MD_conv.xtc'.format(sim, rep)
+        u = MDAnalysis.Universe(path1, path2)
+
+        if self.test:
+            step = 100
+        else:
+            step = 2
+
+        # INDIVIDUAL CHAINS
+        chain = ['A', 'B', 'C', 'D', 'E']
+        for idx in range(0, len(chain)):
+            R = MDAnalysis.analysis.rms.RMSD(u, select='segid {} and {}'.format(chain[idx], self.rmsd))
+            R.run(step=step)
+            t  = [val / 1000.0 for val in R.rmsd.T[1]]
+            x1 = R.rmsd.T[2]
+            plt.plot(t, x1, linewidth=0.5, label=chain[idx])
+
+        # ALL CHAINS
+        R = MDAnalysis.analysis.rms.RMSD(u, select='(segid A B C D E) and {}'.format(self.rmsd))
+        R.run(step=step)
+        t  = [val / 1000.0 for val in R.rmsd.T[1]]
+        x1 = R.rmsd.T[2]
+        plt.plot(t, x1, linewidth=0.5, label='all', color='black')
+
+        plt.xlabel("time (ns)")
+        plt.ylabel(r"RMSD ($\AA$)")
+        plt.xlim(0, 1000)
+        plt.ylim(0, 5)
+        plt.title('{} RMSD {}'.format(sim, self.rmsd))
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig('panels/rmsd_{}_{}.png'.format(sim, self.target))
+        plt.clf(); plt.close()
 
     def createPanelRows(self):
         """Creates the (temporary) panel rows."""
@@ -359,4 +362,4 @@ class PanelBuilder:
         os.system('convert {} -append panels/panel_{}.png'.format(str, self.target))
 
 if __name__ == "__main__":
-    PanelBuilder(35, ['158c', 'NA', 'CL'])
+    PanelBuilder(35, ['158c', 'NA', 'CL'], rmsd='resid 32 to 35')
