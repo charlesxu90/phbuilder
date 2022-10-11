@@ -344,23 +344,23 @@ if __name__ == "__main__":
 
     loopF = 'resid 152 to 159'
 
-    PanelBuilder(26, ['79p', '105', '155'], rmsd=loopF)
-    PanelBuilder(32, ['122', '192'])
+    PanelBuilder(26, ['79p', '105', '155', 'NA'], rmsd=loopF)
+    PanelBuilder(32, ['122', '192', 'NA'])
     PanelBuilder(35, ['29c', '114', '158c', 'NA'], rmsd=loopF)
     PanelBuilder(67, ['58', '58p', '62', '64', 'NA'])
     PanelBuilder(69, ['62p', 'NA'])
 
-    PanelBuilder(97,  ['48', '50', '99', '95'])
+    PanelBuilder(97,  ['48', '50', '99', '95', 'NA'])
     PanelBuilder(104, ['85', '102', 'NA'])
     PanelBuilder(122, ['32', '116', '119', '192', 'NA'])
     PanelBuilder(136, ['62c', '138', '179', 'NA'])
 
     PanelBuilder(177, ['44c', '148c', '179', 'NA'])
-    PanelBuilder(178, ['148c'])
+    PanelBuilder(178, ['148c', 'NA'])
     PanelBuilder(181, ['179', 'NA'])
-    PanelBuilder(185, ['127', '183', '187'])
+    PanelBuilder(185, ['127', '183', '187', 'NA'])
 
     PanelBuilder(222, ['277', 'NA'])
-    PanelBuilder(235, ['260', '263'])
-    PanelBuilder(243, ['200c', '245c', '248'])
-    PanelBuilder(277, ['221', '222'])
+    PanelBuilder(235, ['260', '263', 'NA'])
+    PanelBuilder(243, ['200c', '245c', '248', 'NA'])
+    PanelBuilder(277, ['221', '222', 'NA'])
