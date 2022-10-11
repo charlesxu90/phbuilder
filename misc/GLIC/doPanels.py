@@ -174,7 +174,7 @@ class PanelBuilder:
         plt.ylabel('Protonation')
         plt.xlabel('Time (ns)')
         plt.axis([0, 1000, -0.1, 1.1])
-        plt.title('{} protonation {}'.format(sim, self.target))
+        plt.title('{} protonation {}'.format(sim, self.target), fontsize=16)
         plt.legend()
         plt.tight_layout()
         plt.savefig('panels/proto_{}_{}.png'.format(sim, self.target))
@@ -214,14 +214,16 @@ class PanelBuilder:
         # Create the index file required for the analysis
         stdin = ['q']
         for chain in ['A', 'B', 'C', 'D', 'E'][::-1]:
-            stdin.insert(0, 'r {} & chain {}'.format(self.target, chain))
+            # The last part makes sure we only consider the oxygens of ASPT GLUT
+            # or the nitrogens in the ring of HSPT.
+            stdin.insert(0, 'r {} & chain {} & a OE1 OE2 OD1 OD2 NE2 ND1'.format(self.target, chain))
             stdin.insert(0, 'r {} & chain {}'.format(temp, chain))
 
         gromacs('make_ndx -f CA.pdb -o mindist.ndx', stdin=stdin)
 
         # Call GROMACS mindist using the mindist.ndx we just created:
         for idx in range(0, len(chain1)):
-            sel1 = 'r_{}_&_ch{}'.format(self.target, chain1[idx])
+            sel1 = 'r_{}_&_ch{}_&_OE1_OE2_OD1_OD2_NE2_ND1'.format(self.target, chain1[idx])
             if resid == 'NA':
                 sel2 = 18 # this group number corresponds to NA
             elif resid == 'CL':
@@ -250,7 +252,8 @@ class PanelBuilder:
         else:
             plt.ylim(0, 1)
         plt.ylabel("Minimum distance (nm)")
-        plt.title('{} mindist {}-{}'.format(sim, self.target, resid))
+        plt.hlines(y=0.35, xmin=0, xmax=1000, color='black', linestyle=':')
+        plt.title('{} mindist {}-{}'.format(sim, self.target, resid), fontsize=16)
         plt.legend()
         plt.tight_layout()
         plt.savefig('panels/mindist_{}_{}-{}.png'.format(sim, self.target, resid))
@@ -261,7 +264,7 @@ class PanelBuilder:
         Creates RMSD plots for a selection of residues. Loads MD_conv.xtc.
         sim: the simulation, e.g. '4HFI_4'
         rep: the replica, e.g. 1
-        MDAnalysis style selection, e.g. 'resid 32-35'
+        MDAnalysis style selection, e.g. 'resid 32 to 35'
         """
         print("Creating RMSD plot")
 
@@ -294,7 +297,7 @@ class PanelBuilder:
         plt.ylabel(r"RMSD ($\AA$)")
         plt.xlim(0, 1000)
         plt.ylim(0, 5)
-        plt.title('{} RMSD {}'.format(sim, self.rmsd))
+        plt.title('{} RMSD {}'.format(sim, self.rmsd), fontsize=16)
         plt.legend()
         plt.tight_layout()
         plt.savefig('panels/rmsd_{}_{}.png'.format(sim, self.target))
@@ -344,7 +347,7 @@ if __name__ == "__main__":
 
     loopF = 'resid 152 to 159'
 
-    PanelBuilder(26, ['79p', '105', '155', 'NA'], rmsd=loopF)
+    PanelBuilder(26, ['79p', '105', '155', 'NA'])
     PanelBuilder(32, ['122', '192', 'NA'])
     PanelBuilder(35, ['29c', '114', '158c', 'NA'], rmsd=loopF)
     PanelBuilder(67, ['58', '58p', '62', '64', 'NA'])
