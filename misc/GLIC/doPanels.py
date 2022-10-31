@@ -133,6 +133,7 @@ class PanelBuilder:
                 for resid in self.resids:
                     if notExists('mindist_{}_{}-{}.png'.format(sim, self.target, resid)):
                         self.mindistPlot(sim, rep, resid)
+                        self.occupancyBarPlot(sim, rep, resid)
 
                 # CREATE THE RMSD PLOTS
                 if self.rmsd != '':
@@ -189,6 +190,9 @@ class PanelBuilder:
         """
         print("Creating mindist plot")
 
+        # cutoff distance (nm) (hardcoded)
+        cutoff = 0.35
+
         # Go to the simulation directory
         os.chdir('{}/{:02d}'.format(sim, rep))
 
@@ -241,7 +245,18 @@ class PanelBuilder:
             t = [val / 1000.0 for val in data[0]]
             x = data[1]
             plt.plot(t, x, linewidth=0.5, label='{}-{}'.format(chain1[idx], chain2[idx]))
+            
+            # Compute occupancy fraction and print to file
+            contactCount = 0
+            for distance in x:
+                if distance < cutoff:
+                    contactCount += 1
+            fraction = contactCount / len(x)
 
+            with open('../../panels/occ_{}_{}-{}.txt'.format(sim, self.target, resid), 'a+') as file:
+                file.write('{:.4s} {:.4s} {:.3f}\n'.format(chain1[idx], chain2[idx], fraction))
+
+        # Cleanup and go back
         os.system('rm -f mindist.ndx \\#*\\#')
         os.chdir('../..')
 
@@ -252,7 +267,7 @@ class PanelBuilder:
         else:
             plt.ylim(0, 1)
         plt.ylabel("Minimum distance (nm)")
-        plt.hlines(y=0.35, xmin=0, xmax=1000, color='black', linestyle=':')
+        plt.hlines(y=cutoff, xmin=0, xmax=1000, color='black', linestyle=':')
         plt.title('{} mindist {}-{}'.format(sim, self.target, resid), fontsize=16)
         plt.legend()
         plt.tight_layout()
@@ -303,6 +318,32 @@ class PanelBuilder:
         plt.savefig('panels/rmsd_{}_{}.png'.format(sim, self.target))
         plt.clf(); plt.close()
 
+    def occupancyBarPlot(self, sim, rep, resid):
+
+        # Loop through the .txt files (we create a bar plot for each one).
+        for resid in self.resids:
+            chain1 = []
+            chain2 = []
+            occ    = []
+            fname  = 'panels/occ_{}_{}-{}.txt'.format(sim, self.target, resid)
+
+            # Load the data from file.
+            for stringLine in open(fname).read().splitlines():
+                listLine = stringLine.split()
+                chain1.append(listLine[0])
+                chain2.append(listLine[1])
+                occ.append(float(listLine[2]))
+
+            # Make the labels for the barplot.
+            labels = []
+            for idx in range(0, len(chain1)):
+                labels.append('{}-{}'.format(chain1[idx], chain2[idx]))
+        
+            # Make the barplot itself.
+            plt.bar(labels, occ)
+            plt.savefig('test.png')
+            plt.clf()
+
     def createPanelRows(self):
         """Creates the (temporary) panel rows."""
         print("Creating panel rows")
@@ -344,26 +385,29 @@ class PanelBuilder:
         os.system('convert {} -append panels/panel_{}.png'.format(str, self.target))
 
 if __name__ == "__main__":
+    PanelBuilder(26, ['79p', '105', '155', 'NA'], test=True)
 
-    loopF = 'resid 152 to 159'
+# if __name__ == "__main__":
 
-    PanelBuilder(26, ['79p', '105', '155', 'NA'])
-    PanelBuilder(32, ['122', '192', 'NA'])
-    PanelBuilder(35, ['29c', '114', '158c', 'NA'], rmsd=loopF)
-    PanelBuilder(67, ['58', '58p', '62', '64', 'NA'])
-    PanelBuilder(69, ['62p', 'NA'])
+#     loopF = 'resid 152 to 159'
 
-    PanelBuilder(97,  ['48', '50', '99', '95', 'NA'])
-    PanelBuilder(104, ['85', '102', 'NA'])
-    PanelBuilder(122, ['32', '116', '119', '192', 'NA'])
-    PanelBuilder(136, ['62c', '138', '179', 'NA'])
+#     PanelBuilder(26, ['79p', '105', '155', 'NA'])
+#     PanelBuilder(32, ['122', '192', 'NA'])
+#     PanelBuilder(35, ['29c', '114', '158c', 'NA'], rmsd=loopF)
+#     PanelBuilder(67, ['58', '58p', '62', '64', 'NA'])
+#     PanelBuilder(69, ['62p', 'NA'])
 
-    PanelBuilder(177, ['44c', '148c', '179', 'NA'])
-    PanelBuilder(178, ['148c', 'NA'])
-    PanelBuilder(181, ['179', 'NA'])
-    PanelBuilder(185, ['127', '183', '187', 'NA'])
+#     PanelBuilder(97,  ['48', '50', '99', '95', 'NA'])
+#     PanelBuilder(104, ['85', '102', 'NA'])
+#     PanelBuilder(122, ['32', '116', '119', '192', 'NA'])
+#     PanelBuilder(136, ['62c', '138', '179', 'NA'])
 
-    PanelBuilder(222, ['277', 'NA'])
-    PanelBuilder(235, ['260', '263', 'NA'])
-    PanelBuilder(243, ['200c', '245c', '248', 'NA'])
-    PanelBuilder(277, ['221', '222', 'NA'])
+#     PanelBuilder(177, ['44c', '148c', '179', 'NA'])
+#     PanelBuilder(178, ['148c', 'NA'])
+#     PanelBuilder(181, ['179', 'NA'])
+#     PanelBuilder(185, ['127', '183', '187', 'NA'])
+
+#     PanelBuilder(222, ['277', 'NA'])
+#     PanelBuilder(235, ['260', '263', 'NA'])
+#     PanelBuilder(243, ['200c', '245c', '248', 'NA'])
+#     PanelBuilder(277, ['221', '222', 'NA'])
