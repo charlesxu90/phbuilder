@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import MDAnalysis
 import MDAnalysis.analysis.rms
 import os, subprocess
+import pathos.multiprocessing as mp
 
 # MDANALYSIS DOES NOT KNOW WHAT THE BACKBONE OF ASPT GLUT HSPT ARE!!!!!
 
@@ -114,33 +115,42 @@ class PanelBuilder:
         self.rmsd     = rmsd    # MDAnalysis style selection string for rmsd
         self.test     = test    # bool for if this is a test
 
-        # Currently hardcoded that we only use replica 1.
         if self.test:
             self.sims = ['4HFI_4']
-            self.reps = [1, 2]
+            self.reps = [1]
         else:
             self.sims = ['4HFI_4', '4HFI_7', '6ZGD_4', '6ZGD_7']
             self.reps = [1, 2, 3, 4]
 
+        # WRAPPER FOR MULTITHREADING
+        def task(sim, rep):
+
+            # CREATE THE CHARGE PLOTS
+            if notExists("proto_{}_{}_{}.png".format(sim, rep, self.target)) and self.target not in [127, 235, 277]:
+                self.chargePlot(sim, rep)
+
+            # CREATE THE MINIMUM DISTANCE PLOTS
+            for resid in self.resids:
+                if notExists('mindist_{}_{}_{}-{}.png'.format(sim, rep, self.target, resid)):
+                    self.mindistPlot(sim, rep, resid)
+                    # self.occupancyBarPlot(sim, resid)
+
+            # CREATE THE RMSD PLOTS
+            if self.rmsd != '':
+                if notExists('rmsd_{}_{}_{}.png'.format(sim, rep, self.target)):
+                    self.RMSDPlot(sim, rep)
+
+        # PREPARE ITERABLES
+        items = []
         for sim in self.sims:
             for rep in self.reps:
+                items.append((sim, rep))
 
-                # CREATE THE CHARGE PLOTS
-                if notExists("proto_{}_{}_{}.png".format(sim, rep, self.target)) and self.target not in [127, 235, 277]:
-                    self.chargePlot(sim, rep)
+        # RUN MULTITHREADED
+        pool = mp.Pool(processes=mp.cpu_count())
+        pool.starmap(task, items, chunksize=1)
 
-                # CREATE THE MINIMUM DISTANCE PLOTS
-                for resid in self.resids:
-                    if notExists('mindist_{}_{}_{}-{}.png'.format(sim, rep, self.target, resid)):
-                        self.mindistPlot(sim, rep, resid)
-                        # self.occupancyBarPlot(sim, resid)
-
-                # CREATE THE RMSD PLOTS
-                if self.rmsd != '':
-                    if notExists('rmsd_{}_{}_{}.png'.format(sim, rep, self.target)):
-                        self.RMSDPlot(sim, rep)
-
-        # STUFF RELATED TO THE PANELS
+        # CREATE PANELS (this should be the very last step)
         self.rowCount = 0
         self.createPanel()
 
@@ -244,7 +254,7 @@ class PanelBuilder:
             t = [val / 1000.0 for val in data[0]]
             x = data[1]
             plt.plot(t, x, linewidth=0.5, label='{}-{}'.format(chain1[idx], chain2[idx]))
-            
+
             # Compute occupancy fraction and print to file
             contactCount = 0
             for distance in x:
@@ -383,13 +393,10 @@ class PanelBuilder:
             self.rowCount = 0
 
 if __name__ == "__main__":
-    PanelBuilder(26, ['79p', '105', '155', 'NA'], test=True)
 
-# if __name__ == "__main__":
+    loopF = 'resid 152 to 159'
 
-#     loopF = 'resid 152 to 159'
-
-#     PanelBuilder(26, ['79p', '105', '155', 'NA'])
+    PanelBuilder(26, ['79p', '105', '155', 'NA'])
 #     PanelBuilder(32, ['122', '192', 'NA'])
 #     PanelBuilder(35, ['29c', '114', '158c', 'NA'], rmsd=loopF)
 #     PanelBuilder(67, ['58', '58p', '62', '64', 'NA'])
