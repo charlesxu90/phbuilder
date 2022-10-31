@@ -117,33 +117,32 @@ class PanelBuilder:
         # Currently hardcoded that we only use replica 1.
         if self.test:
             self.sims = ['4HFI_4']
-            self.reps = [1]
+            self.reps = [1, 2]
         else:
             self.sims = ['4HFI_4', '4HFI_7', '6ZGD_4', '6ZGD_7']
-            self.reps = [1]
+            self.reps = [1, 2, 3, 4]
 
         for sim in self.sims:
             for rep in self.reps:
 
                 # CREATE THE CHARGE PLOTS
-                if notExists("proto_{}_{}.png".format(sim, self.target)) and self.target not in [127, 235, 277]:
+                if notExists("proto_{}_{}_{}.png".format(sim, rep, self.target)) and self.target not in [127, 235, 277]:
                     self.chargePlot(sim, rep)
 
                 # CREATE THE MINIMUM DISTANCE PLOTS
                 for resid in self.resids:
-                    if notExists('mindist_{}_{}-{}.png'.format(sim, self.target, resid)):
+                    if notExists('mindist_{}_{}_{}-{}.png'.format(sim, rep, self.target, resid)):
                         self.mindistPlot(sim, rep, resid)
-                        self.occupancyBarPlot(sim, rep, resid)
+                        # self.occupancyBarPlot(sim, resid)
 
                 # CREATE THE RMSD PLOTS
                 if self.rmsd != '':
-                    if notExists('rmsd_{}_{}.png'.format(sim, self.target)):
+                    if notExists('rmsd_{}_{}_{}.png'.format(sim, rep, self.target)):
                         self.RMSDPlot(sim, rep)
 
         # STUFF RELATED TO THE PANELS
         self.rowCount = 0
-        self.createPanelRows()
-        self.createPanelColumns()
+        self.createPanel()
 
     def chargePlot(self, sim, rep):
         """
@@ -175,10 +174,10 @@ class PanelBuilder:
         plt.ylabel('Protonation')
         plt.xlabel('Time (ns)')
         plt.axis([0, 1000, -0.1, 1.1])
-        plt.title('{} protonation {}'.format(sim, self.target), fontsize=16)
+        plt.title('{} rep {} residue {}'.format(sim, rep, self.target), fontsize=16)
         plt.legend()
         plt.tight_layout()
-        plt.savefig('panels/proto_{}_{}.png'.format(sim, self.target))
+        plt.savefig('panels/proto_{}_{}_{}.png'.format(sim, rep, self.target))
         plt.clf(); plt.close()
 
     def mindistPlot(self, sim, rep, resid):
@@ -253,7 +252,7 @@ class PanelBuilder:
                     contactCount += 1
             fraction = contactCount / len(x)
 
-            with open('../../panels/occ_{}_{}-{}.txt'.format(sim, self.target, resid), 'a+') as file:
+            with open('../../panels/occ_{}_{}_{}-{}.txt'.format(sim, rep, self.target, resid), 'a+') as file:
                 file.write('{:.4s} {:.4s} {:.3f}\n'.format(chain1[idx], chain2[idx], fraction))
 
         # Cleanup and go back
@@ -268,10 +267,10 @@ class PanelBuilder:
             plt.ylim(0, 1)
         plt.ylabel("Minimum distance (nm)")
         plt.hlines(y=cutoff, xmin=0, xmax=1000, color='black', linestyle=':')
-        plt.title('{} mindist {}-{}'.format(sim, self.target, resid), fontsize=16)
+        plt.title('{} rep {} mindist {}-{}'.format(sim, rep, self.target, resid), fontsize=16)
         plt.legend()
         plt.tight_layout()
-        plt.savefig('panels/mindist_{}_{}-{}.png'.format(sim, self.target, resid))
+        plt.savefig('panels/mindist_{}_{}_{}-{}.png'.format(sim, rep, self.target, resid))
         plt.clf(); plt.close()
 
     def RMSDPlot(self, sim, rep):
@@ -312,13 +311,13 @@ class PanelBuilder:
         plt.ylabel(r"RMSD ($\AA$)")
         plt.xlim(0, 1000)
         plt.ylim(0, 5)
-        plt.title('{} RMSD {}'.format(sim, self.rmsd), fontsize=16)
+        plt.title('{} rep {} RMSD {}'.format(sim, rep, self.rmsd), fontsize=16)
         plt.legend()
         plt.tight_layout()
-        plt.savefig('panels/rmsd_{}_{}.png'.format(sim, self.target))
+        plt.savefig('panels/rmsd_{}_{}_{}.png'.format(sim, rep, self.target))
         plt.clf(); plt.close()
 
-    def occupancyBarPlot(self, sim, rep, resid):
+    def occupancyBarPlot(self, sim, resid):
 
         # Loop through the .txt files (we create a bar plot for each one).
         for resid in self.resids:
@@ -344,45 +343,44 @@ class PanelBuilder:
             plt.savefig('test.png')
             plt.clf()
 
-    def createPanelRows(self):
-        """Creates the (temporary) panel rows."""
-        print("Creating panel rows")
+    def createPanel(self):
+        """Creates the (temporary) panels."""
+        print("Creating panels")
 
-        # THE FIRST ROW IS ALWAYS A ROW OF CHARGE PLOTS.
-        A = 'panels/proto_6ZGD_7_{}.png'.format(self.target)
-        B = 'panels/proto_6ZGD_4_{}.png'.format(self.target)
-        C = 'panels/proto_4HFI_7_{}.png'.format(self.target)
-        D = 'panels/proto_4HFI_4_{}.png'.format(self.target)
-        self.rowCount += 1
-        os.system('convert {} {} {} {} +append panels/row_{}.png'.format(A, B, C, D, self.rowCount))
+        for rep in self.reps:
 
-        # THE ROWS BELOW COME FROM MINDIST BETWEEN RESIDS
-        for resid in self.resids:
-            A = 'panels/mindist_6ZGD_7_{}-{}.png'.format(self.target, resid)
-            B = 'panels/mindist_6ZGD_4_{}-{}.png'.format(self.target, resid)
-            C = 'panels/mindist_4HFI_7_{}-{}.png'.format(self.target, resid)
-            D = 'panels/mindist_4HFI_4_{}-{}.png'.format(self.target, resid)
+            # THE FIRST ROW IS ALWAYS A ROW OF CHARGE PLOTS.
+            A = 'panels/proto_6ZGD_7_{}_{}.png'.format(rep, self.target)
+            B = 'panels/proto_6ZGD_4_{}_{}.png'.format(rep, self.target)
+            C = 'panels/proto_4HFI_7_{}_{}.png'.format(rep, self.target)
+            D = 'panels/proto_4HFI_4_{}_{}.png'.format(rep, self.target)
             self.rowCount += 1
             os.system('convert {} {} {} {} +append panels/row_{}.png'.format(A, B, C, D, self.rowCount))
 
-        # THE FINAL ROW IS OPTIONAL AND COMES FROM RMSD
-        if self.rmsd != '':
-            A = 'panels/rmsd_6ZGD_7_{}.png'.format(self.target)
-            B = 'panels/rmsd_6ZGD_4_{}.png'.format(self.target)
-            C = 'panels/rmsd_4HFI_7_{}.png'.format(self.target)
-            D = 'panels/rmsd_4HFI_4_{}.png'.format(self.target)
-            self.rowCount += 1
-            os.system('convert {} {} {} {} +append panels/row_{}.png'.format(A, B, C, D, self.rowCount))
+            # THE ROWS BELOW COME FROM MINDIST BETWEEN RESIDS
+            for resid in self.resids:
+                A = 'panels/mindist_6ZGD_7_{}_{}-{}.png'.format(rep, self.target, resid)
+                B = 'panels/mindist_6ZGD_4_{}_{}-{}.png'.format(rep, self.target, resid)
+                C = 'panels/mindist_4HFI_7_{}_{}-{}.png'.format(rep, self.target, resid)
+                D = 'panels/mindist_4HFI_4_{}_{}-{}.png'.format(rep, self.target, resid)
+                self.rowCount += 1
+                os.system('convert {} {} {} {} +append panels/row_{}.png'.format(A, B, C, D, self.rowCount))
 
-    def createPanelColumns(self):
-        '''Joins the (temporary) panel rows together to make the final panel.'''
-        print("Creating final panel")
+            # THE FINAL ROW IS OPTIONAL AND COMES FROM RMSD
+            if self.rmsd != '':
+                A = 'panels/rmsd_6ZGD_7_{}_{}.png'.format(rep, self.target)
+                B = 'panels/rmsd_6ZGD_4_{}_{}.png'.format(rep, self.target)
+                C = 'panels/rmsd_4HFI_7_{}_{}.png'.format(rep, self.target)
+                D = 'panels/rmsd_4HFI_4_{}_{}.png'.format(rep, self.target)
+                self.rowCount += 1
+                os.system('convert {} {} {} {} +append panels/row_{}.png'.format(A, B, C, D, self.rowCount))
 
-        str = ""
-        for num in range(1, self.rowCount + 1):
-            str += 'panels/row_{}.png '.format(num)
+            str = ""
+            for num in range(1, self.rowCount + 1):
+                str += 'panels/row_{}.png '.format(num)
 
-        os.system('convert {} -append panels/panel_{}.png'.format(str, self.target))
+            os.system('convert {} -append panels/panel_{}_{}.png'.format(str, self.target, rep))
+            self.rowCount = 0
 
 if __name__ == "__main__":
     PanelBuilder(26, ['79p', '105', '155', 'NA'], test=True)
