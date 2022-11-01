@@ -3,7 +3,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import MDAnalysis
 import MDAnalysis.analysis.rms
-import os, subprocess
+import os
+import subprocess
 import pathos.multiprocessing as mp
 import pandas
 import numpy as np
@@ -12,12 +13,11 @@ import copy
 # Set global font size for figures
 matplotlib.rcParams.update({'font.size': 14})
 
-# MDANALYSIS DOES NOT KNOW WHAT THE BACKBONE OF ASPT GLUT HSPT ARE!!!!!
 
 def gromacs(command, stdin=[]):
     '''Handles GROMACS calls. Any user input may be provided as a stdin list.'''
 
-    d_gmxbasepath = '/usr/local/gromacs_constantph' # hardcoded.
+    d_gmxbasepath = '/usr/local/gromacs_constantph'
 
     # If we do not pass any envvars to subprocess (which happens by default) this will work.
     path_to_gmx = os.path.normpath(d_gmxbasepath + '/' + 'bin/gmx')
@@ -34,6 +34,7 @@ def gromacs(command, stdin=[]):
     if process.returncode != 0:
         print("Failed to run \"{}\" (exitcode {}).".format(command, process.returncode))
 
+
 def loadxvg(fname, col=[0, 1], dt=1, b=0):
     """
     This function loads an .xvg file into a list of lists.
@@ -43,7 +44,7 @@ def loadxvg(fname, col=[0, 1], dt=1, b=0):
     b: start from ... in first column
     """
     count = -1
-    data = [ [] for _ in range(len(col)) ]
+    data = [[] for _ in range(len(col))]
     for stringLine in open(fname).read().splitlines():
         if stringLine[0] in ['@', '#', '&']:
             continue
@@ -51,7 +52,7 @@ def loadxvg(fname, col=[0, 1], dt=1, b=0):
         count += 1
         if count % dt != 0:
             continue
-        
+
         listLine = stringLine.split()
         # And this is for the b part.
         if b != 0 and float(listLine[col[0]]) < b:
@@ -60,6 +61,7 @@ def loadxvg(fname, col=[0, 1], dt=1, b=0):
         for idx in col:
             data[idx].append(float(listLine[col[idx]]))
     return data
+
 
 def getLambdaFileIndices(structure, resid):
     """
@@ -96,15 +98,17 @@ def getLambdaFileIndices(structure, resid):
 
     raise Exception('how did we end up here?')
 
+
 def notExists(fname):
     """Returns True if the file 'panels/fname' does not yet exist."""
     path = "panels/{}".format(fname)
-    
+
     if os.path.exists(path):
         print('{} already exists, not creating it again...'.format(path))
         return False
-    
+
     return True
+
 
 class PanelBuilder:
     """
@@ -179,8 +183,8 @@ class PanelBuilder:
         store = []
         for idx in range(0, len(array)):
             data = loadxvg('{}/{:02d}/cphmd-coord-{}.xvg'.format(sim, rep, array[idx]), dt=5000, b=0)
-            t    = [val / 1000.0 for val in data[0]] # ps -> ns
-            x    = [1.0 - val for val in data[1]] # deprotonation -> protonation
+            t    = [val / 1000.0 for val in data[0]]  # ps -> ns
+            x    = [1.0 - val for val in data[1]]     # deprotonation -> protonation
             store.append(x)
 
             plt.plot(t, x, linewidth=1, label=chain[idx])
@@ -198,7 +202,7 @@ class PanelBuilder:
         plt.legend()
         plt.tight_layout()
         plt.savefig('panels/proto_{}_{}_{}.png'.format(sim, rep, self.target))
-        plt.clf(); plt.close()
+        plt.clf()
 
     def mindistPlot(self, sim, rep, resid):
         """
@@ -216,19 +220,19 @@ class PanelBuilder:
         os.chdir('{}/{:02d}'.format(sim, rep))
 
         # Process ions / the principal vs complementary identifier.
-        # Note: 158c gives the correct distances using these lists, and 158 is 
+        # Note: 158c gives the correct distances using these lists, and 158 is
         # in fact complementary to 35 so these chain2 orders are correct.
         # Also, we need to make an exception for NA, CL, as shown below.
-        chain1 = ['A','B','C','D','E']
+        chain1 = ['A', 'B', 'C', 'D', 'E']
         if resid not in ['NA', 'CL']:
             if resid[-1] == 'c':
-                chain2 = ['E','A','B','C','D']
+                chain2 = ['E', 'A', 'B', 'C', 'D']
                 temp = int(resid[:-1])
             elif resid[-1] == 'p':
-                chain2 = ['B','C','D','E','A']
+                chain2 = ['B', 'C', 'D', 'E', 'A']
                 temp = int(resid[:-1])
             else:
-                chain2 = ['A','B','C','D','E']
+                chain2 = ['A', 'B', 'C', 'D', 'E']
                 temp = int(resid)
         else:
             temp = resid
@@ -248,16 +252,17 @@ class PanelBuilder:
         for idx in range(0, len(chain1)):
             sel1 = 'r_{}_&_ch{}_&_OE1_OE2_OD1_OD2_NE2_ND1'.format(self.target, chain1[idx])
             if resid == 'NA':
-                sel2 = 18 # this group number corresponds to NA
+                sel2 = 18  # this group number corresponds to NA
             elif resid == 'CL':
-                sel2 = 19 # this group number corresponds to CL
-            else: # business as usual
+                sel2 = 19  # this group number corresponds to CL
+            else:  # business as usual
                 sel2 = 'r_{}_&_ch{}'.format(temp, chain2[idx])
 
             if self.test:
                 # Speed things up if this is just a test run.
                 gromacs('mindist -s MD.tpr -f MD_conv.xtc -n mindist.ndx -dt 10000', stdin=[sel1, sel2])
-            else: # Normal case.
+            else:
+                # Normal case.
                 gromacs('mindist -s MD.tpr -f MD_conv.xtc -n mindist.ndx -dt 10', stdin=[sel1, sel2])
 
             data = loadxvg('mindist.xvg')
@@ -281,7 +286,7 @@ class PanelBuilder:
 
         plt.xlabel("time (ns)")
         plt.xlim(0, 1000)
-        if temp in ['NA', 'CL']: # Use 2 nm for ions and 1 nm for rest.
+        if temp in ['NA', 'CL']:  # Use 2 nm for ions and 1 nm for rest.
             plt.ylim(0, 2)
         else:
             plt.ylim(0, 1)
@@ -291,7 +296,7 @@ class PanelBuilder:
         plt.legend()
         plt.tight_layout()
         plt.savefig('panels/mindist_{}_{}_{}-{}.png'.format(sim, rep, self.target, resid))
-        plt.clf(); plt.close()
+        plt.clf()
 
     def RMSDPlot(self, sim, rep):
         """
@@ -335,7 +340,7 @@ class PanelBuilder:
         plt.legend()
         plt.tight_layout()
         plt.savefig('panels/rmsd_{}_{}_{}.png'.format(sim, rep, self.target))
-        plt.clf(); plt.close()
+        plt.clf()
 
     def occupancyBarPlot(self):
         print("Making occupancy bar plots")
@@ -498,6 +503,7 @@ class PanelBuilder:
 
             os.system('convert {} -append panels/panel_{}_{}.png'.format(str, self.target, rep))
             self.rowCount = 0
+
 
 if __name__ == "__main__":
 
