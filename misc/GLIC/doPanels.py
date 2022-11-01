@@ -1,10 +1,16 @@
 #!/bin/python3
-
+import matplotlib
 import matplotlib.pyplot as plt
 import MDAnalysis
 import MDAnalysis.analysis.rms
 import os, subprocess
 import pathos.multiprocessing as mp
+import pandas
+import numpy as np
+import copy
+
+# Set global font size for figures
+matplotlib.rcParams.update({'font.size': 14})
 
 # MDANALYSIS DOES NOT KNOW WHAT THE BACKBONE OF ASPT GLUT HSPT ARE!!!!!
 
@@ -149,6 +155,10 @@ class PanelBuilder:
         # RUN MULTITHREADED
         pool = mp.Pool(processes=mp.cpu_count())
         pool.starmap(task, items, chunksize=1)
+
+        # CREATE BAR PLOTS
+        # (this just makes the plots, so do this after multithreaded run)
+        self.occupancyBarPlot()
 
         # CREATE PANELS (this should be the very last step)
         self.rowCount = 0
@@ -327,31 +337,128 @@ class PanelBuilder:
         plt.savefig('panels/rmsd_{}_{}_{}.png'.format(sim, rep, self.target))
         plt.clf(); plt.close()
 
-    def occupancyBarPlot(self, sim, resid):
+    def occupancyBarPlot(self):
+        print("Making occupancy bar plots")
+        # For each target residue (e.g. E35) this function creates four plots:
+        # one for 4HFI_4, 4HFI_7, etc. Each of these plots contains multiple bars,
+        # reflecting the occupancy of the contact of E35 with the various self.resids.
+        # The occupancy value is the mean over the replicas and chains (one file).
 
-        # Loop through the .txt files (we create a bar plot for each one).
-        for resid in self.resids:
-            chain1 = []
-            chain2 = []
-            occ    = []
-            fname  = 'panels/occ_{}_{}-{}.txt'.format(sim, self.target, resid)
+        superMeanList = []   # Holds four lists, each corresponding to one sim.
+        superSdevList = []   # Holds four lists, each corresponding to one sim.
 
-            # Load the data from file.
-            for stringLine in open(fname).read().splitlines():
-                listLine = stringLine.split()
-                chain1.append(listLine[0])
-                chain2.append(listLine[1])
-                occ.append(float(listLine[2]))
+        for sim in self.sims:
 
-            # Make the labels for the barplot.
-            labels = []
-            for idx in range(0, len(chain1)):
-                labels.append('{}-{}'.format(chain1[idx], chain2[idx]))
-        
-            # Make the barplot itself.
-            plt.bar(labels, occ)
-            plt.savefig('test.png')
+            # MAKE BARPLOT FOR A SPECIFIC SIMULATION
+
+            meanList = []
+            sdevList = []
+
+            for resid in self.resids:
+
+                # GATHER MEANs AND SDEVs
+
+                valueList = []
+                for rep in self.reps:
+                    fname = 'panels/occ_{}_{}_{}-{}.txt'.format(sim, rep, self.target, resid)
+                    df    = pandas.read_csv(fname, header=None, delim_whitespace=True, na_filter=False)
+                    occ   = list(df.iloc[:, 2])
+                    valueList += occ
+
+                # print(resid, len(valueList)) # debug, should be 20 per resid.
+
+                mean  = np.mean(valueList)
+                stdev = np.std(valueList)
+
+                meanList.append(mean)
+                sdevList.append(stdev)
+
+            superMeanList.append(meanList)
+            superSdevList.append(sdevList)
+
+            # MAKE BARPLOT (occ_sim.png)
+
+            plt.bar(self.resids, meanList)
+            plt.errorbar(self.resids, meanList, yerr=sdevList, fmt='none', capsize=7, linewidth=2)
+            plt.ylim(0, 1.1)
+            plt.ylabel('Fractional occupancy')
+            plt.title('{} residue {} contact occupancy'.format(sim, self.target))
+            plt.tight_layout()
+            plt.savefig('panels/occ_{}.png'.format(sim))
             plt.clf()
+
+        # MAKE SUPER BARPLOT I (occ_xx_full.png)
+
+        labels = copy.deepcopy(self.resids)
+        for idx in range(0, len(labels)):
+            if labels[idx] == 'NA':
+                labels[idx] = 'Na+'
+
+        x = np.arange(len(labels))
+        width = 0.2  # the width of the bars
+        fig, ax = plt.subplots()
+
+        # 6ZGD_7
+        mean4 = superMeanList[3]
+        sdev4 = superSdevList[3]
+        ax.bar(     x - width * 1.5, mean4, width, color='c', label='6ZGD_7')
+        ax.errorbar(x - width * 1.5, mean4, sdev4, color='c', fmt='none', capsize=7, linewidth=2)
+
+        # 4HFI_7
+        mean2 = superMeanList[1]
+        sdev2 = superSdevList[1]
+        ax.bar(     x - width / 2,   mean2, width, color='g', label='4HFI_7')
+        ax.errorbar(x - width / 2,   mean2, sdev2, color='g', fmt='none', capsize=7, linewidth=2)
+
+        # 6ZGD_4
+        mean3 = superMeanList[2]
+        sdev3 = superSdevList[2]
+        ax.bar(     x + width / 2,   mean3, width, color='r', label='6ZGD_4')
+        ax.errorbar(x + width / 2,   mean3, sdev3, color='r', fmt='none', capsize=7, linewidth=2)
+
+        # 4HFI_4
+        mean1 = superMeanList[0]
+        sdev1 = superSdevList[0]
+        ax.bar(     x + width * 1.5, mean1, width, color='b', label='4HFI_4')
+        ax.errorbar(x + width * 1.5, mean1, sdev1, color='b', fmt='none', capsize=7, linewidth=2)
+
+        ax.set_xticks(x, labels)
+        ax.legend()
+
+        plt.ylim(0, 1.1)
+        plt.ylabel('Fractional occupancy')
+        plt.title('Residue {} contact occupancy'.format(self.target))
+        plt.tight_layout()
+        plt.savefig('panels/occ_{}_full.png'.format(self.target))
+        plt.clf()
+
+        # MAKE SUPER BARPLOT II (occ_xx_half.png)
+
+        x = np.arange(len(labels))
+        width = 0.4  # the width of the bars
+        fig, ax = plt.subplots()
+
+        # 6ZGD_7
+        mean4 = superMeanList[3]
+        sdev4 = superSdevList[3]
+        ax.bar(     x - width / 2, mean4, width, color='c', label='6ZGD_7')
+        ax.errorbar(x - width / 2, mean4, sdev4, color='c', fmt='none', capsize=7, linewidth=2)
+
+        # 4HFI_4
+        mean1 = superMeanList[0]
+        sdev1 = superSdevList[0]
+        ax.bar(     x + width / 2, mean1, width, color='b', label='4HFI_4')
+        ax.errorbar(x + width / 2, mean1, sdev1, color='b', fmt='none', capsize=7, linewidth=2)
+
+        ax.set_xticks(x, labels)
+        ax.legend()
+
+        plt.ylim(0, 1.1)
+        plt.ylabel('Fractional occupancy')
+        plt.title('Residue {} contact occupancy'.format(self.target))
+        plt.tight_layout()
+        plt.savefig('panels/occ_{}_half.png'.format(self.target))
+        plt.clf()
 
     def createPanel(self):
         """Creates the (temporary) panels."""
