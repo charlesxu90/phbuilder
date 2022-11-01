@@ -14,13 +14,17 @@ import copy
 matplotlib.rcParams.update({'font.size': 14})
 
 
-def gromacs(command, stdin=[]):
-    '''Handles GROMACS calls. Any user input may be provided as a stdin list.'''
+def gromacs(command, stdin=[], basepath='usr/local/gromacs_constantph'):
+    """Python function for handeling calls to GROMACS.
 
-    d_gmxbasepath = '/usr/local/gromacs_constantph'
+    Args:
+        command (string): GROMACS command, e.g. 'make_ndx -f protein.pdb'
+        stdin (list, optional): List of input arguments. Defaults to [].
+        basepath (str, optional): Base path for GROMACS version to be used. Defaults to 'usr/local/gromacs_constantph'.
+    """
 
-    # If we do not pass any envvars to subprocess (which happens by default) this will work.
-    path_to_gmx = os.path.normpath(d_gmxbasepath + '/' + 'bin/gmx')
+    # If we don't pass envvars to subprocess (which happens by default) this will work.
+    path_to_gmx = os.path.normpath(basepath + '/' + 'bin/gmx')
     command = "{} {}".format(path_to_gmx, command)
 
     if stdin:
@@ -33,28 +37,37 @@ def gromacs(command, stdin=[]):
 
     if process.returncode != 0:
         print("Failed to run \"{}\" (exitcode {}).".format(command, process.returncode))
+        return 1
+
+    return 0
 
 
 def loadxvg(fname, col=[0, 1], dt=1, b=0):
+    """Loads an .xvg file into a list of lists.
+    May also be used to load float columns from files in general.
+
+    Args:
+        fname (string): file name.
+        col (list, optional): Columns to load. Defaults to [0, 1].
+        dt (int, optional): Step size. Defaults to 1.
+        b (int, optional): Starting point. Defaults to 0.
+
+    Returns:
+        list of lists : contains the columns that were loaded.
     """
-    This function loads an .xvg file into a list of lists.
-    fname: file name (e.g. 'rmsd.xvg')
-    col: which columns to load
-    dt: skip every dt steps
-    b: start from ... in first column
-    """
+
     count = -1
     data = [[] for _ in range(len(col))]
     for stringLine in open(fname).read().splitlines():
         if stringLine[0] in ['@', '#', '&']:
             continue
-        # This is for the dt part.
+        # THIS IS FOR THE dt PART.
         count += 1
         if count % dt != 0:
             continue
 
         listLine = stringLine.split()
-        # And this is for the b part.
+        # AND THIS IS FOR THE b PART.
         if b != 0 and float(listLine[col[0]]) < b:
             continue
 
@@ -64,11 +77,15 @@ def loadxvg(fname, col=[0, 1], dt=1, b=0):
 
 
 def getLambdaFileIndices(structure, resid):
-    """
-    Returns an array containing the lambda-file indices for the specified resid.
-    Example: CA.pdb, residue: 35.
-    """
+    """Returns an array containing the lambda-file indices for the specified resid.
 
+    Args:
+        structure (string): pdb file name.
+        resid (int): residue id.
+
+    Returns:
+       list: List of lambda indices.
+    """
     u                  = MDAnalysis.Universe(structure)
     numChains          = len(u.segments) - 1
     segmentAatoms      = u.segments[0].atoms
@@ -96,11 +113,17 @@ def getLambdaFileIndices(structure, resid):
         elif titratableResnames[idx] == 'HSPT':
             count += 3
 
-    raise Exception('how did we end up here?')
-
 
 def notExists(fname):
-    """Returns True if the file 'panels/fname' does not yet exist."""
+    """Returns True if the file 'panels/fname' does not yet exist.
+
+    Args:
+        fname (string): file name.
+
+    Returns:
+        bool: boolean.
+    """
+
     path = "panels/{}".format(fname)
 
     if os.path.exists(path):
@@ -111,19 +134,24 @@ def notExists(fname):
 
 
 class PanelBuilder:
-    """
-    Combines multiple functions and tries to create the entire panel at once.
-    target: <int> the target resid e.g. 35
-    resids: <list> the contacts you'd like to check, e.g. [158c, 'NA']
-    rmsd: <string> optional, e.g. 'resid 15 to 22'
-    test: <bool> is this a test run? (will run faster)
+    """Combines multiple analyses and plotting functions and attempts to create
+    an entire panel for a residue at once.
     """
 
     def __init__(self, target, resids, rmsd='', test=False):
-        self.target   = target  # the main residue of interest
-        self.resids   = resids  # the contact targets u want to know about
-        self.rmsd     = rmsd    # MDAnalysis style selection string for rmsd
-        self.test     = test    # bool for if this is a test
+        """Create a PanelBuilder object and run the analyses as part of the construction.
+
+        Args:
+            target (int): The target residue of interest. E.g. 35.
+            resids (list): List of contacts you'd like to check.
+            rmsd (str, optional): Selection of residues to check RMSD of. E.g. 'resid 15 to 22'. Defaults to ''.
+            test (bool, optional): Is this a test run or not? (faster). Defaults to False.
+        """
+
+        self.target   = target
+        self.resids   = resids
+        self.rmsd     = rmsd
+        self.test     = test
 
         if self.test:
             self.sims = ['4HFI_4']
@@ -133,7 +161,7 @@ class PanelBuilder:
             self.reps = [1, 2, 3, 4]
 
         # WRAPPER FOR MULTITHREADING
-        def task(sim, rep):
+        def __task(sim, rep):
 
             # CREATE THE CHARGE PLOTS
             if notExists("proto_{}_{}_{}.png".format(sim, rep, self.target)) and self.target not in [127, 235, 277]:
@@ -158,7 +186,7 @@ class PanelBuilder:
 
         # RUN MULTITHREADED
         pool = mp.Pool(processes=mp.cpu_count())
-        pool.starmap(task, items, chunksize=1)
+        pool.starmap(__task, items, chunksize=1)
 
         # CREATE BAR PLOTS
         # (this just makes the plots, so do this after multithreaded run)
@@ -286,7 +314,7 @@ class PanelBuilder:
 
         plt.xlabel("time (ns)")
         plt.xlim(0, 1000)
-        if temp in ['NA', 'CL']:  # Use 2 nm for ions and 1 nm for rest.
+        if temp in ['NA', 'CL']:  # Use ylim = 2 nm for ions and 1 nm for rest.
             plt.ylim(0, 2)
         else:
             plt.ylim(0, 1)
@@ -342,7 +370,7 @@ class PanelBuilder:
         plt.savefig('panels/rmsd_{}_{}_{}.png'.format(sim, rep, self.target))
         plt.clf()
 
-    def occupancyBarPlot(self):
+    def occupancyBarPlot(self, width=0.2):
         print("Making occupancy bar plots")
         # For each target residue (e.g. E35) this function creates four plots:
         # one for 4HFI_4, 4HFI_7, etc. Each of these plots contains multiple bars,
@@ -400,7 +428,6 @@ class PanelBuilder:
                 labels[idx] = 'Na+'
 
         x = np.arange(len(labels))
-        width = 0.2  # the width of the bars
         fig, ax = plt.subplots()
 
         # 6ZGD_7
@@ -412,14 +439,14 @@ class PanelBuilder:
         # 4HFI_7
         mean2 = superMeanList[1]
         sdev2 = superSdevList[1]
-        ax.bar(     x - width / 2,   mean2, width, color='g', label='4HFI_7')
-        ax.errorbar(x - width / 2,   mean2, sdev2, color='g', fmt='none', capsize=7, linewidth=2)
+        ax.bar(     x - width / 2.0, mean2, width, color='g', label='4HFI_7')
+        ax.errorbar(x - width / 2.0, mean2, sdev2, color='g', fmt='none', capsize=7, linewidth=2)
 
         # 6ZGD_4
         mean3 = superMeanList[2]
         sdev3 = superSdevList[2]
-        ax.bar(     x + width / 2,   mean3, width, color='r', label='6ZGD_4')
-        ax.errorbar(x + width / 2,   mean3, sdev3, color='r', fmt='none', capsize=7, linewidth=2)
+        ax.bar(     x + width / 2.0, mean3, width, color='r', label='6ZGD_4')
+        ax.errorbar(x + width / 2.0, mean3, sdev3, color='r', fmt='none', capsize=7, linewidth=2)
 
         # 4HFI_4
         mean1 = superMeanList[0]
@@ -440,7 +467,7 @@ class PanelBuilder:
         # MAKE SUPER BARPLOT II (occ_xx_half.png)
 
         x = np.arange(len(labels))
-        width = 0.4  # the width of the bars
+        width *= 2
         fig, ax = plt.subplots()
 
         # 6ZGD_7
@@ -467,7 +494,7 @@ class PanelBuilder:
 
     def createPanel(self):
         """Creates the (temporary) panels."""
-        print("Creating panels")
+        print("Creating panels for {}".format(self.target))
 
         for rep in self.reps:
 
@@ -509,23 +536,25 @@ if __name__ == "__main__":
 
     loopF = 'resid 152 to 159'
 
-    PanelBuilder(26, ['79p', '105', '155', 'NA'])
-#     PanelBuilder(32, ['122', '192', 'NA'])
-#     PanelBuilder(35, ['29c', '114', '158c', 'NA'], rmsd=loopF)
-#     PanelBuilder(67, ['58', '58p', '62', '64', 'NA'])
-#     PanelBuilder(69, ['62p', 'NA'])
+    # THE OLD ANALYSIS (for making the panels)
 
-#     PanelBuilder(97,  ['48', '50', '99', '95', 'NA'])
-#     PanelBuilder(104, ['85', '102', 'NA'])
-#     PanelBuilder(122, ['32', '116', '119', '192', 'NA'])
-#     PanelBuilder(136, ['62c', '138', '179', 'NA'])
+    # PanelBuilder(26, ['79p', '105', '155', 'NA'])
+    # PanelBuilder(32, ['122', '192', 'NA'])
+    # PanelBuilder(35, ['29c', '114', '158c', 'NA'], rmsd=loopF)
+    # PanelBuilder(67, ['58', '58p', '62', '64', 'NA'])
+    # PanelBuilder(69, ['62p', 'NA'])
 
-#     PanelBuilder(177, ['44c', '148c', '179', 'NA'])
-#     PanelBuilder(178, ['148c', 'NA'])
-#     PanelBuilder(181, ['179', 'NA'])
-#     PanelBuilder(185, ['127', '183', '187', 'NA'])
+    # PanelBuilder(97,  ['48', '50', '99', '95', 'NA'])
+    # PanelBuilder(104, ['85', '102', 'NA'])
+    # PanelBuilder(122, ['32', '116', '119', '192', 'NA'])
+    # PanelBuilder(136, ['62c', '138', '179', 'NA'])
 
-#     PanelBuilder(222, ['277', 'NA'])
-#     PanelBuilder(235, ['260', '263', 'NA'])
-#     PanelBuilder(243, ['200c', '245c', '248', 'NA'])
-#     PanelBuilder(277, ['221', '222', 'NA'])
+    # PanelBuilder(177, ['44c', '148c', '179', 'NA'])
+    # PanelBuilder(178, ['148c', 'NA'])
+    # PanelBuilder(181, ['179', 'NA'])
+    # PanelBuilder(185, ['127', '183', '187', 'NA'])
+
+    # PanelBuilder(222, ['277', 'NA'])
+    # PanelBuilder(235, ['260', '263', 'NA'])
+    # PanelBuilder(243, ['200c', '245c', '248', 'NA'])
+    # PanelBuilder(277, ['221', '222', 'NA'])
