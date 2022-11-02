@@ -14,7 +14,7 @@ import copy
 matplotlib.rcParams.update({'font.size': 14})
 
 
-def gromacs(command, stdin=[], basepath='usr/local/gromacs_constantph'):
+def gromacs(command, stdin=[], basepath='/usr/local/gromacs_constantph'):
     """Python function for handeling calls to GROMACS.
 
     Args:
@@ -535,6 +535,25 @@ class PanelBuilder:
 if __name__ == "__main__":
 
     loopF = 'resid 152 to 159'
+
+    # THE NEW ANALYSIS (focus on a subgroup of key-residues)
+
+    # 1 (good)
+    PanelBuilder(26, ['79p', '80p', '81p', '155', '156', 'NA'])
+
+    # 2 (good)
+    PanelBuilder(35, ['114', '116', '156c', '158c', 'NA'], rmsd=loopF)
+
+    # 3 (good)
+    PanelBuilder(32, ['119c', '192', 'NA'])
+    PanelBuilder(122, ['116', '119', '192', 'NA'])
+
+    # 4 (good)
+    PanelBuilder(243, ['200c', '245c', '248', 'NA'])
+
+    # 5 (good)
+    PanelBuilder(222, ['277', 'NA'])
+    PanelBuilder(277, ['221', '222', 'NA'])
 
     # THE OLD ANALYSIS (for making the panels)
 
