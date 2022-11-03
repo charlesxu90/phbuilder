@@ -8,7 +8,6 @@ import subprocess
 import pathos.multiprocessing as mp
 import pandas
 import numpy as np
-import copy
 
 # Set global font size for figures
 matplotlib.rcParams.update({'font.size': 14})
@@ -370,6 +369,44 @@ class PanelBuilder:
         plt.savefig('panels/rmsd_{}_{}_{}.png'.format(sim, rep, self.target))
         plt.clf()
 
+    def addResidueLetters(self, residList, fileName='4HFI_4/01/CA.pdb'):
+        """Adds residue name letters to a list of resids for more readable (bar) plot labels.
+
+        Args:
+            residList (list): List of resid strings. E.g. ['79p', '23', 'NA'].
+            fileName (str, optional): Reference structure. Defaults to '4HFI_4/01/CA.pdb'.
+
+        Returns:
+            List: The enhanced list of strings.
+        """
+
+        d = {'CYS': 'C', 'ASP': 'D', 'SER': 'S', 'GLN': 'Q', 'LYS': 'K',
+             'ILE': 'I', 'PRO': 'P', 'THR': 'T', 'PHE': 'F', 'ASN': 'N',
+             'GLY': 'G', 'HIS': 'H', 'LEU': 'L', 'ARG': 'R', 'TRP': 'W',
+             'ALA': 'A', 'VAL': 'V', 'GLU': 'E', 'TYR': 'Y', 'MET': 'M',
+             'ASPT': 'D', 'GLUT': 'E', 'HSPT': 'H'}
+
+        u = MDAnalysis.Universe(fileName)
+
+        array = []
+        for resid in residList:
+            # If resid, which is a string (possibly '79p'), contains 'p' or 'c'
+            # at the end, trim it off. This is to prevent confusing MDAnalysis.
+            if resid[-1] in ['c', 'p']:
+                temp = resid[:-1]
+            else:
+                temp = resid
+
+            # NA is just NA, so we can continue.
+            if resid == 'NA':
+                array.append('Na+')
+                continue
+
+            fullName = u.select_atoms('resid {}'.format(temp)).residues[0].resname
+            array.append(d[fullName] + str(resid))
+
+        return array
+
     def occupancyBarPlot(self, width=0.2):
         print("Making occupancy bar plots")
         # For each target residue (e.g. E35) this function creates four plots:
@@ -378,14 +415,14 @@ class PanelBuilder:
         # The occupancy value is the mean over the replicas and chains (one file).
 
         superMeanList = []   # Holds four lists, each corresponding to one sim.
-        superSdevList = []   # Holds four lists, each corresponding to one sim.
+        superSerrList = []   # Holds four lists, each corresponding to one sim.
 
         for sim in self.sims:
 
             # MAKE BARPLOT FOR A SPECIFIC SIMULATION
 
             meanList = []
-            sdevList = []
+            serrList = []
 
             for resid in self.resids:
 
@@ -401,65 +438,62 @@ class PanelBuilder:
                 # print(resid, len(valueList)) # debug, should be 20 per resid.
 
                 mean  = np.mean(valueList)
-                stdev = np.std(valueList)
+                stder = np.std(valueList) / np.sqrt(len(valueList))
 
                 meanList.append(mean)
-                sdevList.append(stdev)
+                serrList.append(stder)
 
             superMeanList.append(meanList)
-            superSdevList.append(sdevList)
+            superSerrList.append(serrList)
 
             # MAKE BARPLOT (occ_sim.png)
 
             plt.bar(self.resids, meanList)
-            plt.errorbar(self.resids, meanList, yerr=sdevList, fmt='none', capsize=7, linewidth=2)
+            plt.errorbar(self.resids, meanList, yerr=serrList, fmt='none', capsize=6, linewidth=2)
             plt.ylim(0, 1.1)
-            plt.ylabel('Fractional occupancy')
+            plt.ylabel('Protonation, Contact occupancy')
             plt.title('{} residue {} contact occupancy'.format(sim, self.target))
             plt.tight_layout()
             plt.savefig('panels/occ_{}.png'.format(sim))
             plt.clf()
 
         # MAKE SUPER BARPLOT I (occ_xx_full.png)
-
-        labels = copy.deepcopy(self.resids)
-        for idx in range(0, len(labels)):
-            if labels[idx] == 'NA':
-                labels[idx] = 'Na+'
+        labels = self.addResidueLetters(self.resids)
+        targetWithLetter = self.addResidueLetters([str(self.target)])[0]
 
         x = np.arange(len(labels))
         fig, ax = plt.subplots()
 
         # 6ZGD_7
         mean4 = superMeanList[3]
-        sdev4 = superSdevList[3]
-        ax.bar(     x - width * 1.5, mean4, width, color='c', label='6ZGD_7')
-        ax.errorbar(x - width * 1.5, mean4, sdev4, color='c', fmt='none', capsize=7, linewidth=2)
-
-        # 4HFI_7
-        mean2 = superMeanList[1]
-        sdev2 = superSdevList[1]
-        ax.bar(     x - width / 2.0, mean2, width, color='g', label='4HFI_7')
-        ax.errorbar(x - width / 2.0, mean2, sdev2, color='g', fmt='none', capsize=7, linewidth=2)
+        serr4 = superSerrList[3]
+        ax.bar(     x - width * 1.5, mean4, width, color='c', label='closed, pH 7')
+        ax.errorbar(x - width * 1.5, mean4, serr4, color='c', fmt='none', capsize=6, linewidth=2)
 
         # 6ZGD_4
         mean3 = superMeanList[2]
-        sdev3 = superSdevList[2]
-        ax.bar(     x + width / 2.0, mean3, width, color='r', label='6ZGD_4')
-        ax.errorbar(x + width / 2.0, mean3, sdev3, color='r', fmt='none', capsize=7, linewidth=2)
+        serr3 = superSerrList[2]
+        ax.bar(     x - width / 2.0, mean3, width, color='r', label='closed, pH 4')
+        ax.errorbar(x - width / 2.0, mean3, serr3, color='r', fmt='none', capsize=6, linewidth=2)
+
+        # 4HFI_7
+        mean2 = superMeanList[1]
+        serr2 = superSerrList[1]
+        ax.bar(     x + width / 2.0, mean2, width, color='g', label='open, pH 7')
+        ax.errorbar(x + width / 2.0, mean2, serr2, color='g', fmt='none', capsize=6, linewidth=2)
 
         # 4HFI_4
         mean1 = superMeanList[0]
-        sdev1 = superSdevList[0]
-        ax.bar(     x + width * 1.5, mean1, width, color='b', label='4HFI_4')
-        ax.errorbar(x + width * 1.5, mean1, sdev1, color='b', fmt='none', capsize=7, linewidth=2)
+        serr1 = superSerrList[0]
+        ax.bar(     x + width * 1.5, mean1, width, color='b', label='open, pH 4')
+        ax.errorbar(x + width * 1.5, mean1, serr1, color='b', fmt='none', capsize=6, linewidth=2)
 
         ax.set_xticks(x, labels)
         ax.legend()
 
         plt.ylim(0, 1.1)
-        plt.ylabel('Fractional occupancy')
-        plt.title('Residue {} contact occupancy'.format(self.target))
+        plt.ylabel('Protonation / Contact occupancy')
+        plt.title('Residue {}'.format(targetWithLetter))
         plt.tight_layout()
         plt.savefig('panels/occ_{}_full.png'.format(self.target))
         plt.clf()
@@ -472,22 +506,22 @@ class PanelBuilder:
 
         # 6ZGD_7
         mean4 = superMeanList[3]
-        sdev4 = superSdevList[3]
-        ax.bar(     x - width / 2, mean4, width, color='c', label='6ZGD_7')
-        ax.errorbar(x - width / 2, mean4, sdev4, color='c', fmt='none', capsize=7, linewidth=2)
+        serr4 = superSerrList[3]
+        ax.bar(     x - width / 2, mean4, width, color='c', label='closed, pH 7')
+        ax.errorbar(x - width / 2, mean4, serr4, color='c', fmt='none', capsize=6, linewidth=2)
 
         # 4HFI_4
         mean1 = superMeanList[0]
-        sdev1 = superSdevList[0]
-        ax.bar(     x + width / 2, mean1, width, color='b', label='4HFI_4')
-        ax.errorbar(x + width / 2, mean1, sdev1, color='b', fmt='none', capsize=7, linewidth=2)
+        serr1 = superSerrList[0]
+        ax.bar(     x + width / 2, mean1, width, color='b', label='open, pH 4')
+        ax.errorbar(x + width / 2, mean1, serr1, color='b', fmt='none', capsize=6, linewidth=2)
 
         ax.set_xticks(x, labels)
         ax.legend()
 
         plt.ylim(0, 1.1)
-        plt.ylabel('Fractional occupancy')
-        plt.title('Residue {} contact occupancy'.format(self.target))
+        plt.ylabel('Protonation / Contact occupancy')
+        plt.title('Residue {}'.format(targetWithLetter))
         plt.tight_layout()
         plt.savefig('panels/occ_{}_half.png'.format(self.target))
         plt.clf()
@@ -541,19 +575,19 @@ if __name__ == "__main__":
     # 1 (good)
     PanelBuilder(26, ['79p', '80p', '81p', '155', '156', 'NA'])
 
-    # 2 (good)
-    PanelBuilder(35, ['114', '116', '156c', '158c', 'NA'], rmsd=loopF)
+    # # 2 (good)
+    # PanelBuilder(35, ['114', '116', '156c', '158c', 'NA'], rmsd=loopF)
 
-    # 3 (good)
-    PanelBuilder(32, ['119c', '192', 'NA'])
-    PanelBuilder(122, ['116', '119', '192', 'NA'])
+    # # 3 (good)
+    # PanelBuilder(32, ['119c', '192', 'NA'])
+    # PanelBuilder(122, ['116', '119', '192', 'NA'])
 
-    # 4 (good)
-    PanelBuilder(243, ['200c', '245c', '248', 'NA'])
+    # # 4 (good)
+    # PanelBuilder(243, ['200c', '245c', '248', 'NA'])
 
-    # 5 (good)
-    PanelBuilder(222, ['277', 'NA'])
-    PanelBuilder(277, ['221', '222', 'NA'])
+    # # 5 (good)
+    # PanelBuilder(222, ['277', 'NA'])
+    # PanelBuilder(277, ['221', '222', 'NA'])
 
     # THE OLD ANALYSIS (for making the panels)
 
