@@ -8,6 +8,8 @@ import subprocess
 import pathos.multiprocessing as mp
 import pandas
 import numpy as np
+import scipy.stats as stats
+import copy
 
 # Set global font size for figures
 matplotlib.rcParams.update({'font.size': 14})
@@ -130,6 +132,24 @@ def notExists(fname):
         return False
 
     return True
+
+
+def ttestPass(sample1, sample2, alpha=0.05):
+    """Returns True if the means of sample1 and sample2 differ SIGNIFICANTLY.
+    That is, with a confidence interval of 1 - alpha %. Uses Welch's t-test.
+
+    Args:
+        sample1 (list): Some sample.
+        sample2 (list): Sample to compare to.
+        alpha (float, optional): Significance of the test. Defaults to 0.05.
+
+    Returns:
+        bool: Whether or not the two sample means differ signifcantly.
+    """
+
+    pvalue = stats.ttest_ind(sample1, sample2, equal_var=False)[1]
+
+    return bool(pvalue < alpha)
 
 
 class PanelBuilder:
@@ -417,6 +437,20 @@ class PanelBuilder:
         superMeanList = []   # Holds four lists, each corresponding to one sim.
         superSerrList = []   # Holds four lists, each corresponding to one sim.
 
+        #! Construct the superDataList.
+        #! This is a dictionary of dictionaries of lists.
+        #! Holds all actual data sets, not just the means and stderrors.
+
+        A = {}
+        for resid in self.resids:
+            A[resid] = []
+
+        superDataList = {}
+        for sim in self.sims:
+            superDataList[sim] = copy.deepcopy(A)
+
+        # print(superDataList)  # debug
+
         for sim in self.sims:
 
             # MAKE BARPLOT FOR A SPECIFIC SIMULATION
@@ -442,6 +476,7 @@ class PanelBuilder:
 
                 meanList.append(mean)
                 serrList.append(stder)
+                superDataList[sim][resid] = valueList
 
             superMeanList.append(meanList)
             superSerrList.append(serrList)
@@ -492,7 +527,7 @@ class PanelBuilder:
         ax.legend()
 
         plt.ylim(0, 1.1)
-        plt.ylabel('Protonation / Contact occupancy')
+        plt.ylabel('Contact occupancy')
         plt.title('Residue {}'.format(targetWithLetter))
         plt.tight_layout()
         plt.savefig('panels/occ_{}_full.png'.format(self.target))
@@ -516,11 +551,28 @@ class PanelBuilder:
         ax.bar(     x + width / 2, mean1, width, color='b', label='open, pH 4')
         ax.errorbar(x + width / 2, mean1, serr1, color='b', fmt='none', capsize=6, linewidth=2)
 
+        #! Obtains a list 'passes' containing booleans for which of the self.resids are significant.
+        passes = []
+        for resid in self.resids:
+            sample1 = superDataList['4HFI_4'][resid]
+            sample2 = superDataList['6ZGD_7'][resid]
+            passes.append(ttestPass(sample1, sample2))
+        # print(passes)  # debug
+
+        #! The actual plotting part
+        X = []
+        Y = []
+        for idx in range(0, len(passes)):
+            if passes[idx]:
+                X.append(x[idx])
+                Y.append(max(mean1[idx], mean2[idx]) + 0.1)
+        plt.scatter(X, Y, marker="*", color='black', linewidth=2)
+
         ax.set_xticks(x, labels)
         ax.legend()
 
         plt.ylim(0, 1.1)
-        plt.ylabel('Protonation / Contact occupancy')
+        plt.ylabel('Contact occupancy')
         plt.title('Residue {}'.format(targetWithLetter))
         plt.tight_layout()
         plt.savefig('panels/occ_{}_half.png'.format(self.target))
@@ -575,19 +627,19 @@ if __name__ == "__main__":
     # 1 (good)
     PanelBuilder(26, ['79p', '80p', '81p', '155', '156', 'NA'])
 
-    # # 2 (good)
-    # PanelBuilder(35, ['114', '116', '156c', '158c', 'NA'], rmsd=loopF)
+    # 2 (good)
+    PanelBuilder(35, ['114', '116', '156c', '158c', 'NA'], rmsd=loopF)
 
-    # # 3 (good)
-    # PanelBuilder(32, ['119c', '192', 'NA'])
-    # PanelBuilder(122, ['116', '119', '192', 'NA'])
+    # 3 (good)
+    PanelBuilder(32, ['119c', '192', 'NA'])
+    PanelBuilder(122, ['116', '119', '192', 'NA'])
 
-    # # 4 (good)
-    # PanelBuilder(243, ['200c', '245c', '248', 'NA'])
+    # 4 (good)
+    PanelBuilder(243, ['200c', '245c', '248', 'NA'])
 
-    # # 5 (good)
-    # PanelBuilder(222, ['277', 'NA'])
-    # PanelBuilder(277, ['221', '222', 'NA'])
+    # 5 (good)
+    PanelBuilder(222, ['277', 'NA'])
+    PanelBuilder(277, ['221', '222', 'NA'])
 
     # THE OLD ANALYSIS (for making the panels)
 
