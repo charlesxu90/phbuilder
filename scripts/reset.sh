@@ -8,3 +8,4 @@ rm -f \#*
 rm -f *.top *.gro *.itp
 rm -f builder.log EM.pdb NVT.pdb NPT.pdb MD.pdb lambda_*.dat
 rm -f *.ndx *.mdp *.tpr *.log *.edr *.out step*.pdb *.cpt *.trr *.xtc
+rm -r NVT NPT # remove EQ directories
