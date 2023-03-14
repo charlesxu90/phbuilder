@@ -935,7 +935,7 @@ class phbuilder(User):
         def writeLambdaGroupTypeBlock(number, name, multistates, qqA, qqB, pKa, dvdl):
             addParam('lambda-dynamics-group-type{}-name'.format(number), name)
             addParam('lambda-dynamics-group-type{}-n-states'.format(number), multistates)
-            addParam('lambda-dynamics-group-type{}-state-0-charges'.format(number), to_string(qqA, 2))
+            addParam('lambda-dynamics-group-type{}-state-0-charges'.format(number), to_string(qqA, 3))
 
             for idx in range(1, multistates + 1):
                 # When we have a multistate lambdagrouptype, one of the pKas should 
@@ -945,7 +945,7 @@ class phbuilder(User):
                 if multistates > 1 and float(pKaNew) == 0.0:
                     pKaNew = self.ph_ph
 
-                addParam('lambda-dynamics-group-type{}-state-{}-charges'.format(number, idx), to_string(qqB[idx-1], 2))
+                addParam('lambda-dynamics-group-type{}-state-{}-charges'.format(number, idx), to_string(qqB[idx-1], 3))
                 addParam('lambda-dynamics-group-type{}-state-{}-reference-pka'.format(number, idx), pKaNew)
                 addParam('lambda-dynamics-group-type{}-state-{}-dvdl-coefficients'.format(number, idx), to_string(dvdl[idx-1], 3))
 
