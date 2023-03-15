@@ -93,7 +93,12 @@ class phbuilder(User):
         self.parseLambdaGroupTypesFile()
 
     # Parse lambdagrouptypes.dat
-    def parseLambdaGroupTypesFile(self):
+    def parseLambdaGroupTypesFile(self) -> int:
+        """This function parses the lambdagrouptypes file.
+
+        Returns:
+            _type_: _description_
+        """
         # Initialize some entries
         self.ph_lambdaTypes = []
         self.ph_BUF_dvdl    = None
@@ -152,13 +157,13 @@ class phbuilder(User):
                 # Check if there actually is a GROMACS installation in this path.
                 if not os.path.isdir(self.d_gmxbasepath):
                     self.verbose("Default path GROMACS base path {} does not seem to exist, will instead use GMXPH_BASEPATH".format(self.d_gmxbasepath))
-                    # Get the GROMACS base apth from the environment variable.
+                    # Get the GROMACS base path from the environment variable.
                     fromEnvVar = os.getenv('GMXPH_BASEPATH')
 
                     if fromEnvVar == None: # If empty...
                         self.error("Default GROMACS base path {} does not seem to exist, and GMXPH_BASEPATH is not set. Please update your GMXPH_BASEPATH environment variable.".format(self.d_gmxbasepath))
                     if not os.path.isdir(fromEnvVar): # If not empty but not valid...
-                        self.error("GMXPTH_BASEPATH was found but the specified path {} does not seem to exist. Please update your GMXPH_BASEPATH environment variable.".format(fromEnvVar))
+                        self.error("GMXPH_BASEPATH was found but the specified path {} does not seem to exist. Please update your GMXPH_BASEPATH environment variable.".format(fromEnvVar))
 
                     self.d_gmxbasepath = fromEnvVar
 
@@ -191,7 +196,7 @@ class phbuilder(User):
             pKa  = []
             qqB  = []
             dvdl = []
-            for idx in range(1, 11): # Max 10 multistates
+            for idx in range(1, 11): # Max 10 multisites
                 try:
                     # Parse pKa(s)
                     pKa.append(float(parser.get(sect, 'pKA_{}'.format(idx))))
@@ -291,13 +296,13 @@ class phbuilder(User):
         os.system("cp -r {} .".format(p_modelFF))
         os.system("cp {} .".format(p_residuetypes))
 
-        # Remove .ff extention from force field (we need d_modelff for pdb2gmx).
+        # Remove .ff extension from force field (we need d_modelFF for pdb2gmx).
         tail, head     = os.path.split(p_modelFF)
         self.d_modelFF = os.path.splitext(head)[0]
 
         # PART II - LOAD DATA
 
-        # Load the .pdb/.gro structure (and implictly phrecord.dat, if it exists).
+        # Load the .pdb/.gro structure (and implicitly phrecord.dat, if it exists).
         pdb = Structure(self.d_file, self.d_verbosity)
 
         # Load user-specified list of residues (if any).
@@ -489,7 +494,7 @@ class phbuilder(User):
 
         # PART IV - RUN PDB2GMX AND ASK USER FOR INPUT ABOUT IT
 
-        # FIX: If 'pdb2gmxtemp.pdb' is empty (e.g. because ALL residuestypes are 
+        # FIX: If 'pdb2gmxtemp.pdb' is empty (e.g. because ALL residuetypes are 
         # unrecognized) pdb2gmx will crash. We therefore skip this part entirely.
         if len(pdb.d_residues) == 0:
 
@@ -508,7 +513,7 @@ class phbuilder(User):
             self.update("\nRecommended pdb2gmx command:")
             self.update("gmx pdb2gmx -f {} -o {} -ff {} -water {} -ignh".format(self.d_file, self.d_output, self.d_modelFF, self.d_modelwater))
 
-            # Ask for input for what to do regarding pdb2mgx
+            # Ask for input for what to do regarding pdb2gmx
             val = self.inputOptionHandler(
                 "Choose whether to", 
                 ["Do nothing", "Run", "Add additional flags (https://manual.gromacs.org/documentation/current/onlinehelp/gmx-pdb2gmx.html)"])
@@ -1163,7 +1168,7 @@ class phbuilder(User):
         for Type in ['EM', 'NVT', 'NPT', 'MD']:
             self.writeLambda_mdp(Type, pdb, LambdaTypeNames, constrainCharge)
 
-        # PART III - WRITE LAMBBDA INDEX GROUPS
+        # PART III - WRITE LAMBDA INDEX GROUPS
 
         # If no .ndx file was specified on the command line, generate our generic one:
         if self.d_ndx == None:
@@ -1181,7 +1186,7 @@ class phbuilder(User):
         valids = []
         msgstring = "phbuilder : {}:".format(message)
 
-        # Loop through the options list and create string for dislay
+        # Loop through the options list and create string for display
         for idx in range(0, len(options)):
             msgstring += "\nphbuilder : {}. {}".format(idx, options[idx])
             valids.append(str(idx))

@@ -8,7 +8,7 @@ def parsecmdline():
     desc_2 = "phbuilder VERSION 0.0.8. For more information, examples and helpful scripts, please visit https://github.com/AntonJansen96/phbuilder."
     desc_3 = "gentopol encapsulates gmx pdb2gmx and allows you to (re)generate the topology for your system using our modified version of the CHARMM36 force field. This is necessary as some dihedral parameters were modified for titratable residues (ref manuscript 2). gentopol by default allows you to interactively set the initial lambda value (protonation state) for each residue associated with a defined lambdagrouptype. This behavior can be automated by setting the -auto <ph> flag. In this case, every residue associated with a defined lambdagrouptype will automatically be made titratable, and the initial lambda values will be guessed based on the specified ph, together with the pKa defined in the lambdagrouptypes.dat file. Note that you should use the same pH value for genparams."
     desc_4 = "The purpose of this tool is to ensure a charge-neutral system by adding the appropriate number of ions and buffer particles."
-    desc_5 = "genparams generates the .mdp files, including all the required constant-pH parameters. genparams requires the existance of a phrecord.dat file for setting the initial lambda values."
+    desc_5 = "genparams generates the .mdp files, including all the required constant-pH parameters. genparams requires the existence of a phrecord.dat file for setting the initial lambda values."
 
     parser = argparse.ArgumentParser(prog='phbuilder', description=desc_1, epilog=desc_2)
 
@@ -161,7 +161,7 @@ def parsecmdline():
                         dest='dwpE',
                         action='store',
                         default=7.5,
-                        help='[<real>] (7.5) Specify default height of bias potential barrier in kJ/mol. 7.5 should be large enough in most cases, but if you observe a lambda coordinate spending a signficant amount of time between physical (i.e. lambda = 0/1) states, you should manually increase (either directly in the .mdp file or by setting the -inter flag).',
+                        help='[<real>] (7.5) Specify default height of bias potential barrier in kJ/mol. 7.5 should be large enough in most cases, but if you observe a lambda coordinate spending a significant amount of time between physical (i.e. lambda = 0/1) states, you should manually increase (either directly in the .mdp file or by setting the -inter flag).',
                         type=float)
 
     parser_3.add_argument('-lmass',
@@ -203,7 +203,7 @@ def parsecmdline():
 
     parser_3.set_defaults(target='genparams')
 
-    argcomplete.autocomplete(parser)    # Required for autocompleting using argcomplete.
+    argcomplete.autocomplete(parser)    # Required for auto-completing using argcomplete.
     CLI = parser.parse_args()           # Do the actual parsing.
 
     # Prevent Python errors when no subcommand is specified.

@@ -6,7 +6,7 @@ class Residue:
     def __init__(self, atoms, resname, chain, resid, x, y, z):
         self.d_atoms   = atoms        # list      holds atom types
         self.d_resname = resname      # string    holds residue name
-        self.d_chain   = chain        # string    holds chain identifer
+        self.d_chain   = chain        # string    holds chain identifier
         self.d_resid   = resid        # int       holds residue number
         self.d_x       = x            # list      holds x-coordinates
         self.d_y       = y            # list      holds y-coordinates
@@ -23,7 +23,7 @@ class Crystal:
         self.d_beta    = beta         # degrees
         self.d_gamma   = gamma        # degrees
         self.d_space   = space        # Space group
-        self.d_Z       = Z            # Z va
+        self.d_Z       = Z            # Z value
 
 # Stores a .pdb/.gro file.
 class Structure:
