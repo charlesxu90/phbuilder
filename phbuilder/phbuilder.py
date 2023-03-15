@@ -746,7 +746,8 @@ class phbuilder(User):
             self.update('Total charge to be added = {:+.2f}'.format(np - nn))
 
             # Run genion to add the appropriate number of ions.
-            self.gromacs("genion -s ions.tpr -o phions.pdb -p {} -pname {} -nname {} -np {} -nn {}".format(
+            # Note: rmin is slightly increased (from default 0.6 to 0.8), just to be sure.
+            self.gromacs("genion -s ions.tpr -o phions.pdb -p {} -pname {} -nname {} -np {} -nn {} -rmin 0.8".format(
                 self.d_topol, self.d_pname, self.d_nname, np, nn), stdin=['SOL']) # this is always SOL, even if the molname is e.g. HOH...
 
             self.update('Finished adding ions')
@@ -805,7 +806,8 @@ class phbuilder(User):
             self.gromacs("grompp -f buffers.mdp -c phions.pdb -p {} -o buffers.tpr".format(self.d_topol))
 
             # Run genion to add the appropriate number of buffers.
-            self.gromacs("genion -s buffers.tpr -o {} -p {} -pname BUF -np {}".format(self.d_output, self.d_topol, nbufs), stdin=['SOL']) # this is always SOL, even if the molname is e.g. HOH...
+            # Note: rmin is slightly increased (from default 0.6 to 0.8), just to be sure.
+            self.gromacs("genion -s buffers.tpr -o {} -p {} -pname BUF -np {} -rmin 0.8".format(self.d_output, self.d_topol, nbufs), stdin=['SOL']) # this is always SOL, even if the molname is e.g. HOH...
 
             self.update('Finished adding buffers')
 
