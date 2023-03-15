@@ -37,7 +37,7 @@ class phbuilder(User):
         # If we run gentopol...
         if (CLI.target == 'gentopol'):
             self.d_output = CLI.output
-            self.ph_auto  = CLI.auto # None if not set, else float
+            self.ph_auto  = CLI.ph # None if not set, else float
 
             # Process whether the -list flag was or wasn't set.
             if (CLI.list != None):
@@ -335,7 +335,7 @@ class phbuilder(User):
                 # Store original name here as we'll need it later for a user update.
                 origName = residue.d_resname
 
-                # If -auto was set (contains a float), do not ask for every residue individually:
+                # If -ph was set (contains a float), do not ask for every residue individually:
                 if not type(self.ph_auto) == float:
                     # List to hold the various options for the user.
                     options = ["Keep current (static) protonation state"]
@@ -365,7 +365,7 @@ class phbuilder(User):
                             residue.d_resname = associatedLambdaType.d_groupname
                             residue.d_init = str(val - 1)
 
-                else: # If -auto was set, just protonate everything automatically.
+                else: # If -ph was set, just protonate everything automatically.
                     residue.d_resname = associatedLambdaType.d_groupname
 
                     # Additionally, use automaticLambdaInits to set the initial lambda values.
@@ -389,7 +389,7 @@ class phbuilder(User):
                 if hasattr(self, 'ph_list_resid') and (residue.d_resid not in list_resid):
                     continue
 
-                # If -auto was set (contains a float), do not ask for every residue individually:
+                # If -ph was set (contains a float), do not ask for every residue individually:
                 if not type(self.ph_auto) == float:
 
                     # List to hold the various options for the user.
