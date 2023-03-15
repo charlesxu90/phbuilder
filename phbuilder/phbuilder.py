@@ -93,12 +93,7 @@ class phbuilder(User):
         self.parseLambdaGroupTypesFile()
 
     # Parse lambdagrouptypes.dat
-    def parseLambdaGroupTypesFile(self) -> int:
-        """This function parses the lambdagrouptypes file.
-
-        Returns:
-            _type_: _description_
-        """
+    def parseLambdaGroupTypesFile(self):
         # Initialize some entries
         self.ph_lambdaTypes = []
         self.ph_BUF_dvdl    = None
@@ -128,21 +123,25 @@ class phbuilder(User):
         def str2strList(string):
             return string.split(' ')
 
-        # Get the path to the ffield directory. ffield is packaging_data and 
-        # will be in the same dir as phbuilder.py so we can do this:
+        # Get path to the packaging_data/ffield directory.
+        # packaging_data is in the same dir as phbuilder.py, so we can do this:
         tail, _ = os.path.split(__file__)
         self.p_ffield = os.path.normpath(tail + '/' + 'ffield')
 
-        # Get path to lambdagrouptypes.dat by combining with path to ffield directory.
-        p_lambdagrouptypes = os.path.normpath(self.p_ffield + '/' + 'lambdagrouptypes.dat')
-
-        # Error if lambdagrouptypes.dat is not present in directory.
-        if not os.path.isfile(p_lambdagrouptypes):
-            self.error('Did not find lambdagrouptypes.dat in {}. Please check your directory and/or update your PHFFIELD environment variable in your ~/.bashrc and reload terminal(s).'.format(self.p_ffield))
+        # If there is a 'lambdagrouptypes.dat' in the working directory, this
+        # overrides the default one (located in the packaging_data/ffield).
+        if os.path.exists('lambdagrouptypes.dat'):
+            self.warning('Found \'lambdagrouptypes.dat\' in working dir, this overrides the default')
+            p_lambdagrouptypes = os.path.normpath(os.getcwd() + '/' + 'lambdagrouptypes.dat')
+        else:
+            p_lambdagrouptypes = os.path.normpath(self.p_ffield + '/' + 'lambdagrouptypes.dat')
+            # Error if lambdagrouptypes.dat is not present in directory.
+            if not os.path.isfile(p_lambdagrouptypes):
+                self.error('Did not find lambdagrouptypes.dat in {}. Please check your directory and/or update your PHFFIELD environment variable in your ~/.bashrc and reload terminal(s).'.format(self.p_ffield))
 
         # User update
         self.verbose('path to ffield dir           = {}'.format(self.p_ffield))
-        self.verbose('path to lambdagrouptypes.dat = {}'.format(p_lambdagrouptypes))
+        self.verbose('path to lambdagrouptypes.dat = {}\n'.format(p_lambdagrouptypes))
 
         # Do the actual parsing
         parser = configparser.ConfigParser()
@@ -171,7 +170,7 @@ class phbuilder(User):
 
             # Parse force field parameters
             if (sect.strip() == "FORCEFIELD"):
-                self.d_modelFF    = parser.get(sect, 'path')
+                self.d_modelFF    = parser.get(sect, 'name')
                 self.d_modelwater = parser.get(sect, 'water')
                 continue
 
@@ -219,8 +218,8 @@ class phbuilder(User):
 
         # USER UPDATE
         self.verbose("gmxpath   = {}".format(self.d_gmxbasepath))
-        self.verbose("ffpath    = {}".format(self.d_modelFF))
-        self.verbose("water     = {}".format(self.d_modelwater))
+        self.verbose("ffname    = {}".format(self.d_modelFF))
+        self.verbose("water     = {}\n".format(self.d_modelwater))
 
         for obj in self.ph_lambdaTypes:
             self.verbose("groupname = {}".format(obj.d_groupname))
@@ -289,12 +288,24 @@ class phbuilder(User):
         # User update
         self.verbose('Force field path stuff:')
         self.verbose('path to ffield dir   = {}'.format(self.p_ffield))
-        self.verbose('path to ffield       = {}'.format(p_modelFF))
-        self.verbose('path to residuetypes = {}'.format(p_residuetypes))
+        self.verbose('default ffield       = {}'.format(p_modelFF))
+        self.verbose('default residuetypes = {}'.format(p_residuetypes))
 
-        # Copy force field and residuetypes.dat to working directory
-        os.system("cp -r {} .".format(p_modelFF))
-        os.system("cp {} .".format(p_residuetypes))
+        # Copy force field and residuetypes.dat from packaging_data/ffield to
+        # working dir IF they are not present. Else, use those in working dir.
+        if os.path.exists(self.d_modelFF):
+            self.update(f'Found \'{self.d_modelFF}\' in working dir, will not (again) copy from default')
+        elif os.path.exists(p_modelFF):
+            os.system("cp -r {} .".format(p_modelFF))
+        else:
+            self.error(f"Did not find {self.d_modelFF} in {self.p_ffield}. Please check your directory and/or update your PHFFIELD environment variable.")
+
+        if os.path.exists('residuetypes.dat'):
+            self.update('Found \'residuetypes.dat\' in working dir, will not (again) copy from default')
+        elif os.path.exists(p_residuetypes):
+            os.system("cp {} .".format(p_residuetypes))
+        else:
+            self.error(f"Did not find residuetypes.dat in {self.p_ffield}. Please check your directory and/or update your PHFFIELD environment variable.")
 
         # Remove .ff extension from force field (we need d_modelFF for pdb2gmx).
         tail, head     = os.path.split(p_modelFF)
