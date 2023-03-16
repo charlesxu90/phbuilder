@@ -140,7 +140,7 @@ class phbuilder(User):
                 self.error('Did not find lambdagrouptypes.dat in {}. Please check your directory and/or update your PHFFIELD environment variable in your ~/.bashrc and reload terminal(s).'.format(self.p_ffield))
 
         # User update
-        self.verbose('path to ffield dir           = {}'.format(self.p_ffield))
+        self.verbose('path to ffield dir = {}'.format(self.p_ffield))
         self.verbose('path to lambdagrouptypes.dat = {}\n'.format(p_lambdagrouptypes))
 
         # Do the actual parsing
@@ -451,17 +451,18 @@ class phbuilder(User):
 
         self.update("Checking if every residue type is present in residuetypes.dat...")
 
-        # Load residuetypes.dat into list
-        residueTypes = []
+        # Load residuetypes.dat into a dictionary
+        residueTypes = {}
         for val in open('residuetypes.dat').readlines():
-            residueTypes.append(val.split()[0])
+            residueTypes[val.split()[0]] = val.split()[1]
 
         # Compile lists of the unknown residue(s)(types)
         unknownResidues = []
         unknownResTypeNames = []
         for residue in pdb.d_residues:
-
-            if residue.d_resname not in residueTypes:
+            # If it's either not in residuetypes at all, or it is but it is an
+            # we add it to the list of unknown residues.
+            if residue.d_resname not in residueTypes or residueTypes[residue.d_resname] in ['Ion']:
                 unknownResidues.append(residue)
 
                 if residue.d_resname not in unknownResTypeNames:
@@ -471,8 +472,7 @@ class phbuilder(User):
         skipList = []   # skipList and (the manually specified path to) pathList.
         good = True
         for val in unknownResTypeNames:
-            self.warning("residue type {} in {} wasn't found in residuetypes.dat associated with {}".format(val, self.d_file, self.d_modelFF))
-            path = input("phbuilder : Specify /path/to/some.itp file (or enter to ignore) (ions can be ignored): ")
+            self.warning(f"residue type '{val}' in '{self.d_file}' was not found in residuetypes.dat associated with '{self.d_modelFF}'. phbuilder cannot provide topology information for non-standard residue types. Therefore, we expect the user to provide a separate topology (.itp) file. Additionally, be aware that pdb2gmx cannot add hydrogens to non-standard residues, so you either have to add an entry to the force field .hdb file, or make sure that hydrogens are already present in the structure for this residue type. See also https://manual.gromacs.org/current/how-to/topology.html.")
 
             skipList.append(val)
             pathList.append(path)
