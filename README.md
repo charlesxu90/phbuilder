@@ -10,7 +10,7 @@ System builder for constant-pH simulations in [GROMACS](https://www.gromacs.org/
 
 1. If you have a GPU and want to use GPU-acceleration, make sure you first install [CUDA](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#pre-installation-actions).
 
-2. Obtain the GROMACS constant-pH beta build (currently unreleased).
+2. Obtain the [GROMACS constant-pH beta build](https://gitlab.com/gromacs-constantph/).
 
 3. Install using the instructions [here](https://manual.gromacs.org/documentation/current/install-guide/index.html). Suggested CMake command:
     ```
@@ -21,7 +21,7 @@ System builder for constant-pH simulations in [GROMACS](https://www.gromacs.org/
     ```
     pip3 install --index-url https://test.pypi.org/simple/ --no-deps phbuilder
     ```
-    This is a testing version of the official PyPI repository (to-be-created later). The installation includes the modified CHARMM36M force field as well as all lambdagrouptypes.dat file, which contains the cpHMD-topology parameters.
+    This is a testing version of the official PyPI repository (to-be-created later). The installation includes the modified CHARMM36M force field as well as all lambdagrouptypes.dat file, which contains the CpHMD-topology parameters.
 5. phbuilder has [argcomplete](https://pypi.org/project/argcomplete/) functionality. To make sure this works, you should run:
     ```
     activate-global-python-argcomplete --user 
@@ -29,7 +29,7 @@ System builder for constant-pH simulations in [GROMACS](https://www.gromacs.org/
     once (and reload your terminal(s)).
 
 <!-- 5. Clone phbuilder (this) repository.
-6. Set the appropriate environment variables in `~/.bashrc` or `~/.zprofile`: <br /> `export PATH=$PATH:/path/to/clone/phbuilder` <br /> `export PHFFIELD=/path/to/clone/ffield` <br /> The ffield dir contains the modified CHARMM36M force field, as well as the lambdagrouptypes.dat file containing cpHMD specific topology data.
+6. Set the appropriate environment variables in `~/.bashrc` or `~/.zprofile`: <br /> `export PATH=$PATH:/path/to/clone/phbuilder` <br /> `export PHFFIELD=/path/to/clone/ffield` <br /> The ffield dir contains the modified CHARMM36M force field, as well as the lambdagrouptypes.dat file containing CpHMD specific topology data.
 7. Make sure that the (base)path to your GROMACS constant-pH build is set correctly in lambdagrouptypes.dat (default = `/usr/local/gromacs_constantph`). -->
 
 <!-- <b>Required Python packages</b>
@@ -45,9 +45,9 @@ System builder for constant-pH simulations in [GROMACS](https://www.gromacs.org/
 <b>phbuilder gentopol</b>
 
 SYNOPSIS
-
-`phbuilder gentopol [-h] -f FILE [-o OUTPUT] [-list LIST] [-ph PH] [-v]`
-
+```
+phbuilder gentopol [-h] -f FILE [-o OUTPUT] [-list LIST] [-ph PH] [-v]
+```
 DESCRIPTION
 
 gentopol encapsulates [gmx pdb2gmx](https://manual.gromacs.org/current/onlinehelp/gmx-pdb2gmx.html) and allows you to (re)generate the topology for your system using our modified version of the CHARMM36M force field. This is necessary as some dihedral parameters were modified for titratable residues (ref manuscript 2). gentopol by default allows you to interactively set the initial lambda value (protonation state) for each residue associated with a defined lambdagrouptype. This behavior can be automated by setting the `-ph <ph>` flag. In this case, every residue associated with a defined lambdagrouptype will automatically be made titratable, and the initial lambda values will be guessed based on the specified `ph`, together with the pKa defined in the `lambdagrouptypes.dat` file. Note that you should use the same pH value for genparams.
@@ -71,8 +71,9 @@ OPTIONS
 <b>phbuilder neutralize</b>
 
 SYNOPSIS
-
-`phbuilder neutralize [-h] -f FILE [-p TOPOL] [-o OUTPUT] [-solname SOLNAME] [-pname PNAME] [-nname NNAME] [-conc CONC] [-nbufs NBUFS] [-v]`
+```
+phbuilder neutralize [-h] -f FILE [-p TOPOL] [-o OUTPUT] [-solname SOLNAME] [-pname PNAME] [-nname NNAME] [-conc CONC] [-nbufs NBUFS] [-v]
+```
 
 DESCRIPTION
 
@@ -102,9 +103,9 @@ OPTIONS
 <b>phbuilder genparams</b>
 
 SYNOPSIS
-
-`phbuilder genparams [-h] -f FILE -ph PH [-mdp MDP] [-ndx NDX] [-nstout NSTOUT] [-dwpE DWPE] [-lmass LMASS] [-ltau LTAU] [-inter] [-v]`
-
+```
+phbuilder genparams [-h] -f FILE -ph PH [-mdp MDP] [-ndx NDX] [-nstout NSTOUT] [-dwpE DWPE] [-lmass LMASS] [-ltau LTAU] [-inter] [-v]
+```
 DESCRIPTION
 
 genparams generates the .mdp files, including all the required constant-pH parameters. genparams requires the existence of a phrecord.dat file for setting the initial lambda values.
@@ -139,7 +140,7 @@ OPTIONS
 
 3. Decide which residues you want to have titratable, and in which protonation state those residues should be at t = 0 (i.e. which initial lambda values they should have). If you do not care about this, you can use the `-ph <ph>` flag to have gentopol automatically choose the appropriate initial lambda values based on the system pH and pKas of the lambdagrouptypes.
 
-3. (Re)generate the topology using:
+4. (Re)generate the topology using:
     ```
     phbuilder gentopol -f input.pdb
     ``` 
@@ -149,17 +150,19 @@ OPTIONS
     ```
     In the latter case, the initial lambda values will be guessed based on the system ph together with the pKa specified in lambdagrouptypes.dat.
 
-4. Add a periodic box (if not already present) by e.g. (see [gmx editconf](https://manual.gromacs.org/documentation/current/onlinehelp/gmx-editconf.html)):
+5. Add a periodic box (if not already present) by e.g. (see [gmx editconf](https://manual.gromacs.org/documentation/current/onlinehelp/gmx-editconf.html)):
     ```
     gmx editconf -f phprocessed.pdb -o box.pdb -bt cubic -d 1.5
     ```
 
-5. Add solvent (if not already present) by e.g. (see [gmx solvate](https://manual.gromacs.org/documentation/current/onlinehelp/gmx-solvate.html)):
+6. Add solvent (if not already present) by e.g. (see [gmx solvate](https://manual.gromacs.org/documentation/current/onlinehelp/gmx-solvate.html)):
     ```
     gmx solvate -cp box.pdb -p topol.top -o solvated.pdb
     ```
 
-6. Add the appropriate number of positive/negative ions and buffers to ensure a net-neutral system:
+7. (Optional) [gmx solvate](https://manual.gromacs.org/documentation/current/onlinehelp/gmx-solvate.html) is a relatively basic program and will by default add solvent simply based on the van der Waals radii of the solute. This can lead to water molecules being generated in locations where there should not be any (e.g. hydrophobic pockets). It is good practice to check this, and if this occurs in your system, we recommend you to utilize the included [clean_after_solvate.py](scripts/clean_after_solvate.py) script.
+
+8. Add the appropriate number of positive/negative ions and buffers to ensure a net-neutral system:
     ```
     phbuilder neutralize -f solvated.pdb
     ```
@@ -169,9 +172,9 @@ OPTIONS
     ```
     Note that phbuilder neutralize neutralizes the system by <i>adding</i> ions to the input structure, not by removing or rebalancing existing ones. This implies the ion concentration in your output files cannot and will not be lower than the ion concentration in your input file.
 
-7. At this point, if everything went correctly both your structure and topology file(s) should be completed and constitute a net-neutral system when running cpHMD. What is now left is the actual simulation part: energy minimization, equilibration and production using the correct MD parameters.
+9. At this point, if everything went correctly both your structure and topology file(s) should be completed and constitute a net-neutral system when running CpHMD. What is now left is the actual simulation part: energy minimization, equilibration and production using the correct MD parameters.
 
-8. Generate the .mdp files for EM/EQ/MD, including the constant-pH parameters for a specific simulation pH: 
+10. Generate the .mdp files for EM/EQ/MD, including the constant-pH parameters for a specific simulation pH: 
     ```
     phbuilder genparams -f phneutral.pdb -ph 4.0 
     ```
@@ -182,9 +185,9 @@ OPTIONS
     * MD.mdp
     * index.ndx
 
-9. Check the generated files and modify parameters specific to your system as required. For example if your system explodes upon starting NVT, you might need to adjust the time step for NVT coupling. Also note that by default no position restraints are used for the protein during NVT and NPT coupling.
+11. Check the generated files and modify parameters specific to your system as required. For example if your system explodes upon starting NVT, you might need to adjust the time step for NVT coupling. Also note that by default no position restraints are used for the protein during NVT and NPT coupling.
 
-10. Perform equilibration using a script such as:
+12. Perform equilibration using a script such as:
 ```
 #!/bin/bash
 
@@ -201,7 +204,7 @@ gmx grompp -f NPT.mdp -c NVT.pdb -p topol.top -n index.ndx -o NPT.tpr
 gmx mdrun -v -deffnm NPT -c NPT.pdb -notunepme
 ```
 
-11. Perform production run using a script such as:
+13. Perform production run using a script such as:
 ```
 #!/bin/bash
 
