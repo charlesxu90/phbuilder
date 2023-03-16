@@ -447,6 +447,31 @@ class phbuilder(User):
         pdb.write('phset.pdb')
         self.d_file = 'phset.pdb'
 
+        # PART 3.5 - PRINT A REFERENCE LIST OF LAMBDA COORDINATES
+
+        self.update('writing lambda coordinates reference list (lambdareference.dat)...')
+        LambdaTypeDict = {}  # Make dict of names and associated number of coordinate files.
+
+        for obj in self.ph_lambdaTypes:
+            if len(obj.d_pKa) > 1:  # if this is a multistate...
+                # We have #coordinate (files) = number of qqB lists.
+                LambdaTypeDict[obj.d_groupname] = len(obj.d_qqB)
+            else:
+                # If this is not multisite we only have one coordinate (file).
+                LambdaTypeDict[obj.d_groupname] = 1
+
+        with open('lambdareference.dat', 'w+') as file:
+            file.write('resname coord# resid chain coordinateFile\n')
+
+            coordCount = 1
+            for residue in pdb.d_residues:
+                if residue.d_resname in LambdaTypeDict.keys():
+                    multiCount = 1
+                    for _ in range(0, LambdaTypeDict[residue.d_resname]):
+                        file.write(f"{residue.d_resname} {multiCount} {residue.d_resid:4d} {residue.d_chain:1s} cphmd-coord-{coordCount}.xvg\n")
+                        coordCount += 1
+                        multiCount += 1
+
         # PART IV - HANDLE UNKNOWN RESIDUE TYPES
 
         self.update("Checking if every residue type is present in residuetypes.dat...")
@@ -473,6 +498,7 @@ class phbuilder(User):
         good = True
         for val in unknownResTypeNames:
             self.warning(f"residue type '{val}' in '{self.d_file}' was not found in residuetypes.dat associated with '{self.d_modelFF}'. phbuilder cannot provide topology information for non-standard residue types. Therefore, we expect the user to provide a separate topology (.itp) file. Additionally, be aware that pdb2gmx cannot add hydrogens to non-standard residues, so you either have to add an entry to the force field .hdb file, or make sure that hydrogens are already present in the structure for this residue type. See also https://manual.gromacs.org/current/how-to/topology.html.")
+            path = input("phbuilder : Specify /path/to/some.itp (or enter to ignore) (ions can be ignored): ")
 
             skipList.append(val)
             pathList.append(path)
