@@ -214,3 +214,15 @@ source /usr/local/gromacs_constantph/bin/GMXRC
 gmx grompp -f MD.mdp -c NPT.pdb -p topol.top -n index.ndx -o MD.tpr
 gmx mdrun -v -deffnm MD -c MD.pdb -x MD.xtc
 ```
+
+---
+
+<b>Setting up titrations</b>
+
+Performing a computational titration is helpful for determining the microscopic pKas of titratable sites. After steps 1 to 12 of the basic workflow have been completed, one can use the included [create_titration.py](scripts/create_titration.py) to setup a titration. For example, the command:
+
+```
+create_titration.py -f MD.mdp -c NPT.pdb -p topol.top -n index.ndx -pH 1:10:1 -nr 2
+```
+
+creates directories corresponding to pH 1 to 9, with each subdirectory containing two replicas (each containing the appropriate input files for `gmx mdrun`).
