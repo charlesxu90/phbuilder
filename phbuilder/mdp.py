@@ -1,7 +1,7 @@
 firstLine = True # For formatting of title
 
 # Write a generic .mdp file
-def gen_mdp(Type, nsteps, nstxout, membrane=False):
+def gen_mdp(Type, nsteps, nstxout, membrane=False, posRes=False):
 
     # Sanitize input for Type
     if Type not in ['EM', 'NVT', 'NPT', 'MD']:
@@ -26,11 +26,11 @@ def gen_mdp(Type, nsteps, nstxout, membrane=False):
         else:
             file.write("{:20s} = {:13s} ; {:13s}\n".format(name, str(value), comment))
 
-    # POSITION RESTRAINTS
+    # POSITION RESTRAINTS DURING CALIBRATION
 
-    # if Type in ['NVT', 'NPT']:
-    #     addTitle('Position restraints')
-    #     addParam('define', '-DPOSRES', 'Position restrain protein.')
+    if posRes:
+        addTitle('Position restraints')
+        addParam('define', "-DPOSRES -DPOSRES_BUF", 'Position restrain if calibrating.')
 
     # RUN CONTROL
 
@@ -109,7 +109,7 @@ def gen_mdp(Type, nsteps, nstxout, membrane=False):
             addParam('ref_p', 1.0, 'Reference pressure (bar).')
             addParam('compressibility', 4.5e-05, 'Isothermal compressbility of water.')
 
-        if Type == 'NPT':
+        if Type == 'NPT' or posRes:
             addParam('refcoord_scaling', 'com', 'Required with position restraints.')
 
     # PERIODIC BOUNDARY CONDITIONS

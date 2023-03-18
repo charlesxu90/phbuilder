@@ -217,7 +217,7 @@ gmx mdrun -v -deffnm MD -c MD.pdb -x MD.xtc
 
 ---
 
-<b>Setting up titrations</b>
+<b>Performing titrations</b>
 
 Performing a computational titration is helpful for determining the microscopic pKas of titratable sites. After steps 1 to 12 of the basic workflow have been completed, one can use the included [create_titration.py](scripts/create_titration.py) to setup a titration. For example, the command:
 
@@ -226,3 +226,88 @@ create_titration.py -f MD.mdp -c NPT.pdb -p topol.top -n index.ndx -pH 1:10:1 -n
 ```
 
 creates directories corresponding to pH 1 to 9, with each subdirectory containing two replicas (each containing the appropriate input files for `gmx mdrun`).
+
+---
+
+<b>Performing parameterizations</b>
+
+The following section describes a procedure for parameterizing (new) *two-state* ligands for CpHMD simulations. For convenience, we will use the word ligand to refer to any new lambdagrouptype. In this workflow, we will consider parameterizing ATP as an example. Note that performing parameterizations correctly is relatively complicated, and the reader is advised to check [Scalable Constant pH Molecular Dynamics in GROMACS](https://pubs.acs.org/doi/10.1021/acs.jctc.2c00516) for more information on parameterization in CpHMD.
+
+1. Prepare the residuetype topology. [gmx pdb2gmx](https://manual.gromacs.org/documentation/current/onlinehelp/gmx-pdb2gmx.html) cannot create topologies for non-standard residuetypes, so you most likely have to provide your own .itp file. This .itp has a number of specific requirements, outlined below:
+
+    the [ moleculetype ] name should be equal to the name of the *titratable version* of the ligand. So in the case of ATP, we would have
+    ```
+    [ moleculetype ]
+    ; name	nrexcl
+    ATPT	     3
+    ```
+    in the ATP.itp file. Furthermore, the names in the [ atoms ] section should also reflect this:
+    ```
+    [ atoms ]
+    ; nr	type	resnr	residu	atom	cgnr	charge	mass
+    1        CN7      1      ATPT    C4'      1      0.160    12.0110   ; qtot  0.160
+    etc.
+    ```
+    Finally, at the end of the .itp file there should be a position restraining section
+    ```
+    #ifdef POSRES
+    #include "posresATPT.itp"
+    #endif
+    ```
+    Where the ifdef must be POSRES. The posresATPT.itp file should contain the specific atom(s) of the ligand you want to restrain, e.g. posresATPT.itp:
+    ```
+    [ position_restraints ]
+    ;  i funct       fcx        fcy        fcz
+    40  1  1000  1000  1000
+    ```
+    will position restrain atom 40 (of moleculetype ATPT). Position restraining during the calibration is required to avoid (strong) interactions between the titratable atoms and the neutralizing buffer particle. If the ligand and buffer particle accidentally get close to each other in some of the calibration runs, the resulting **dvdl** coefficients will be significantly affected. It is also important to remember while selecting atoms for which positions are restrained, that we want to keep the distance between the titratable group and the buffer particle large, but at the same time we want to sample as much orientational configurations as possible. Thus, in the case of ATPT we only fix the phosphorus of $\gamma$-phosphate. The suitable selection of atoms to restrain is system-dependent and therefore the responsibility of the user.
+
+2. In addition to providing and setting up your .itp file, you will likely have to make an addition to the CpHMD force field. This possibly includes new atom, bond, pair, angle, and dihedral types not present in the standard force field, but present in ligand topology. phbuilder does not take care of this and modifying the force field is the responsibility of the user.
+
+3. Place a (copy of the default) lambdagrouptypes.dat file in your working directory. Doing so will override the default file, and this will allow you to define custom lambdagrouptypes. To the lambdagrouptypes.dat (in your working dir) add the parameters corresponding to the new type. For ATP:
+
+    ```
+    [ ATPT ]
+    incl   = ATP
+    atoms  = O3B PG O1G O2G H2G O3G
+    qqA    = -0.98 1.50 -0.82 -0.68 0.34 -0.82
+    pKa_1  = 4.5
+    qqB_1  = -0.86 1.10 -0.90 -0.90 0.00 -0.90
+    dvdl_1 = 0
+    ```
+
+    dvdl_1 is initially set to zero as this is the parameter we are going to obtain during the calibration.
+
+4. Perform basic workflow steps 1 to 7 to obtain a solvate structure. Next, perform the neutralization step setting `-nbufs = 1`:
+
+    ```
+    phbuilder neutralize -f solvated.pdb -nbufs 1
+    ```
+
+5. Generate .mdp files for EM/EQ/MD in calibration mode by setting the additional `-cal` flag for genparams:
+
+    ```
+    phbuilder genparams -f phneutral.pdb -ph 4.0 -cal
+    ```
+
+    Setting the `-cal` flag will modify the resulting .mdp files. It will not only set 
+    ```
+    lambda-dynamics-calibration = yes
+    ```
+    but also add
+    ```
+    define = -DPOSRES -DPOSRES_BUF
+    ```
+    position restraints. Here, `DPOSRES` corresponds to the ligand atom(s) as described in step 1, and `DPOSRES_BUF` corresponds to the buffer. Finally, setting the `-cal` flag modifies the range and initial lambda for the buffer.
+
+6. Perform basic workflow steps 11 and 12 (check generic .mdp files and perform EM+EQ).
+
+7. Use the included [create_parameterization.py](scripts/create_parameterization.py) to setup the parameterization runs. For example, the command:
+
+    ```
+    create_parameterization.py -f MD.mdp -c NPT.pdb -r NPT.pdb -p topol.top -n index.ndx
+    ```
+
+    creates directories corresponding to different $\lambda$-values, each containing a `.tpr` run input file for `gmx mdrun`.
+
+8. Extract cphmd-coordiante ... and use fitting script to obtain final dvdl coefficients...

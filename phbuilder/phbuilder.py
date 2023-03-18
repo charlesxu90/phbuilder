@@ -1092,7 +1092,10 @@ class phbuilder(User):
 
         if constrainCharge:
             # Write block for the buffer.
-            writeResBlock(number, 'BUF', initList=[0.5], Edwp=0.0)
+            if self.ph_cal:
+                writeResBlock(number, 'BUF', initList=[1], Edwp=0.0)
+            else:
+                writeResBlock(number, 'BUF', initList=[0.5], Edwp=0.0)
 
         file.close() # MD.mdp
 
@@ -1180,20 +1183,25 @@ class phbuilder(User):
         if not constrainCharge:
             self.warning("No BUF(s) found. Will not use charge constraining...")
 
-        gen_mdp(Type='EM', nsteps=5000, nstxout=0)
+        # If we are doing a calibration, set the BUF charges from 0 to 1 as this is
+        # more straightforward for keeping net neutral charge.
+        if self.ph_cal:
+            self.ph_BUF_range = [1, 0]
+
+        gen_mdp(Type='EM', nsteps=5000, nstxout=0, posRes=self.ph_cal)
         self.update('Wrote a generic EM.mdp file (for energy minimization)...')
 
-        gen_mdp(Type='NVT', nsteps=5000, nstxout=0)
+        gen_mdp(Type='NVT', nsteps=5000, nstxout=0, posRes=self.ph_cal)
         self.update('Wrote a generic NPT.mdp file (for temperature coupling)...')
 
         val = self.inputOptionHandler("Simulating a membrane protein? (this will modify some barostat parameters)", ['No', 'Yes'])
 
-        gen_mdp(Type='NPT', nsteps=5000, nstxout=0, membrane=val)
+        gen_mdp(Type='NPT', nsteps=5000, nstxout=0, membrane=val, posRes=self.ph_cal)
         self.update('Wrote a generic NVT.mdp file (for pressure coupling)...')
 
         # If no existing .mdp file is specified using the -mdp flag, write a generic one.
         if self.d_mdp == None:
-            gen_mdp('MD', 50000, 5000, membrane=val)
+            gen_mdp('MD', 50000, 5000, membrane=val, posRes=self.ph_cal)
             self.update('Wrote a generic MD.mdp file (for production)...')
 
         # Move this warning here so that we can also build normal MD sims with phbuilder.
