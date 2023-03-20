@@ -1,14 +1,13 @@
-#!/usr/bin/python3
-
-# Import the rest of the modules.
-import configparser, os, subprocess
+import configparser
+import subprocess
+import os
 
 from .user import User
 from .sanitize import Sanitize
 from .structure import Structure
 from .mdp import gen_mdp
 
-# Stores the information for a lambda group type.
+
 class LambdaType:
     def __init__(self, groupname, incl, pKa, atoms, qqA, qqB, dvdl):
         self.d_groupname = groupname  # str
@@ -19,12 +18,13 @@ class LambdaType:
         self.d_qqB       = qqB        # list of lists (previously list)
         self.d_dvdl      = dvdl       # list of lists (previously list)
 
+
 # Main phbuilder object.
 class phbuilder(User):
     # Construct phbuilder object (handles input parsed from cmdline).
     def __init__(self, CLI):
         # Handle verbosity
-        if CLI.verbosity != None: # If -v flag is set...
+        if CLI.verbosity is not None:  # If -v flag is set...
             self.d_verbosity = 3
         else:
             self.d_verbosity = 2
@@ -38,7 +38,7 @@ class phbuilder(User):
         # If we run gentopol...
         if (CLI.target == 'gentopol'):
             self.d_output = Sanitize(CLI.output, 'output').path(ext=['.pdb', '.gro'], out=True)
-            self.ph_auto  = CLI.ph # None if not set, else float
+            self.ph_auto  = CLI.ph  # None if not set, else float
 
             # Process whether the -list flag was or wasn't set.
             if CLI.list is not None:
@@ -169,9 +169,9 @@ class phbuilder(User):
                     # Get the GROMACS base path from the environment variable.
                     fromEnvVar = os.getenv('GMXPH_BASEPATH')
 
-                    if fromEnvVar == None: # If empty...
+                    if fromEnvVar is not None:  # If empty...
                         self.error("Default GROMACS base path {} does not seem to exist, and GMXPH_BASEPATH is not set. Please update your GMXPH_BASEPATH environment variable.".format(self.d_gmxbasepath))
-                    if not os.path.isdir(fromEnvVar): # If not empty but not valid...
+                    if not os.path.isdir(fromEnvVar):  # If not empty but not valid...
                         self.error("GMXPH_BASEPATH was found but the specified path {} does not seem to exist. Please update your GMXPH_BASEPATH environment variable.".format(fromEnvVar))
 
                     self.d_gmxbasepath = fromEnvVar
@@ -205,7 +205,7 @@ class phbuilder(User):
             pKa  = []
             qqB  = []
             dvdl = []
-            for idx in range(1, 11): # Max 10 multisites
+            for idx in range(1, 11):  # Max 10 multisites
                 try:
                     # Parse pKa(s)
                     pKa.append(float(parser.get(sect, 'pKA_{}'.format(idx))))
@@ -215,7 +215,7 @@ class phbuilder(User):
 
                     # Parse dvdl(s)
                     dvdl.append(str2floatList(parser.get(sect, 'dvdl_{}'.format(idx))))
-                except:
+                except IndexError:
                     break
 
             # SANITIZE INPUT
@@ -269,7 +269,7 @@ class phbuilder(User):
         else:
             with open(logFile, 'a+') as file:
                 process = subprocess.run(command, shell=True, stdout=file, stderr=file, env={})
-        
+
         if process.returncode != 0:
             if terminal:
                 self.error("Failed to run \"{}\" (exitcode {}).".format(command, process.returncode))
@@ -393,7 +393,7 @@ class phbuilder(User):
                             residue.d_resname = associatedLambdaType.d_groupname
                             residue.d_init = str(val - 1)
 
-                else: # If -ph was set, just protonate everything automatically.
+                else:  # If -ph was set, just protonate everything automatically.
                     residue.d_resname = associatedLambdaType.d_groupname
 
                     # Additionally, use automaticLambdaInits to set the initial lambda values.
@@ -402,7 +402,7 @@ class phbuilder(User):
 
                     self.update("Made residue {:>4s}-{:<4d} in chain {:1s} titratable (changed name to {}, initlambda = {})".format(origName, residue.d_resid, residue.d_chain, residue.d_resname, init))
 
-                continue # Otherwise code below is executed for the same residue we just changed.
+                continue  # Otherwise code below is executed for the same residue we just changed.
 
             # Get the lambdaType object for which d_groupname = residue.d_resname (if any).
             associatedLambdaType = [lambdaType for lambdaType in self.ph_lambdaTypes if residue.d_resname == lambdaType.d_groupname]
@@ -434,7 +434,7 @@ class phbuilder(User):
                     if not multistate:
                         chargeLists = [associatedLambdaType.d_qqA, associatedLambdaType.d_qqB[0]]
                         for idx in range(0, len(chargeLists)):
-                            options.append("Keep titratable, start in state {} (q = {:+.2f})".format(idx, sum(chargeLists[idx])))  
+                            options.append("Keep titratable, start in state {} (q = {:+.2f})".format(idx, sum(chargeLists[idx])))
 
                     for name in associatedLambdaType.d_incl:
                         options.append("Change name to {}".format(name))
@@ -445,19 +445,19 @@ class phbuilder(User):
                     if val in range(0, len(chargeLists)):
                         residue.d_init = str(val)
 
-                    else: # Else the user picked one of the non-titratable options
+                    else:  # Else the user picked one of the non-titratable options
                         residue.d_resname = associatedLambdaType.d_incl[val - len(chargeLists)]
                         residue.d_init = ' '
 
                 # Normally, we would not have to do anything. However, if we are
-                else: # missing initial lambda values in the record, we need to add them.
+                else:  # missing initial lambda values in the record, we need to add them.
                     init = self.automaticLambdaInits(associatedLambdaType.d_pKa, self.ph_auto)
                     residue.d_init = str(init)
 
                     self.update("Residue {}-{} in chain {} is already titratable (initlambda = {})".format(residue.d_resname, residue.d_resid, residue.d_chain, init))
 
             # If the residue in question is neither an ASP nor an ASPT, as an extra
-            else: # measure we make sure that nothing is present in the init field.
+            else:  # measure we make sure that nothing is present in the init field.
                 residue.d_init = ' '
 
         # Write the modified structure file (input for pdb2gmx).
@@ -510,7 +510,7 @@ class phbuilder(User):
                 if residue.d_resname not in unknownResTypeNames:
                     unknownResTypeNames.append(residue.d_resname)
 
-        pathList = []   # Loop through the unknown residue types and add them to 
+        pathList = []   # Loop through the unknown residue types and add them to
         skipList = []   # skipList and (the manually specified path to) pathList.
         good = True
         for val in unknownResTypeNames:
@@ -548,14 +548,14 @@ class phbuilder(User):
             pdb.write(someTempName)
             self.d_file = someTempName
 
-            # Update value of d_output (so that pdb2gmx is called on the temporary 
+            # Update value of d_output (so that pdb2gmx is called on the temporary
             # structure), and backup the final output name as specified by user.
             self.d_output_orig = self.d_output
             self.d_output      = someTempName
 
         # PART IV - RUN PDB2GMX AND ASK USER FOR INPUT ABOUT IT
 
-        # FIX: If 'pdb2gmxtemp.pdb' is empty (e.g. because ALL residuetypes are 
+        # FIX: If 'pdb2gmxtemp.pdb' is empty (e.g. because ALL residuetypes are
         # unrecognized) pdb2gmx will crash. We therefore skip this part entirely.
         if len(pdb.d_residues) == 0:
 
@@ -576,7 +576,7 @@ class phbuilder(User):
 
             # Ask for input for what to do regarding pdb2gmx
             val = self.inputOptionHandler(
-                "Choose whether to", 
+                "Choose whether to",
                 ["Do nothing", "Run", "Add additional flags (https://manual.gromacs.org/documentation/current/onlinehelp/gmx-pdb2gmx.html)"])
 
             flags = ""
@@ -631,7 +631,7 @@ class phbuilder(User):
                     pass
 
             # if molcount not present, add it, otherwise do nothing.
-                if molname != None and molcount != None and molname not in topList[-1]:
+                if molname is not None and molcount is not None and molname not in topList[-1]:
                     file.write("{0}\t\t\t{1}\n".format(molname, molcount))
 
         # If pathList is not empty, i.e. if we had at least one unknown residue:
@@ -765,7 +765,8 @@ class phbuilder(User):
 
         self.update('Net-charge of system     = {:+.2f}'.format(QQtotalcpHMD))
 
-        np = 0; nn = 0
+        np = 0
+        nn = 0
         if QQtotalcpHMD > 0:
             nn = round(QQtotalcpHMD)
         elif QQtotalcpHMD < 0:
@@ -788,7 +789,7 @@ class phbuilder(User):
 
             if self.d_conc != 0:
                 Nions = fromSolVol(pdb, self.d_conc - ionConcInInput)
-                ionsMinRequired = np + nn               
+                ionsMinRequired = np + nn
 
                 if Nions < ionsMinRequired:
                     self.error('Target ion concentration of {} mol/L is smaller than the minimum (additional) concentration required to neutralize the system. Either remove -conc or increase it.'.format(self.d_conc))
@@ -797,7 +798,7 @@ class phbuilder(User):
                 if (Nions - np - nn) % 2 != 0:
                     Nions += 1
 
-                factor = int((Nions - np - nn)/2.0)
+                factor = int((Nions - np - nn) / 2.0)
 
                 np += factor
                 nn += factor
@@ -809,7 +810,7 @@ class phbuilder(User):
 
             # Run genion to add the appropriate number of ions.
             self.gromacs("genion -s ions.tpr -o phions.pdb -p {} -pname {} -nname {} -np {} -nn {} -rmin {}".format(
-                self.d_topol, self.d_pname, self.d_nname, np, nn, self.d_rmin), stdin=['SOL']) # this is always SOL, even if the molname is e.g. HOH...
+                self.d_topol, self.d_pname, self.d_nname, np, nn, self.d_rmin), stdin=['SOL'])  # this is always SOL, even if the molname is e.g. HOH...
 
             self.update('Finished adding ions')
 
@@ -854,7 +855,7 @@ class phbuilder(User):
         if nbufspresent == nbufs:
             self.warning("The number of buffers in {} is already equal to the request number of buffers. Will not add any buffers...".format(self.d_file))
             hasEnoughBUFs = True
-        
+
         elif nbufspresent > nbufs:
             self.warning("The number of buffers in {} exceeds the requested number of buffers. Will not add any buffers...".format(self.d_file))
             hasEnoughBUFs = True
@@ -867,7 +868,7 @@ class phbuilder(User):
             self.gromacs("grompp -f buffers.mdp -c phions.pdb -p {} -o buffers.tpr".format(self.d_topol))
 
             # Run genion to add the appropriate number of buffers.
-            self.gromacs("genion -s buffers.tpr -o {} -p {} -pname BUF -np {} -rmin {}".format(self.d_output, self.d_topol, nbufs, self.d_rmin), stdin=['SOL']) # this is always SOL, even if the molname is e.g. HOH...
+            self.gromacs("genion -s buffers.tpr -o {} -p {} -pname BUF -np {} -rmin {}".format(self.d_output, self.d_topol, nbufs, self.d_rmin), stdin=['SOL'])  # this is always SOL, even if the molname is e.g. HOH...
 
             self.update('Finished adding buffers')
 
@@ -910,7 +911,7 @@ class phbuilder(User):
             self.countRes(pdb, self.d_nname),
             self.d_nname,
             self.d_output,
-            getIonConcentration(pdb, self.countRes(pdb, 'SOL')))) # For some reason genion renames whatever solname we had in the input file to 'SOL'...
+            getIonConcentration(pdb, self.countRes(pdb, 'SOL'))))  # For some reason genion renames whatever solname we had in the input file to 'SOL'...
 
         # Check if the charge is now neutral.
 
@@ -951,7 +952,7 @@ class phbuilder(User):
 
         # We need to count how many titratable residues in total we have in the
         # protein. For this we compile a list LambdasFoundinProtein.
-        LambdasFoundinProtein = [] # (e.g ASPT ASPT GLUT ASPT GLUT ASPT...)
+        LambdasFoundinProtein = []  # (e.g ASPT ASPT GLUT ASPT GLUT ASPT...)
 
         # Stores the number of buffer atoms/ions.
         buffersFoundinProtein = 0
@@ -965,11 +966,11 @@ class phbuilder(User):
                 buffersFoundinProtein += 1
 
         # The fact that we have a LambdaType in lambdagrouptypes.dat does not mean
-        # one of those is also present in the protein. In that case, we want to 
+        # one of those is also present in the protein. In that case, we want to
         # prevent counting it, so we compile a subgroup of LambdaType groupnames
-        # that are not only in lambdagrouptypes.dat, but ALSO found at least once 
+        # that are not only in lambdagrouptypes.dat, but ALSO found at least once
         # in the actual protein.
-        LambdaTypeNamesFoundinProtein = list(set(LambdasFoundinProtein)) # (e.g ASPT GLUT)
+        LambdaTypeNamesFoundinProtein = list(set(LambdasFoundinProtein))  # (e.g ASPT GLUT)
 
         # If we not only have multistate LambdaResidueTypes defined in the .dat file,
         # but we also have detected such a LambdaResidueType in the actual protein,
@@ -978,7 +979,7 @@ class phbuilder(User):
             if len(LambdaType.d_pKa) > 1 and LambdaType.d_groupname in LambdaTypeNamesFoundinProtein:
                 addParam('lambda-dynamics-multistate-constraints', 'yes')
 
-        # If we use charge constraining we also have he BUF residue-type, as well as 
+        # If we use charge constraining we also have he BUF residue-type, as well as
         # one extra lambda group containing all the BUFs.
         if constrainCharge:
             addParam('lambda-dynamics-number-lambda-group-types', len(LambdaTypeNamesFoundinProtein) + 1)
@@ -1005,16 +1006,16 @@ class phbuilder(User):
             addParam('lambda-dynamics-group-type{}-state-0-charges'.format(number), to_string(qqA, 3))
 
             for idx in range(1, multistates + 1):
-                # When we have a multistate lambdagrouptype, one of the pKas should 
-                # be equal to the simulation-pH. This is done by setting this pKa 
+                # When we have a multistate lambdagrouptype, one of the pKas should
+                # be equal to the simulation-pH. This is done by setting this pKa
                 # to zero in the lambdagrouptypes.dat file.
-                pKaNew = pKa[idx-1]
+                pKaNew = pKa[idx - 1]
                 if multistates > 1 and float(pKaNew) == 0.0:
                     pKaNew = self.ph_ph
 
-                addParam('lambda-dynamics-group-type{}-state-{}-charges'.format(number, idx), to_string(qqB[idx-1], 3))
+                addParam('lambda-dynamics-group-type{}-state-{}-charges'.format(number, idx), to_string(qqB[idx - 1], 3))
                 addParam('lambda-dynamics-group-type{}-state-{}-reference-pka'.format(number, idx), pKaNew)
-                addParam('lambda-dynamics-group-type{}-state-{}-dvdl-coefficients'.format(number, idx), to_string(dvdl[idx-1], 3))
+                addParam('lambda-dynamics-group-type{}-state-{}-dvdl-coefficients'.format(number, idx), to_string(dvdl[idx - 1], 3))
 
             file.write('\n')
 
@@ -1022,7 +1023,7 @@ class phbuilder(User):
         # We loop over the object itself instead of the d_groupname as we need all
         # the information in the object.
         for LambdaType in self.ph_lambdaTypes:
-            # This if-statement prevents writing a block when there are no residues 
+            # This if-statement prevents writing a block when there are no residues
             # of this type in the protein.
             if (LambdaType.d_groupname in LambdaTypeNamesFoundinProtein):
 
@@ -1120,7 +1121,7 @@ class phbuilder(User):
             else:
                 writeResBlock(number, 'BUF', initList=[0.5], Edwp=0.0)
 
-        file.close() # MD.mdp
+        file.close()  # MD.mdp
 
     def writeLambda_ndx(self, fileName, Structure, LambdaTypeNames, constrainCharge):
         # Create list of Lambda group types found in protein.
@@ -1146,7 +1147,7 @@ class phbuilder(User):
         for residue in Structure.d_residues:
             # If the residue is titratable
             if residue.d_resname in list(set(LambdasFoundinProtein)):
-                # To hold the atom indices corresponding to the titratable atoms            
+                # To hold the atom indices corresponding to the titratable atoms
                 atomIndexList = []
                 # Corresponding LambdaType object
                 LambdaType = [obj for obj in self.ph_lambdaTypes if obj.d_groupname == residue.d_resname][0]
@@ -1166,7 +1167,7 @@ class phbuilder(User):
                 bufferIndexList.append(atomCount)
                 atomCount += 1
 
-            else: # Increment atomCount
+            else:  # Increment atomCount
                 for atom in residue.d_atoms:
                     atomCount += 1
 
@@ -1188,7 +1189,7 @@ class phbuilder(User):
         for LambdaType in self.ph_lambdaTypes:
             LambdaTypeNames.append(LambdaType.d_groupname)
 
-        # Check whether we have any titratable residues in the structure, 
+        # Check whether we have any titratable residues in the structure,
         # and also check whether we have any buffers.
         anyTitratables  = False
         constrainCharge = False
@@ -1221,7 +1222,7 @@ class phbuilder(User):
         self.update('Wrote a generic NVT.mdp file (for pressure coupling)...')
 
         # If no existing .mdp file is specified using the -mdp flag, write a generic one.
-        if self.d_mdp == None:
+        if self.d_mdp is not None:
             gen_mdp('MD', 50000, 5000, posRes=self.ph_cal)
             self.update('Wrote a generic MD.mdp file (for production)...')
             self.warning("Although the generated .mdp files should mostly be fine, it is up to the user to verify that the (non-CpHMD part of the) generated .mdp file(s) is suitable for their particular system (e.g. you might want to use semiisotropic pressure coupling when simulating a membrane protein etc).")
@@ -1240,7 +1241,7 @@ class phbuilder(User):
         # PART III - WRITE LAMBDA INDEX GROUPS
 
         # If no .ndx file was specified on the command line, generate our generic one:
-        if self.d_ndx == None:
+        if self.d_ndx is not None:
             self.update('No .ndx file was specified. Creating a generic index.ndx file...')
             self.gromacs("make_ndx -f {}".format(self.d_file), stdin=['q'])
             self.d_ndx = 'index.ndx'
@@ -1266,10 +1267,10 @@ class phbuilder(User):
 
         #2state case
         else:
-            if systempH >= pKaList[0]: 
-                return 1 # if pH >= pKa, we are in deproto = 1 state.
+            if systempH >= pKaList[0]:
+                return 1  # if pH >= pKa, we are in deproto = 1 state.
 
-            return 0 # if pH < pKa, we are in the proto = 0 state.
+            return 0  # if pH < pKa, we are in the proto = 0 state.
 
     def pleaseCite(self):
         self.update('If this software contributed to your research, please cite <doi_phbuilder_paper>.')
