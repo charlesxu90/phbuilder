@@ -1,63 +1,112 @@
 import os
 from .user import User
 
-# Stores the information for a residue.
+
 class Residue:
-    def __init__(self, atoms, resname, chain, resid, x, y, z):
-        self.d_atoms   = atoms        # list      holds atom types
-        self.d_resname = resname      # string    holds residue name
-        self.d_chain   = chain        # string    holds chain identifier
-        self.d_resid   = resid        # int       holds residue number
-        self.d_x       = x            # list      holds x-coordinates
-        self.d_y       = y            # list      holds y-coordinates
-        self.d_z       = z            # list      holds z-coordinates
-        self.d_init    = ''           # string    holds the initial lambda value (for record)
+    """Stores the structural (pdb, gro) information for one residue."""
 
-# Stores the information for the periodic box.
+    def __init__(self, atoms: list, resname: str, chain: str, resid: int, x: list, y: list, z: list):
+        """Initialize Residue object.
+
+        Args:
+            atoms (list): residue atom names.
+            resname (str): residue name.
+            chain (str): chain identifier.
+            resid (int): residue id.
+            x (list): residue atom x-coordinates.
+            y (list): residue atom y-coordinates.
+            z (list): residue atom z-coordinates.
+        """
+        self.d_atoms   = atoms
+        self.d_resname = resname
+        self.d_chain   = chain
+        self.d_resid   = resid
+        self.d_x       = x
+        self.d_y       = y
+        self.d_z       = z
+        self.d_init    = ''  # Holds the initial lambda value (for record).
+
+
 class Crystal:
-    def __init__(self, a, b, c, alpha, beta, gamma, space, Z):
-        self.d_a       = a            # Angstroms
-        self.d_b       = b            # Angstroms
-        self.d_c       = c            # Angstroms
-        self.d_alpha   = alpha        # degrees
-        self.d_beta    = beta         # degrees
-        self.d_gamma   = gamma        # degrees
-        self.d_space   = space        # Space group
-        self.d_Z       = Z            # Z value
+    """Stores the information pertaining the periodic box.
+    """
 
-# Stores a .pdb/.gro file.
+    def __init__(self, a: float, b: float, c: float, alpha: float, beta: float, gamma: float, space: str, Z: int):
+        """Initialize Crystal object.
+
+        Args:
+            a (float): a (Angstroms).
+            b (float): b (Angstroms).
+            c (float): b (Angstroms).
+            alpha (float): alpha (degrees).
+            beta (float): beta (degrees).
+            gamma (float): gamma (degrees).
+            space (str): space group.
+            Z (int): z-value.
+        """
+        self.d_a     = a
+        self.d_b     = b
+        self.d_c     = c
+        self.d_alpha = alpha
+        self.d_beta  = beta
+        self.d_gamma = gamma
+        self.d_space = space
+        self.d_Z     = Z
+
+
 class Structure:
-    def __init__(self, name, verbosity):
+    """Parses and stores the information in a structure (pdb, gro) file.
+    Is also able to write (internal) information to either .pdb or .gro format."""
+
+    def __init__(self, name: str, verbosity: int):
+        """Initialize structure object.
+
+        Args:
+            name (str): structure (.pdb/.gro) file name.
+            verbosity (int): verbosity.
+        """
         self.__user = User(verbosity)
         self.read(name)
-    
-    # Read d_residues from a structure (pdb/gro) file.
-    def read(self, name):
+
+    def read(self, name: str):
+        """Read structure (.pdb/.gro) file into internal data.
+
+        Args:
+            name (str): input structure file name.
+        """
         extension = os.path.splitext(name)[1]
 
-        if (extension == ".pdb"):
+        if extension == ".pdb":
             self.__read_pdb(name)
             self.__read_record()
 
-        if (extension == ".gro"):
+        if extension == ".gro":
             self.__read_gro(name)
             self.__read_record()
 
-    # Writes d_residues to a structure (pdb/gro) file.
-    def write(self, name):
+    def write(self, name: str):
+        """Write internal data to a structure (.pdb/.gro) file.
+
+        Args:
+            name (str): output structure file name.
+        """
         extension = os.path.splitext(name)[1]
 
-        if (extension == ".pdb"):
+        if extension == ".pdb":
             self.__write_pdb(name)
             self.__write_record()
 
-        if (extension == ".gro"):
+        if extension == ".gro":
             self.__write_gro(name)
             self.__write_record()
 
-    # Load a .pdb file into d_residues.
-    def __read_pdb(self, name):
-        self.__user.verbose('Reading structure from {}...'.format(name))
+    def __read_pdb(self, name: str):
+        """Load a .pdb file into d_residues.
+
+        Args:
+            name (str): file name.
+        """
+        self.__user.verbose(f"Reading structure from {name}...")
 
         with open(name) as file:
 
@@ -120,18 +169,23 @@ class Structure:
         # Add the list of Residues to universe.
         self.d_residues = residues
 
-    def __write_pdb(self, name):
-        self.__user.verbose('Writing structure to {}...'.format(name))
+    def __write_pdb(self, name: str):
+        """Write a .pdb file from d_residues.
+
+        Args:
+            name (str): file name.
+        """
+        self.__user.verbose(f"Writing structure to {name}...")
 
         with open(name, 'w') as file:
             if hasattr(self, 'd_title'):
-                file.write("TITLE     {0}\n".format(self.d_title))
+                file.write(f"TITLE     {self.d_title}\n")
 
             if hasattr(self, 'd_box'):
                 cryst = self.d_box
                 file.write("CRYST1{:>9.3f}{:>9.3f}{:>9.3f}{:>7.2f}{:>7.2f}{:>7.2f} {:11s}{:>4d}\n".format(cryst.d_a, cryst.d_b, cryst.d_c, cryst.d_alpha, cryst.d_beta, cryst.d_gamma, cryst.d_space, cryst.d_Z))
 
-            file.write("MODEL {:8d}\n".format(1))
+            file.write(f"MODEL {1:8d}\n")
 
             atomNumber = 1
             for residue in self.d_residues:
@@ -146,8 +200,13 @@ class Structure:
 
             file.write("TER\nENDMDL\n")
 
-    def __read_gro(self, name):
-        self.__user.verbose('Reading structure from {}...'.format(name))
+    def __read_gro(self, name: str):
+        """Load a .gro file into d_residues.
+
+        Args:
+            name (str): file name.
+        """
+        self.__user.verbose(f"Reading structure from {name}...")
 
         atomLines = open(name).read().splitlines()
 
@@ -172,7 +231,7 @@ class Structure:
 
             # Periodic box information.
             if (idx == len(atomLines) - 1):
-                self.d_box = Crystal(10*float(atomLines[idx][0:10]), 10*float(atomLines[idx][10:20]), 10*float(atomLines[idx][20:30]), 90, 90, 90, "P 1", 1)
+                self.d_box = Crystal(10 * float(atomLines[idx][0:10]), 10 * float(atomLines[idx][10:20]), 10 * float(atomLines[idx][20:30]), 90, 90, 90, "P 1", 1)
                 continue
 
             atoms.append(atomLines[idx][11:15].strip())
@@ -199,13 +258,18 @@ class Structure:
         # Add the list of Residues to universe.
         self.d_residues = residues
 
-    def __write_gro(self, name):
-        self.__user.verbose('Writing structure to {}...'.format(name))
+    def __write_gro(self, name: str):
+        """Write a .gro file from d_residues.
+
+        Args:
+            name (str): file name.
+        """
+        self.__user.verbose(f"Writing structure to {name}...")
 
         with open(name, 'w') as file:
             # Title.
             if hasattr(self, 'd_title'):
-                file.write("{}\n".format(self.d_title.strip()))
+                file.write(f"{self.d_title.strip()}\n")
             else:
                 file.write("Dummy Title\n")
 
@@ -214,27 +278,29 @@ class Structure:
             for residue in self.d_residues:
                 for _ in residue.d_atoms:
                     total += 1
-            file.write("{:>5d}\n".format(total))
+            file.write(f"{total:>5d}\n")
 
             # Atoms.
             total = 1
             for residue in self.d_residues:
                 for idx in range(0, len(residue.d_atoms)):
                     file.write("{:>5d}{:5s}{:>5s}{:>5d}{:>8.3f}{:>8.3f}{:>8.3f}\n".format(
-                        residue.d_resid, residue.d_resname, residue.d_atoms[idx], 
-                        total % 100000, residue.d_x[idx]/10, residue.d_y[idx]/10, residue.d_z[idx]/10))
+                        residue.d_resid, residue.d_resname, residue.d_atoms[idx],
+                        total % 100000, residue.d_x[idx] / 10, residue.d_y[idx] / 10, residue.d_z[idx] / 10))
                     total += 1
 
             # Periodic box.
             if hasattr(self, 'd_box'):
                 cryst = self.d_box
-                file.write("{:>10.5f}{:>10.5f}{:>10.5f}\n".format(cryst.d_a/10, cryst.d_b/10, cryst.d_c/10))
+                file.write(f"{cryst.d_a / 10:>10.5f}{cryst.d_b / 10:>10.5f}{cryst.d_c / 10:>10.5f}\n")
             else:
-                file.write("{:>10.5f}{:>10.5f}{:>10.5f}\n".format(0.0, 0.0, 0.0))
+                file.write(f"{0.0:>10.5f}{0.0:>10.5f}{0.0:>10.5f}\n")
 
-    # Reads the record of initial lambda values (phrecord.dat) if it exists.
-    # Will set any inits found in phrecord.dat to the corresponding residue in d_residues.
     def __read_record(self):
+        """Reads the record of initial lambda values (phrecord.dat) if it exists.
+        Will set any inits found in phrecord.dat to the corresponding residue in d_residues.
+        """
+
         if os.path.isfile('phrecord.dat'):
             self.__user.verbose('Found existing record of initial lambda values (phrecord.dat)...')
             # Split file by lines.
@@ -252,14 +318,16 @@ class Structure:
                     self.__user.verbose("Matched {}-{} in chain {} with record entry for {}-{} in chain {} (init = {})".format(
                         self.d_residues[idx].d_resname, self.d_residues[idx].d_resid, self.d_residues[idx].d_chain,
                         resname, resid, chain, init))
-                
+
                 idx += 1
         else:
             self.__user.update("Did not find existing record of initial lambda values (phrecord.dat)...")
 
-    # Writes a record of initial lambda values to phrecord.dat.
     def __write_record(self):
+        """Write a record of initial lambda values to phrecord.dat
+        """
         self.__user.verbose('Writing initial lambda record to phrecord.dat...')
+
         with open('phrecord.dat', 'w+') as file:
             for residue in self.d_residues:
                 file.write("{:4s} {:4d} {:1s} {:2s}\n".format(residue.d_resname, residue.d_resid % 10000, residue.d_chain, residue.d_init))
