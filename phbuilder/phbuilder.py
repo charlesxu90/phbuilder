@@ -28,7 +28,7 @@ class phbuilder(User):
         else:
             self.d_verbosity = 2
 
-        super().__init__(self.d_verbosity)
+        super().__init__(self.d_verbosity, logFileName='builder.log')
 
         # Add universal parameters to the universe (used by all three targets).
         self.d_target = CLI.target
@@ -61,7 +61,7 @@ class phbuilder(User):
             # Optional
             if (CLI.nbufs != None):
                 self.ph_nbufs = CLI.nbufs
-            
+
             # this needs to be defined because neutralize calls writeLambda_mdp
             self.ph_cal = False
 
@@ -255,8 +255,8 @@ class phbuilder(User):
         if process.returncode != 0:
             if terminal:
                 self.error("Failed to run \"{}\" (exitcode {}).".format(command, process.returncode))
-
-            self.error("Failed to run \"{}\" (exitcode {}). Check your logfile ({})".format(command, process.returncode, logFile))
+            else:
+                self.error("Failed to run \"{}\" (exitcode {}). Check your logfile ({})".format(command, process.returncode, logFile))
 
     # Call correct sub function depending on specified target on cmdline.
     def runner(self):
@@ -1223,27 +1223,6 @@ class phbuilder(User):
         self.writeLambda_ndx(self.d_ndx, pdb, LambdaTypeNames, constrainCharge)
 
         self.update('Finished phbuilder genparams. Please check the parameters in the generated .mdp files.')
-
-    # Handle user input.
-    def inputOptionHandler(self, message, options):
-
-        valids = []
-        msgstring = "phbuilder : {}:".format(message)
-
-        # Loop through the options list and create string for display
-        for idx in range(0, len(options)):
-            msgstring += "\nphbuilder : {}. {}".format(idx, options[idx])
-            valids.append(str(idx))
-
-        while True:
-            print(msgstring)
-            val = input("phbuilder : Type a number: ")
-
-            if val in valids:
-                print()
-                return int(val)
-
-            print("phbuilder : {} is not a valid option, please try again:\n".format(val))
 
     # If the user does not specify the -inter flag, all the residues associated
     # with a lambdagrouptype will by default made titratable. The charge states

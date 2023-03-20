@@ -65,7 +65,7 @@ class Structure:
             name (str): structure (.pdb/.gro) file name.
             verbosity (int): verbosity.
         """
-        self.__user = User(verbosity)
+        self.__user = User(verbosity, logFileName='builder.log')
         self.read(name)
 
     def read(self, name: str):
