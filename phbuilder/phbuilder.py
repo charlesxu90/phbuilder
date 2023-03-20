@@ -9,26 +9,46 @@ from .mdp import gen_mdp
 
 
 class LambdaType:
-    def __init__(self, groupname, incl, pKa, atoms, qqA, qqB, dvdl):
-        self.d_groupname = groupname  # str
-        self.d_incl      = incl       # list
-        self.d_pKa       = pKa        # list  (previously str)
-        self.d_atoms     = atoms      # list
-        self.d_qqA       = qqA        # list
-        self.d_qqB       = qqB        # list of lists (previously list)
-        self.d_dvdl      = dvdl       # list of lists (previously list)
+    """Data structure for storing a LambdaType.
+    """
+    def __init__(self, groupname: str, incl: list, pKa: list, atoms: list, qqA: list, qqB: list, dvdl: list):
+        """Initialize LambdaType object.
+
+        Args:
+            groupname (str): name of the LambdaGroupType. E.g. ASPT.
+            incl (list): residue name veriants to consider. E.g. ASP, ASPH.
+            pKa (list): pKa value(s).
+            atoms (list): titratable atom names.
+            qqA (list): titratable atom charges in state A.
+            qqB (list): titratable atom charges in state B.
+            dvdl (list): dV/dl coefficients.
+        """
+        self.d_groupname = groupname
+        self.d_incl = incl
+        self.d_pKa = pKa
+        self.d_atoms = atoms
+        self.d_qqA = qqA
+        self.d_qqB = qqB
+        self.d_dvdl = dvdl
 
 
-# Main phbuilder object.
 class phbuilder(User):
-    # Construct phbuilder object (handles input parsed from cmdline).
+    """Main phbuilder object."""
+
     def __init__(self, CLI):
+        """Construct phbuilder object. Handles both input parsed from the command line
+        as well from the lambdagrouptypes.dat file.
+
+        Args:
+            CLI (dict): parsed command line arguments.
+        """
         # Handle verbosity
         if CLI.verbosity is not None:  # If -v flag is set...
             self.d_verbosity = 3
         else:
             self.d_verbosity = 2
 
+        # Inherit all methods from User class and initialize.
         super().__init__(self.d_verbosity, logFileName='builder.log')
 
         # Add universal parameters to the universe (used by all three targets).
@@ -102,14 +122,25 @@ class phbuilder(User):
 
         self.parseLambdaGroupTypesFile()
 
-    # Parse lambdagrouptypes.dat
     def parseLambdaGroupTypesFile(self):
+        """Parse lambdagrouptypes.dat file and load into internal data structure.
+        """
         # Initialize some entries
         self.ph_lambdaTypes = []
         self.ph_BUF_dvdl    = None
 
-        # Add a lambda residue-type to universe.
-        def defineLambdaType(groupname, incl, pKa, atoms, qqA, qqB, dvdl):
+        def defineLambdaType(groupname: str, incl: list, pKa: list, atoms: list, qqA: list, qqB: list, dvdl: list):
+            """Add lambdaType to ph_lambdaTypes (or skip if it is already there).
+
+            Args:
+            groupname (str): name of the LambdaGroupType. E.g. ASPT.
+            incl (list): residue name veriants to consider. E.g. ASP, ASPH.
+            pKa (list): pKa value(s).
+            atoms (list): titratable atom names.
+            qqA (list): titratable atom charges in state A.
+            qqB (list): titratable atom charges in state B.
+            dvdl (list): dV/dl coefficients.
+            """
 
             # Create a temporary LambdaType object.
             NewLambdaType = LambdaType(groupname, incl, pKa, atoms, qqA, qqB, dvdl)
@@ -118,19 +149,19 @@ class phbuilder(User):
             alreadyPresent = False
             for entry in self.ph_lambdaTypes:
                 if entry.d_groupname == NewLambdaType.d_groupname:
-                    self.warning("LambdaType with groupname {} is already defined. Skipping...")
+                    self.warning(f"LambdaType with groupname {groupname} is already defined. Skipping...")
                     alreadyPresent = True
                     break
 
             if not alreadyPresent:
                 self.ph_lambdaTypes.append(NewLambdaType)
 
-        # Internal function to convert string to list of floats.
-        def str2floatList(string):
+        def str2floatList(string: str):
+            """Internal function to convert string to list of floats."""
             return [float(val) for val in string.split(' ')]
 
-        # Internal function to convert string to list of strings.
-        def str2strList(string):
+        def str2strList(string: str):
+            """Internal function to convert string to list of strings."""
             return string.split(' ')
 
         # Get path to the packaging_data/ffield directory.
@@ -159,6 +190,7 @@ class phbuilder(User):
 
         # Loop through the sections.
         for sect in parser.sections():
+
             # Parse GROMACS parameters
             if (sect.strip() == "GROMACS"):
                 self.d_gmxbasepath = parser.get(sect, 'path')
@@ -179,13 +211,13 @@ class phbuilder(User):
                 continue
 
             # Parse force field parameters
-            if (sect.strip() == "FORCEFIELD"):
+            if sect.strip() == "FORCEFIELD":
                 self.d_modelFF    = parser.get(sect, 'name')
                 self.d_modelwater = parser.get(sect, 'water')
                 continue
 
             # Parse buffer parameters
-            if (sect.strip() == "BUF"):
+            if sect.strip() == "BUF":
                 self.ph_BUF_dvdl  = str2floatList(parser.get(sect, 'dvdl'))
                 self.ph_BUF_range = str2floatList(parser.get(sect, 'range'))
                 continue
@@ -215,7 +247,7 @@ class phbuilder(User):
 
                     # Parse dvdl(s)
                     dvdl.append(str2floatList(parser.get(sect, 'dvdl_{}'.format(idx))))
-                except IndexError:
+                except configparser.NoOptionError:
                     break
 
             # SANITIZE INPUT
@@ -250,8 +282,19 @@ class phbuilder(User):
         self.verbose("BUF_range = {}".format(self.ph_BUF_range))
         self.verbose("BUF_dvdl  = {}".format(self.ph_BUF_dvdl))
 
-    # Function to encapsulate GROMACS calls
-    def gromacs(self, command, stdin=[], terminal=False, logFile='builder.log'):
+    def gromacs(self, command: str, stdin: list = [], terminal: bool = False, logFile: str = 'builder.log') -> int:
+        """Python function for handeling calls to GROMACS.
+
+        Args:
+            command (str): GROMACS command, e.g. 'make_ndx -f protein.pdb'.
+            stdin (list, optional): list of input arguments. Defaults to [].
+            terminal (bool, optional): print output to terminal. Defaults to False.
+            logFile (str, optional): log file to use when terminal=False. Defaults to 'gromacs.log'.
+
+        Returns:
+            int: return code (0 if things were successful).
+        """
+
         # If we do not pass any envvars to subprocess (which happens by default) this will work.
         path_to_gmx = os.path.normpath(self.d_gmxbasepath + '/' + 'bin/gmx')
         command = "{} {}".format(path_to_gmx, command)
@@ -276,8 +319,11 @@ class phbuilder(User):
             else:
                 self.error("Failed to run \"{}\" (exitcode {}). Check your logfile ({})".format(command, process.returncode, logFile))
 
-    # Call correct sub function depending on specified target on cmdline.
+        return process.returncode
+
     def runner(self):
+        """Call correct sub-function depending on specified target on cmdline.
+        """
         if self.d_target == 'gentopol':
             self.update('Running gentopol...')
             self.gentopol()
@@ -292,11 +338,12 @@ class phbuilder(User):
 
         self.pleaseCite()
 
-    # Prepare topology.
     def gentopol(self):
+        """gentopol prepares the topology.
+        """
         # Part I - COPY FORCE FIELD AND RESIDUETYPES.DAT TO WORKING DIR
 
-        # /path/to/ffield/charmm36-mar2019-m6.ff
+        # /path/to/ffield/charmm36-mar2019-cphmd.ff
         p_modelFF = os.path.normpath(self.p_ffield + '/' + self.d_modelFF)
 
         # /path/to/ffield/residuetypes.dat
@@ -609,8 +656,15 @@ class phbuilder(User):
 
         # PART VI - MERGE THE TOPOLOGIES
 
-        # Write manually specified files to topol.top
-        def add_mol(itpfname, comment, molname=None, molcount=None):
+        def add_mol(itpfname: str, comment: str, molname=None, molcount=None):
+            """Write manually specified files to the topology file.
+
+            Args:
+                itpfname (str): name of the .itp file.
+                comment (_type_): additional comment.
+                molname (str, optional): molecule name. Defaults to None.
+                molcount (str, optional): number of molecules. Defaults to None.
+            """
             # Get the contents of current topol.top.
             topList = []
             with open("topol.top") as file:
@@ -630,7 +684,7 @@ class phbuilder(User):
                 except IndexError:
                     pass
 
-            # if molcount not present, add it, otherwise do nothing.
+                # if molcount not present, add it, otherwise do nothing.
                 if molname is not None and molcount is not None and molname not in topList[-1]:
                     file.write("{0}\t\t\t{1}\n".format(molname, molcount))
 
@@ -653,7 +707,9 @@ class phbuilder(User):
 
         self.update("Finished generating topology for constant-pH.")
 
-    def countRes(self, Structure, resname):
+    def countRes(self, Structure: Structure, resname: str):
+        """Count the number of residues with resname in Structure.
+        """
         count = 0
         for residue in Structure.d_residues:
             if residue.d_resname == resname:
@@ -1241,7 +1297,7 @@ class phbuilder(User):
         # PART III - WRITE LAMBDA INDEX GROUPS
 
         # If no .ndx file was specified on the command line, generate our generic one:
-        if self.d_ndx is not None:
+        if self.d_ndx is None:
             self.update('No .ndx file was specified. Creating a generic index.ndx file...')
             self.gromacs("make_ndx -f {}".format(self.d_file), stdin=['q'])
             self.d_ndx = 'index.ndx'
@@ -1250,11 +1306,19 @@ class phbuilder(User):
 
         self.update('Finished phbuilder genparams. Please check the parameters in the generated .mdp files.')
 
-    # If the user does not specify the -inter flag, all the residues associated
-    # with a lambdagrouptype will by default made titratable. The charge states
-    # of these residues will be guessed based on an optional pH parameter
-    # (default = 7.0) that can be specified for gentopol.
-    def automaticLambdaInits(self, pKaList, systempH):
+    def automaticLambdaInits(self, pKaList: list, systempH: float) -> int:
+        """If the user does not specify the -inter flag, all the residues associated
+        with a lambdagrouptype will by default made titratable. The charge states
+        of these residues will be guessed based on an optional pH parameter
+        (default = 7.0) that can be specified for gentopol.
+
+        Args:
+            pKaList (list): list of pKas for the LambdaGroupTypes.
+            systempH (float): specified system pH.
+
+        Returns:
+            int: initial lambda value.
+        """
         # multistate case
         if len(pKaList) > 1:
 
@@ -1273,4 +1337,6 @@ class phbuilder(User):
             return 0  # if pH < pKa, we are in the proto = 0 state.
 
     def pleaseCite(self):
+        """Print citation request.
+        """
         self.update('If this software contributed to your research, please cite <doi_phbuilder_paper>.')
