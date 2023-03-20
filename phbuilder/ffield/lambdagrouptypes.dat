@@ -2,7 +2,7 @@
 path  = /usr/local/gromacs_constantph
 
 [ FORCEFIELD ]
-name  = charmm36-mar2019-m6.ff
+name  = charmm36-mar2019-cphmd.ff
 water = tip3p
 
 [ ASPT ]
