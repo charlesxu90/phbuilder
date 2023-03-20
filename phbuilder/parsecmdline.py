@@ -172,22 +172,6 @@ def parsecmdline():
                         help='[<real>] (7.5) Specify default height of bias potential barrier in kJ/mol. 7.5 should be large enough in most cases, but if you observe a lambda coordinate spending a significant amount of time between physical (i.e. lambda = 0/1) states, you should manually increase (either directly in the .mdp file or by setting the -inter flag).',
                         type=float)
 
-    parser_3.add_argument('-lmass',
-                        required=False,
-                        dest='lmass',
-                        action='store',
-                        default=5,
-                        help='[<real>] (5.0) Specify mass of the lambda particle(s). The user should probably not touch this.',
-                        type=float)
-
-    parser_3.add_argument('-ltau',
-                        required=False,
-                        dest='ltau',
-                        action='store',
-                        default=2,
-                        help='[<real>] (2.0) Specify thermostat coupling time for the lambda-particles. The user should probably not touch this.',
-                        type=float)
-
     parser_3.add_argument('-inter',
                         required=False,
                         dest='inter',

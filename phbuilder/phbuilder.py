@@ -72,8 +72,6 @@ class phbuilder(User):
             self.ph_ph     = CLI.ph
             self.ph_nstout = CLI.nstout
             self.ph_dwpE   = CLI.dwpE
-            self.ph_lmass  = CLI.lmass
-            self.ph_ltau   = CLI.ltau
 
             # Process whether the -inter flag was or wasn't set
             if (CLI.inter != None):
@@ -684,9 +682,10 @@ class phbuilder(User):
             open('{}.mdp'.format(name), 'w').close()
 
             # Set dummy parameters
-            self.ph_ph    = 7.0; self.ph_nstout = 500
-            self.ph_lmass = 5.0; self.ph_inter  = False
-            self.ph_ltau  = 2.0; self.ph_dwpE   = 7.5
+            self.ph_ph     = 7.0
+            self.ph_nstout = 500
+            self.ph_inter  = False
+            self.ph_dwpE   = 7.5
 
             # Write the lambda dynamics parameters to name.mdp
             self.writeLambda_mdp(name, Structure, LambdaTypeNames, constrainCharge)
@@ -913,8 +912,8 @@ class phbuilder(User):
 
         addParam('lambda-dynamics', 'yes')
         addParam('lambda-dynamics-simulation-ph', "{:.1f}".format(self.ph_ph))
-        addParam('lambda-dynamics-lambda-particle-mass', "{:.1f}".format(self.ph_lmass))
-        addParam('lambda-dynamics-tau', "{:.1f}".format(self.ph_ltau))
+        addParam('lambda-dynamics-lambda-particle-mass', "{:.1f}".format(5.0))  # lmass is hardcoded to 5.0 (amu).
+        addParam('lambda-dynamics-tau', "{:.1f}".format(2.0))  # ltau is hardcoded to 2.0 (ps).
         addParam('lambda-dynamics-update-nst', self.ph_nstout)
 
         # If we use charge constraining...
