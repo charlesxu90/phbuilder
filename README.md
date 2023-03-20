@@ -277,10 +277,10 @@ The following section describes a procedure for parameterizing (new) *two-state*
 
     dvdl_1 is initially set to zero as this is the parameter we are going to obtain during the calibration.
 
-4. Perform basic workflow steps 1 to 7 to obtain a solvate structure. Next, perform the neutralization step setting `-nbufs = 1`:
+4. Perform basic workflow steps 1 to 7 to obtain a solvate structure. Make sure to set the initial lambda equal to the *protonated* state. Next, perform the neutralization step setting `-nbufs = 1 -rmin 2.0`:
 
     ```
-    phbuilder neutralize -f solvated.pdb -nbufs 1
+    phbuilder neutralize -f solvated.pdb -nbufs 1 -rmin 2.0
     ```
 
 5. Generate .mdp files for EM/EQ/MD in calibration mode by setting the additional `-cal` flag for genparams:

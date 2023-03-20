@@ -4,6 +4,7 @@
 import configparser, os, subprocess
 
 from .user import User
+from .sanitize import Sanitize
 from .structure import Structure
 from .mdp import gen_mdp
 
@@ -32,15 +33,16 @@ class phbuilder(User):
 
         # Add universal parameters to the universe (used by all three targets).
         self.d_target = CLI.target
-        self.d_file   = CLI.file
+        self.d_file   = Sanitize(CLI.file, 'file').path(ext=['.pdb', '.gro'])
 
         # If we run gentopol...
         if (CLI.target == 'gentopol'):
-            self.d_output = CLI.output
+            self.d_output = Sanitize(CLI.output, 'output').path(ext=['.pdb', '.gro'], out=True)
             self.ph_auto  = CLI.ph # None if not set, else float
 
             # Process whether the -list flag was or wasn't set.
-            if (CLI.list != None):
+            if CLI.list is not None:
+                Sanitize(CLI.list, 'list').path()
                 resid = []
                 for line in open(CLI.list).readlines():
                     resid.append(line.split()[0])
@@ -50,37 +52,46 @@ class phbuilder(User):
         # If we run neutralize...
         elif (CLI.target == 'neutralize'):
             # Either required or has a default value
-            self.d_output  = CLI.output
-            self.d_topol   = CLI.topol
-            self.d_solname = CLI.solname
-            self.d_pname   = CLI.pname
-            self.d_nname   = CLI.nname
-            self.d_conc    = CLI.conc
-            self.d_rmin    = CLI.rmin
+            self.d_output  = Sanitize(CLI.output, 'output').path(ext=['.pdb', '.gro'], out=True)
+            self.d_topol   = Sanitize(CLI.topol, 'topol').path(ext=['.top'])
+            self.d_solname = Sanitize(CLI.solname, 'solname').string(Range=[1, 4], upper=True, ws=False)
+            self.d_pname   = Sanitize(CLI.pname, 'pname').string(Range=[1, 4], upper=True, ws=False)
+            self.d_nname   = Sanitize(CLI.nname, 'nname').string(Range=[1, 4], upper=True, ws=False)
+            self.d_conc    = Sanitize(CLI.conc, 'conc').num(signed=True)
+            self.d_rmin    = Sanitize(CLI.rmin, 'rmin').num(signed=True)
 
             # Optional
-            if (CLI.nbufs != None):
-                self.ph_nbufs = CLI.nbufs
+            if CLI.nbufs is not None:
+                self.ph_nbufs = Sanitize(CLI.nbufs, 'nbufs').num(signed=True, Type=int)
 
             # this needs to be defined because neutralize calls writeLambda_mdp
             self.ph_cal = False
 
         # If we run genparams...
         elif (CLI.target == 'genparams'):
-            self.d_mdp     = CLI.mdp
-            self.d_ndx     = CLI.ndx
-            self.ph_ph     = CLI.ph
-            self.ph_nstout = CLI.nstout
-            self.ph_dwpE   = CLI.dwpE
+
+            if CLI.mdp is not None:
+                self.d_mdp = Sanitize(CLI.mdp, 'mdp').path(ext=['.mdp'])
+            else:
+                self.d_mdp = None
+
+            if CLI.ndx is not None:
+                self.d_ndx = Sanitize(CLI.ndx, 'ndx').path(ext=['.ndx'])
+            else:
+                self.d_ndx = None
+
+            self.ph_ph     = Sanitize(CLI.ph, 'ph').num(Range=[0, 14])
+            self.ph_nstout = Sanitize(CLI.nstout, 'nstout').num(Type=int, signed=True)
+            self.ph_dwpE   = Sanitize(CLI.dwpE, 'dwpE').num(signed=True)
 
             # Process whether the -inter flag was or wasn't set
-            if (CLI.inter != None):
+            if CLI.inter is not None:
                 self.ph_inter = True
             else:
                 self.ph_inter = False
 
             # Process whether the -cal flag was or wasn't set
-            if (CLI.cal != None):
+            if CLI.cal is not None:
                 self.ph_cal = True
             else:
                 self.ph_cal = False
@@ -209,8 +220,15 @@ class phbuilder(User):
 
             # SANITIZE INPUT
 
-            if (len(groupname) < 2 or len(groupname) > 4):
-                self.error("groupname of LambdaType needs to contain between 2 and 4 characters.")
+            groupname = Sanitize(groupname, "groupname in lambdagrouptypes.dat").string(Range=[2, 4], upper=True)
+            incl      = [Sanitize(val, f"incl for {groupname} in lambdagrouptypes.dat").string(Range=[2, 4], upper=True) for val in incl]
+            atoms     = [Sanitize(val, f"atoms for {groupname} in lambdagrouptypes.dat").string(Range=[1, 4], upper=True) for val in atoms]
+            qqA       = [Sanitize(val, f"qqA for {groupname} in lambdagrouptypes.dat").num(Range=[-1.0, 1.0]) for val in qqA]
+            pKa       = [Sanitize(val, f"pKa for {groupname} in lambdagrouptypes.dat").num(Range=[0, 14]) for val in pKa]
+
+            for array in qqB:
+                for val in array:
+                    Sanitize(val, f"qqB for {groupname} in lambdagrouptypes.dat").num(Range=[-1, 1])
 
             # Call function that constructs the LambdaType object.
             defineLambdaType(groupname, incl, pKa, atoms, qqA, qqB, dvdl)
@@ -497,7 +515,14 @@ class phbuilder(User):
         good = True
         for val in unknownResTypeNames:
             self.warning(f"residue type '{val}' in '{self.d_file}' was not found in residuetypes.dat associated with '{self.d_modelFF}'. phbuilder cannot provide topology information for non-standard residue types. Therefore, we expect the user to provide a separate topology (.itp) file. Additionally, be aware that pdb2gmx cannot add hydrogens to non-standard residues, so you either have to add an entry to the force field .hdb file, or make sure that hydrogens are already present in the structure for this residue type. See also https://manual.gromacs.org/current/how-to/topology.html.")
-            path = input("phbuilder : Specify /path/to/some.itp (or enter to ignore) (ions can be ignored): ")
+
+            while True:
+                path = input("phbuilder : Specify /path/to/some.itp (or enter to ignore) (ions can be ignored): ")
+                if path == "":
+                    break
+                path = Sanitize(path, "path to .itp file", exit=False).path(ext=['.itp'])
+                if path is not None:
+                    break
 
             skipList.append(val)
             pathList.append(path)
