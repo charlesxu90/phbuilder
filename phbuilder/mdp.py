@@ -1,17 +1,26 @@
-firstLine = True # For formatting of title
+firstLine = True  # For formatting of title.
 
-# Write a generic .mdp file
-def gen_mdp(Type, nsteps, nstxout, membrane=False, posRes=False):
+def gen_mdp(Type: str, nsteps: int, nstxout: int, posRes=False):
+    """Write a generic .mdp file.
 
-    # Sanitize input for Type
-    if Type not in ['EM', 'NVT', 'NPT', 'MD']:
-        raise Exception("Unknown .mdp Type specified. Types are: EM, NVT, NPT, MD.")
+    Args:
+        Type (str): the .mdp file type. Choose EM, NVT, NPT, MD.
+        nsteps (int): number of simulation steps.
+        nstxout (int): output frequency (write once every nstxout simulation steps).
+        posRes (bool, optional): enable position restraints (for in calibration mode). Defaults to False.
+    """
 
-    # Open file
+    assert Type in ['EM', 'NVT', 'NPT', 'MD'], "type should be be EM, NVT, NPT, MD"
+
     file = open("{0}.mdp".format(Type), 'w')
 
-    # Formatting function for titles
-    def addTitle(title):
+    def addTitle(title: str):
+        """Formatting function for Title.
+
+        Args:
+            title (str): title.
+        """
+
         global firstLine
         if firstLine:
             file.write("; {0}\n".format(title.upper()))
@@ -19,8 +28,15 @@ def gen_mdp(Type, nsteps, nstxout, membrane=False, posRes=False):
         else:
             file.write("\n; {0}\n".format(title.upper()))
 
-    # Formatting function for parameters
-    def addParam(name, value, comment=''):
+    def addParam(name: str, value, comment=''):
+        """Formatting function for adding a parameter.
+
+        Args:
+            name (str): parameter name.
+            value (any): parameter value.
+            comment (str, optional): parameter inline comment. Defaults to ''.
+        """
+
         if comment == '':
             file.write("{:20s} = {:13s}\n".format(name, str(value)))
         else:
@@ -89,7 +105,7 @@ def gen_mdp(Type, nsteps, nstxout, membrane=False, posRes=False):
         addTitle("Temperature coupling")
         addParam('tcoupl', 'v-rescale')
         addParam('tc-grps', 'SYSTEM')
-        addParam('tau-t', 0.5, 'Coupling strength.')
+        addParam('tau-t', 0.5, 'Coupling time (ps).')
         addParam('ref-t', 300, 'Reference temperature (K).')
 
     # PRESSURE COUPLING
@@ -97,17 +113,10 @@ def gen_mdp(Type, nsteps, nstxout, membrane=False, posRes=False):
     if Type in ['NPT', 'MD']:
         addTitle('Pressure coupling')
         addParam('pcoupl', 'C-rescale', 'Use C-rescale barostat.')
-
-        if membrane:
-            addParam('pcoupltype', 'semiisotropic', 'Different scaling in z-direction (for membranes).')
-            addParam('tau_p', 5.0, 'Coupling strength.')
-            addParam('ref_p', '1.0 1.0', 'Reference pressure (bar).')
-            addParam('compressibility', '4.5e-05 4.5e-05', 'Isothermal compressbility of water.')
-        else:
-            addParam('pcoupltype', 'isotropic', 'Uniform scaling of box.')
-            addParam('tau_p', 5.0, 'Coupling strength.')
-            addParam('ref_p', 1.0, 'Reference pressure (bar).')
-            addParam('compressibility', 4.5e-05, 'Isothermal compressbility of water.')
+        addParam('pcoupltype', 'isotropic', 'Uniform scaling of box.')
+        addParam('tau_p', 5.0, 'Coupling time (ps).')
+        addParam('ref_p', 1.0, 'Reference pressure (bar).')
+        addParam('compressibility', 4.5e-05, 'Isothermal compressbility of water.')
 
         if Type == 'NPT' or posRes:
             addParam('refcoord_scaling', 'com', 'Required with position restraints.')
@@ -120,4 +129,5 @@ def gen_mdp(Type, nsteps, nstxout, membrane=False, posRes=False):
     # WRAP UP
 
     file.close()
-    global firstLine; firstLine = True
+    global firstLine
+    firstLine = True

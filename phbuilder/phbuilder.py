@@ -1193,15 +1193,14 @@ class phbuilder(User):
         gen_mdp(Type='NVT', nsteps=5000, nstxout=0, posRes=self.ph_cal)
         self.update('Wrote a generic NPT.mdp file (for temperature coupling)...')
 
-        val = self.inputOptionHandler("Simulating a membrane protein? (this will modify some barostat parameters)", ['No', 'Yes'])
-
-        gen_mdp(Type='NPT', nsteps=5000, nstxout=0, membrane=val, posRes=self.ph_cal)
+        gen_mdp(Type='NPT', nsteps=5000, nstxout=0, posRes=self.ph_cal)
         self.update('Wrote a generic NVT.mdp file (for pressure coupling)...')
 
         # If no existing .mdp file is specified using the -mdp flag, write a generic one.
         if self.d_mdp == None:
-            gen_mdp('MD', 50000, 5000, membrane=val, posRes=self.ph_cal)
+            gen_mdp('MD', 50000, 5000, posRes=self.ph_cal)
             self.update('Wrote a generic MD.mdp file (for production)...')
+            self.warning("Although the generated .mdp files should mostly be fine, it is up to the user to verify that the (non-CpHMD part of the) generated .mdp file(s) is suitable for their particular system (e.g. you might want to use semiisotropic pressure coupling when simulating a membrane protein etc).")
 
         # Move this warning here so that we can also build normal MD sims with phbuilder.
         if not anyTitratables:
