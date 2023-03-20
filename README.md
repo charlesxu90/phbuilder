@@ -96,6 +96,7 @@ OPTIONS
 | `-nname`     | [\<string>] (CL) <br /> Specify name of negative ion to use. Analogous to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html). |
 | `-conc`      | [\<real>] (0.0) <br /> Specify ion concentration in mol/L. Analogous to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html) but will use the solvent volume for calculating the required number of ions, not the periodic box volume as genion does. |
 | `-nbufs`     | [\<int>] <br /> Manually specify the number of buffer particles to add. If this flag is not set, a (more generous than necessarily required) estimate will be made based on the number of titratable sites. Currently N_buf = N_sites / 2q_max with q_max = 0.5.|
+| `-rmin`      | [\<real>] (0.6) <br /> Set the minimum distance the ions and buffers should be placed from the solute. Analogous to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html).
 | `-v`         | (no) <br /> Be more verbose (helpful for debugging). |
 
 ---
@@ -260,7 +261,7 @@ The following section describes a procedure for parameterizing (new) *two-state*
     ;  i funct       fcx        fcy        fcz
     40  1  1000  1000  1000
     ```
-    will position restrain atom 40 (of moleculetype ATPT). Position restraining during the calibration is required to avoid (strong) interactions between the titratable atoms and the neutralizing buffer particle. If the ligand and buffer particle accidentally get close to each other in some of the calibration runs, the resulting **dvdl** coefficients will be significantly affected. It is also important to remember while selecting atoms for which positions are restrained, that we want to keep the distance between the titratable group and the buffer particle large, but at the same time we want to sample as much orientational configurations as possible. Thus, in the case of ATPT we only fix the phosphorus of $\gamma$-phosphate. The suitable selection of atoms to restrain is system-dependent and therefore the responsibility of the user.
+    will position restrain atom 40 (of moleculetype ATPT). Position restraining during the calibration is required to avoid (strong) interactions between the titratable atoms and the neutralizing buffer particle. If the ligand and buffer particle accidentally get close to each other in some of the calibration runs, the resulting **dVdl** coefficients will be significantly affected. It is also important to remember while selecting atoms for which positions are restrained, that we want to keep the distance between the titratable group and the buffer particle large, but at the same time we want to sample as much orientational configurations as possible. Thus, in the case of ATPT we only fix the phosphorus of $\gamma$-phosphate. The suitable selection of atoms to restrain is system-dependent and therefore the responsibility of the user.
 
 2. In addition to providing and setting up your .itp file, you will likely have to make an addition to the CpHMD force field. This possibly includes new atom, bond, pair, angle, and dihedral types not present in the standard force field, but present in ligand topology. phbuilder does not take care of this and modifying the force field is the responsibility of the user.
 
@@ -310,4 +311,18 @@ The following section describes a procedure for parameterizing (new) *two-state*
 
     creates directories corresponding to different $\lambda$-values, each containing a `.tpr` run input file for `gmx mdrun`.
 
-8. Extract cphmd-coordiante ... and use fitting script to obtain final dvdl coefficients...
+8. Perform the parameterization simulations.
+
+9. Extract the dVdl values from the simulations by running the command:
+    ```
+    gmx cphmd -s run.tpr -e run.edr -numplot 1 -dvdl --coordinate no
+    ```
+    This will yield a file `cphmd-dvdl-1.xvg` for which the second column contains the dVdl values. 
+
+10. The included [fit_parameterization.py](scripts/fit_parameterization.py) may now be used to obtain the dV/dl coefficients for ATPT.
+
+11. Add the obtained dvdl_1 coefficients to the lambdagrouptypes.dat (either the default or the one in your working directory).
+
+12. To test whether the parameterization was succesful, it is recommended to run 10 (100ns) replicas of the ligand in a box of water. For this you can simply follow the basic workflow, but you should set simulation pH = ligand pKa, and bias barrier height to 0 kJ/mol (`dwpE = 0`). When plotting the resulting $\lambda$-trajectories as a histogram, one should observe approximately flat distributions as Edwp = 0 implies no contribution from $V_{\text{bias}}$, and pH = pKa implies no contribution from $V_{\text{pH}}$, leaving only $V_{\text{ff}}$ and $V_{\text{corr}}$, which should exactly cancel out if parameterization was succesful.
+
+13. Once it has been observed that the distributions are flat, you are ready to use the parameterized ligand for CpHMD simulations. If not, there might be mistakes in your parameterization procedure, you might need to use a higher-order fit, or there are sampling issues and you might need to modify (bonded) parameters.
