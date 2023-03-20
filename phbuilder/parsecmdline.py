@@ -111,6 +111,14 @@ def parsecmdline():
                         help='[<int>] Manually specify the number of buffer particles to add. If this flag is not set, a (more generous than necessarily required) estimate will be made based on the number of titratable sites. Currently N_buf = N_sites / 2q_max with q_max = 0.5.',
                         type=int)
 
+    parser_2.add_argument('-rmin',
+                        required=False,
+                        dest='rmin',
+                        action='store',
+                        default=0.60,
+                        help='[<real>] (0.6) Set the minimum distance the ions and buffers should be placed from the solute. Analogous to gmx genion.',
+                        type=float)
+
     parser_2.add_argument('-v',
                         required=False,
                         dest='verbosity',
