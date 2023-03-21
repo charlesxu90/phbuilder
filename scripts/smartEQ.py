@@ -63,10 +63,14 @@ def extractAndUpdate(base, new):
         # Replace the line that contains A with B:
         os.system(f'sed -i \'s/.*{match}.*/{replace}/\' {new}.mdp')
 
-
 # EM (calibration = True)
 gromacs('grompp -f EM.mdp -c phneutral.pdb -p topol.top -n index.ndx -o EM.tpr -maxwarn 1')
 gromacs('mdrun -v -deffnm EM')
+
+# Remove the 'lambda-dynamics-calibration = yes' line from NVT.mdp, NPT.mdp, MD.mdp if it is present.
+for fname in ['NVT.mdp', 'NPT.mdp', 'MD.mdp']:
+    print(f"Checking/removing 'lambda-dynamics-calibration = yes' from {fname} (if it is present)")
+    os.system(f"sed -i  '/lambda-dynamics-calibration                            = yes/d' {fname}")
 
 # NVT (calibration = False, nstout = 1)
 gromacs('grompp -f NVT.mdp -c EM.gro -p topol.top -n index.ndx -o NVT.tpr -maxwarn 1')
