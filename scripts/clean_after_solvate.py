@@ -34,7 +34,7 @@ def find_waters_to_remove(
     else:
         raise ValueError("Wrong method provided")
 
-def global_waters_around_waters(u, cutoff = 5, globalRadius = 10, nmin = 150):
+def global_waters_around_waters(u, cutoff = 5, globalRadius = 10, nmin = 120):
     burried_resids = []
     resids = u.select_atoms(
         f"(resname SOL) and around {cutoff} (not resname SOL)"
