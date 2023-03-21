@@ -51,7 +51,7 @@ class phbuilder(User):
         # Inherit all methods from User class and initialize.
         super().__init__(self.d_verbosity, logFileName='builder.log')
 
-        # Add universal parameters to the universe (used by all three targets).
+        # Command line parameters that are always required (by all three subtools).
         self.d_target = CLI.target
         self.d_file   = Sanitize(CLI.file, 'file').path(ext=['.pdb', '.gro'])
 
@@ -71,7 +71,7 @@ class phbuilder(User):
 
         # If we run neutralize...
         elif (CLI.target == 'neutralize'):
-            # Either required or has a default value
+            # Either required or has a default value.
             self.d_output  = Sanitize(CLI.output, 'output').path(ext=['.pdb', '.gro'], out=True)
             self.d_topol   = Sanitize(CLI.topol, 'topol').path(ext=['.top'])
             self.d_solname = Sanitize(CLI.solname, 'solname').string(Range=[1, 4], upper=True, ws=False)
@@ -84,7 +84,7 @@ class phbuilder(User):
             if CLI.nbufs is not None:
                 self.ph_nbufs = Sanitize(CLI.nbufs, 'nbufs').num(signed=True, Type=int)
 
-            # this needs to be defined because neutralize calls writeLambda_mdp
+            # This needs to be defined because neutralize calls writeLambda_mdp.
             self.ph_cal = False
 
         # If we run genparams...
@@ -104,13 +104,13 @@ class phbuilder(User):
             self.ph_nstout = Sanitize(CLI.nstout, 'nstout').num(Type=int, signed=True)
             self.ph_dwpE   = Sanitize(CLI.dwpE, 'dwpE').num(signed=True)
 
-            # Process whether the -inter flag was or wasn't set
+            # Process whether the -inter flag was or wasn't set.
             if CLI.inter is not None:
                 self.ph_inter = True
             else:
                 self.ph_inter = False
 
-            # Process whether the -cal flag was or wasn't set
+            # Process whether the -cal flag was or wasn't set.
             if CLI.cal is not None:
                 self.ph_cal = True
             else:
@@ -341,7 +341,7 @@ class phbuilder(User):
     def gentopol(self):
         """gentopol prepares the topology.
         """
-        # Part I - COPY FORCE FIELD AND RESIDUETYPES.DAT TO WORKING DIR
+        # Part I - COPY FORCE FIELD AND RESIDUETYPES.DAT TO WORKING DIR.
 
         # /path/to/ffield/charmm36-mar2019-cphmd.ff
         p_modelFF = os.path.normpath(self.p_ffield + '/' + self.d_modelFF)
@@ -375,7 +375,7 @@ class phbuilder(User):
         tail, head     = os.path.split(p_modelFF)
         self.d_modelFF = os.path.splitext(head)[0]
 
-        # PART II - LOAD DATA
+        # PART II - LOAD DATA.
 
         # Load the .pdb/.gro structure (and implicitly phrecord.dat, if it exists).
         pdb = Structure(self.d_file, self.d_verbosity)
@@ -387,7 +387,7 @@ class phbuilder(User):
             self.update('Found user-defined list containing residues to consider...')
             self.verbose(list_resid)
 
-        # PART III - LOOP THROUGH THE RESIDUES AND MODIFY
+        # PART III - LOOP THROUGH THE RESIDUES AND MODIFY.
 
         self.update("Modifying structure file...")
 
@@ -511,7 +511,7 @@ class phbuilder(User):
         pdb.write('phset.pdb')
         self.d_file = 'phset.pdb'
 
-        # PART 3.5 - PRINT A REFERENCE LIST OF LAMBDA COORDINATES
+        # PART 3.5 - PRINT A REFERENCE LIST OF LAMBDA COORDINATES.
 
         self.update('writing lambda coordinates reference list (lambdareference.dat)...')
         LambdaTypeDict = {}  # Make dict of names and associated number of coordinate files.
@@ -536,7 +536,7 @@ class phbuilder(User):
                         coordCount += 1
                         multiCount += 1
 
-        # PART IV - HANDLE UNKNOWN RESIDUE TYPES
+        # PART IV - HANDLE UNKNOWN RESIDUE TYPES.
 
         self.update("Checking if every residue type is present in residuetypes.dat...")
 
@@ -581,16 +581,16 @@ class phbuilder(User):
             self.update("everything seems OK.")
 
         else:
-            # Create a list knownResidues containing only the known residues
+            # Create a list knownResidues containing only the known residues.
             knownResidues = []
             for residue in pdb.d_residues:
                 if residue.d_resname not in skipList:
                     knownResidues.append(residue)
 
-            # Update d_residues in universe with knownResidues
+            # Update d_residues in universe with knownResidues.
             pdb.d_residues = knownResidues
 
-            # Write temporary .pdb containing only the known residues
+            # Write temporary .pdb containing only the known residues.
             someTempName = 'pdb2gmxtemp.pdb'
             pdb.write(someTempName)
             self.d_file = someTempName
@@ -600,7 +600,7 @@ class phbuilder(User):
             self.d_output_orig = self.d_output
             self.d_output      = someTempName
 
-        # PART IV - RUN PDB2GMX AND ASK USER FOR INPUT ABOUT IT
+        # PART IV - RUN PDB2GMX AND ASK USER FOR INPUT ABOUT IT.
 
         # FIX: If 'pdb2gmxtemp.pdb' is empty (e.g. because ALL residuetypes are
         # unrecognized) pdb2gmx will crash. We therefore skip this part entirely.
@@ -621,7 +621,7 @@ class phbuilder(User):
             self.update("\nRecommended pdb2gmx command:")
             self.update("gmx pdb2gmx -f {} -o {} -ff {} -water {} -ignh".format(self.d_file, self.d_output, self.d_modelFF, self.d_modelwater))
 
-            # Ask for input for what to do regarding pdb2gmx
+            # Ask for input for what to do regarding pdb2gmx:
             val = self.inputOptionHandler(
                 "Choose whether to",
                 ["Do nothing", "Run", "Add additional flags (https://manual.gromacs.org/documentation/current/onlinehelp/gmx-pdb2gmx.html)"])
@@ -638,7 +638,7 @@ class phbuilder(User):
             if val == 0:
                 return
 
-        # PART V - MERGE THE .PDB FILES
+        # PART V - MERGE THE .PDB FILES.
 
         # If pathList is not empty, i.e. if we had at least one unknown residue:
         if pathList:
@@ -654,7 +654,7 @@ class phbuilder(User):
             # Write the final structure
             pdb.write(self.d_output_orig)
 
-        # PART VI - MERGE THE TOPOLOGIES
+        # PART VI - MERGE THE TOPOLOGIES.
 
         def add_mol(itpfname: str, comment: str, molname=None, molcount=None):
             """Write manually specified files to the topology file.
@@ -671,7 +671,7 @@ class phbuilder(User):
                 for line in file.readlines():
                     topList.append(line)
 
-            # Add the .itp file (line saying: #include "blabla.itp")
+            # Add the .itp file (line saying: #include "blabla.itp").
             with open("topol.top", 'w') as file:
                 try:
                     for line in range(0, len(topList)):
@@ -690,19 +690,19 @@ class phbuilder(User):
 
         # If pathList is not empty, i.e. if we had at least one unknown residue:
         if pathList:
-            # Remove temporary .pdb file
+            # Remove temporary .pdb file.
             os.remove(someTempName)
 
-            # Loop through the unknown residue types
+            # Loop through the unknown residue types.
             for idx in range(0, len(skipList)):
 
-                # For each one, count how many there are
+                # For each one, count how many there are.
                 count = 0
                 for residue in pdb.d_residues:
                     if residue.d_resname == skipList[idx]:
                         count += 1
 
-                # Add manually to topol.top
+                # Add manually to topol.top.
                 add_mol(pathList[idx], "Include topology for {}".format(skipList[idx]), skipList[idx], count)
 
         self.update("Finished generating topology for constant-pH.")
@@ -744,15 +744,15 @@ class phbuilder(User):
             if foundSolvent and foundTitratables:
                 break
 
-        # Error if no periodic box was found
+        # Error if no periodic box was found.
         if not foundPBC:
             self.error("{} does not have a periodic box! Did you forget to add one?".format(self.d_file))
 
-        # Error if no solvent was found
+        # Error if no solvent was found.
         if not foundSolvent:
             self.error("{} does not seem to have any solvent with molname {}! Did you forget to add solvent? Alternatively you can change the solvent name by setting -solname.".format(self.d_file, self.d_solname))
 
-        # Error if no titratable residues were found
+        # Error if no titratable residues were found.
         # We need to throw an error here and not a warning because grompp in getcpHMDcharge will not compile without at least one lambda group being present.
         if not foundTitratables:
             self.error("{} does not seem to have any titratable groups! Did you forget to run gentopol?".format(self.d_file))
@@ -907,7 +907,7 @@ class phbuilder(User):
 
         # Obtain the number of buffers that should be added.
         if not hasattr(self, 'ph_nbufs'):
-            # Count number of titratable residues
+            # Count number of titratable residues.
             titratables = 0
             for residue in pdb.d_residues:
                 if residue.d_resname in LambdaTypeNames:
@@ -956,7 +956,7 @@ class phbuilder(User):
 
         self.update('\nChecking whether everything was successful:\n')
 
-        # Update internal pdb record to phneutral.pdb
+        # Update internal pdb record to phneutral.pdb.
         pdb.read(self.d_output)
 
         countPions = self.countRes(pdb, self.d_pname)
@@ -984,7 +984,7 @@ class phbuilder(User):
             self.countRes(pdb, self.d_nname),
             self.d_nname,
             self.d_output,
-            getIonConcentration(pdb, self.countRes(pdb, 'SOL'))))  # For some reason genion renames whatever solname we had in the input file to 'SOL'...
+            getIonConcentration(pdb, self.countRes(pdb, 'SOL'))))  # For some reason, genion renames whatever solname we had in the input file to 'SOL'...
 
         # Check if the charge is now neutral.
 
@@ -1233,23 +1233,23 @@ class phbuilder(User):
         groupNumber = 1
         bufferIndexList = []
 
-        # Write the lambda index groups for the titratable residues
+        # Write the lambda index groups for the titratable residues.
         for residue in Structure.d_residues:
             # If the residue is titratable
             if residue.d_resname in list(set(LambdasFoundinProtein)):
-                # To hold the atom indices corresponding to the titratable atoms
+                # To hold the atom indices corresponding to the titratable atoms.
                 atomIndexList = []
                 # Corresponding LambdaType object
                 LambdaType = [obj for obj in self.ph_lambdaTypes if obj.d_groupname == residue.d_resname][0]
 
-                # Loop through atoms - note that the atoms need to be descending order
+                # Loop through atoms - note that the atoms need to be descending order.
                 for atom in residue.d_atoms:
                     if atom in LambdaType.d_atoms:
                         atomIndexList.append(atomCount)
 
                     atomCount += 1
 
-                # Write the lambda index group and increment groupnumber
+                # Write the lambda index group and increment groupnumber.
                 writeTheGroup(groupNumber, atomIndexList)
                 groupNumber += 1
 
@@ -1257,11 +1257,11 @@ class phbuilder(User):
                 bufferIndexList.append(atomCount)
                 atomCount += 1
 
-            else:  # Increment atomCount
+            else:  # Increment atomCount.
                 for atom in residue.d_atoms:
                     atomCount += 1
 
-        # If we do charge constraining write the lambda index group for the buffer(s)
+        # If we do charge constraining write the lambda index group for the buffer(s).
         if constrainCharge:
             writeTheGroup(groupNumber, bufferIndexList)
 
