@@ -34,7 +34,7 @@ def find_waters_to_remove(
     else:
         raise ValueError("Wrong method provided")
 
-def global_waters_around_waters(u, cutoff = 5, globalRadius = 10, nmin = 150):
+def global_waters_around_waters(u, cutoff = 5, globalRadius = 10, nmin = 120):
     burried_resids = []
     resids = u.select_atoms(
         f"(resname SOL) and around {cutoff} (not resname SOL)"
@@ -148,8 +148,8 @@ if __name__ == "__main__":
             + 'within which the number of waters is calculated. Default'
             + ' is 10 angstroms.')
     parser.add_argument('-k', '--minatoms', required=False, type = int,
-            default = 150, help ='Maximum number of water atoms within '
-            + 'radius R of water molecules to remove water. Default is 150.')
+            default = 120, help ='Maximum number of water atoms within '
+            + 'radius R of water molecules to remove water. Default is 120.')
 
     try:
         args = parser.parse_args()
