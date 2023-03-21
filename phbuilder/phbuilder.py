@@ -16,7 +16,7 @@ class LambdaType:
 
         Args:
             groupname (str): name of the LambdaGroupType. E.g. ASPT.
-            incl (list): residue name veriants to consider. E.g. ASP, ASPH.
+            incl (list): residue name variants to consider. E.g. ASP, ASPH.
             pKa (list): pKa value(s).
             atoms (list): titratable atom names.
             qqA (list): titratable atom charges in state A.
@@ -134,7 +134,7 @@ class phbuilder(User):
 
             Args:
             groupname (str): name of the LambdaGroupType. E.g. ASPT.
-            incl (list): residue name veriants to consider. E.g. ASP, ASPH.
+            incl (list): residue name variants to consider. E.g. ASP, ASPH.
             pKa (list): pKa value(s).
             atoms (list): titratable atom names.
             qqA (list): titratable atom charges in state A.
@@ -283,7 +283,7 @@ class phbuilder(User):
         self.verbose("BUF_dvdl  = {}".format(self.ph_BUF_dvdl))
 
     def gromacs(self, command: str, stdin: list = [], terminal: bool = False, logFile: str = 'builder.log') -> int:
-        """Python function for handeling calls to GROMACS.
+        """Python function for handling calls to GROMACS.
 
         Args:
             command (str): GROMACS command, e.g. 'make_ndx -f protein.pdb'.
@@ -718,6 +718,7 @@ class phbuilder(User):
 
     # Add appropriate number ions and buffers to make the system neutral.
     def neutralize(self):
+        """Add ions and buffers to ensure a net-neutral system."""
         # I - LOAD DATA, PERFORM SOME CHECKS
 
         # Load the input structure into d_residues.
@@ -758,7 +759,20 @@ class phbuilder(User):
 
         # II - DO THE IONS PART
 
-        def getcpHMDcharge(name, file, Structure, LambdaTypeNames, constrainCharge):
+        def getcpHMDcharge(name: str, file: str, Structure: Structure, LambdaTypeNames: list, constrainCharge: bool):
+            """Create a dummy .mdp file (including CpHMD parameters), calls gmx grompp,
+            and from the output extracts the system net-charge (in the actual CpHMD simulation).
+
+            Args:
+                name (str): name of the .mdp file to be generated.
+                file (str): structure file (only required for gmx grompp).
+                Structure (Structure): Structure object.
+                LambdaTypeNames (list): list of LambdaType names.
+                constrainCharge (bool): do we have charge constraining?
+
+            Returns:
+                int: total charge at CpHMD in the system.
+            """
             # Create empty name.mdp to append the lambda dynamics parameters to.
             open('{}.mdp'.format(name), 'w').close()
 
@@ -796,7 +810,9 @@ class phbuilder(User):
         isNeutral = False
 
         # If we already have ions in the input file, give the user an extra update.
-        def getIonConcentration(Structure, Nwater):
+
+        def getIonConcentration(Structure: Structure, Nwater: int):
+            """Get current ion concentration in system (from) solvent volume."""
             totalIons = self.countRes(Structure, self.d_pname) + self.countRes(Structure, self.d_nname)
             return totalIons / (0.01808 * Nwater)
 
@@ -832,12 +848,13 @@ class phbuilder(User):
             isNeutral = True
 
         def fromBoxVol():
+            """Return number of ions required for a specific concentration, based on volume of the box."""
             Avo    = 6.02214076 * 10 ** 23
             boxVol = pdb.d_box.d_a * pdb.d_box.d_b * pdb.d_box.d_c
             return int(round(self.d_conc * Avo * boxVol * 10 ** -27))
 
-        # Return the number of ions required to achieve a certain ion concentration.
         def fromSolVol(Structure, concentration):
+            """Return the number of ions required for a specific concentration, based on volume of the solvent."""
             Nwater = self.countRes(Structure, self.d_solname)
             return int(round(0.01808 * Nwater * concentration))
 
@@ -937,7 +954,7 @@ class phbuilder(User):
 
         # Check if the correct number of ions and buffers are present in the output file.
 
-        self.update('\nChecking whether everything was succesful:\n')
+        self.update('\nChecking whether everything was successful:\n')
 
         # Update internal pdb record to phneutral.pdb
         pdb.read(self.d_output)
@@ -980,12 +997,19 @@ class phbuilder(User):
         os.remove('check.tpr')
         self.update("Finished phbuilder neutralize.")
 
-    # Generate the actual lambda dynamics parameters.
-    def writeLambda_mdp(self, Type, Structure, LambdaTypeNames, constrainCharge):
+    def writeLambda_mdp(self, Type: str, Structure: Structure, LambdaTypeNames: list, constrainCharge: bool):
+        """Generate the actual lambda dynamics parameters for .mdp file.
+
+        Args:
+            Type (str): type of .mdp file (choose EM, NVT, NPT, MD).
+            Structure (Structure): Structure object.
+            LambdaTypeNames (list): list of LambdaType names.
+            constrainCharge (bool): do we have charge constraining?
+        """
         file = open("{}.mdp".format(Type), 'a')
 
-        # Formatting function for adding parameters.
-        def addParam(name, value):
+        def addParam(name: str, value: any):
+            """Formatting function for adding parameters."""
             file.write("{:54s} = {:13s}\n".format(name, str(value)))
 
         # PART 1 - WRITE GENERAL PARAMETERS
@@ -1048,15 +1072,15 @@ class phbuilder(User):
 
         # PART 2 - WRITE LAMBDA GROUP TYPES
 
-        # Convert a list to a string
         def to_string(Input, round):
+            """Convert a list to a string."""
             string = ""
             for element in Input:
                 string += "{0:.{arg}f} ".format(element, arg=round)
             return string
 
-        # Writes the lambda group type block
         def writeLambdaGroupTypeBlock(number, name, multistates, qqA, qqB, pKa, dvdl):
+            """Writes the lambda group type block."""
             addParam('lambda-dynamics-group-type{}-name'.format(number), name)
             addParam('lambda-dynamics-group-type{}-n-states'.format(number), multistates)
             addParam('lambda-dynamics-group-type{}-state-0-charges'.format(number), to_string(qqA, 3))
@@ -1112,7 +1136,8 @@ class phbuilder(User):
 
         # PART 3 - WRITE LAMBDA GROUPS
 
-        def writeResBlock(number, name, initList, Edwp):
+        def writeResBlock(number: int, name: str, initList: list, Edwp: float):
+            """Writes the block for a specific residue."""
             addParam('lambda-dynamics-atom-set{}-name'.format(number), name)
             addParam('lambda-dynamics-atom-set{}-index-group-name'.format(number), 'LAMBDA{}'.format(number))
             addParam('lambda-dynamics-atom-set{}-initial-lambda'.format(number), to_string(initList, 1))
@@ -1179,7 +1204,16 @@ class phbuilder(User):
 
         file.close()  # MD.mdp
 
-    def writeLambda_ndx(self, fileName, Structure, LambdaTypeNames, constrainCharge):
+    def writeLambda_ndx(self, fileName: str, Structure: Structure, LambdaTypeNames: list, constrainCharge: bool):
+        """Write the LAMBDA groups to the (a generic) index file.
+
+        Args:
+            fileName (str): name of index.ndx file.
+            Structure (Structure): Structure object.
+            LambdaTypeNames (list): lambdaType names.
+            constrainCharge (bool): do we have charge restraining?
+        """
+
         # Create list of Lambda group types found in protein.
         LambdasFoundinProtein = []
         for residue in Structure.d_residues:
@@ -1188,8 +1222,8 @@ class phbuilder(User):
 
         file = open(fileName, 'a')
 
-        # Formatting function for writing the index block.
         def writeTheGroup(number, atomIndexList):
+            """Formatting function for writing the index block."""
             file.write('\n[ LAMBDA{} ]\n'.format(number))
             for index in atomIndexList:
                 file.write('{} '.format(index))
@@ -1233,8 +1267,8 @@ class phbuilder(User):
 
         file.close()
 
-    # Generate parameters for MD.mdp.
     def genparams(self):
+        """Generate parameters for MD.mdp."""
         # PART I - PREP
 
         # Load the input structure into d_residues.
@@ -1281,7 +1315,7 @@ class phbuilder(User):
         if self.d_mdp is None:
             gen_mdp('MD', 50000, 5000, posRes=self.ph_cal)
             self.update('Wrote a generic MD.mdp file (for production)...')
-            self.warning("Although the generated .mdp files should mostly be fine, it is up to the user to verify that the (non-CpHMD part of the) generated .mdp file(s) is suitable for their particular system (e.g. you might want to use semiisotropic pressure coupling when simulating a membrane protein etc).")
+            self.warning("Although the generated .mdp files should mostly be fine, it is up to the user to verify that the (non-CpHMD part of the) generated .mdp file(s) is suitable for their particular system (e.g. you might want to use semi-isotropic pressure coupling when simulating a membrane protein etc).")
 
         # Move this warning here so that we can also build normal MD sims with phbuilder.
         if not anyTitratables:
