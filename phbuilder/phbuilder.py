@@ -948,6 +948,11 @@ class phbuilder(User):
             os.remove('buffers.mdp')
             os.remove('buffers.tpr')
 
+        # We need the else-statement here because if there are already enough bufs
+        # (e.g. -nbufs = 0) we will still need to obtain phneutral.pdb.
+        else:
+            os.system(f"cp phions.pdb {self.d_output}")
+
         # IV - WRAPUP : CHECK IF EVERYTHING IS NOW CORRECT
 
         os.remove('ions.tpr')
