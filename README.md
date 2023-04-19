@@ -301,20 +301,60 @@ The following section describes a procedure for parameterizing (new) *two-state*
     create_parameterization.py -f MD.mdp -c NPT.pdb -r NPT.pdb -p topol.top -n index.ndx
     ```
 
-    creates directories corresponding to different $\lambda$-values, each containing a `.tpr` run input file for `gmx mdrun`. The 2-step protocol assumes that first, short parameterisation runs are conducted, followed by reweightin of long 100 nanasecond sampling rus of the ligand in a box (more on that later). We recommend using this 2-step protocol, since it is easier to obtain satisfactory **dvdl** coefficients. Thus, we run only 13 parameterisation runs for only 1 nanaosecond.
+    creates directories corresponding to different $\lambda$-values, each containing a `.tpr` run input file for `gmx mdrun`. The 2-step protocol assumes that first, short parameterisation runs are conducted, followed by reweighting of long 100 nanasecond sampling rus of the ligand in a box (more on that later). We recommend using this 2-step protocol, since it is easier to obtain satisfactory **dvdl** coefficients. Thus, we run only 13 parameterisation runs for only 1 nanaosecond.
 
 8. Perform the parameterization simulations.
 
 9. Extract the dVdl values from the simulations by running the command:
     ```
-    gmx cphmd -s run.tpr -e run.edr -numplot 1 -dvdl --coordinate no
+    gmx cphmd -s run.tpr -e run.edr -dvdl --coordinate no
     ```
-    This will yield a file `cphmd-dvdl-1.xvg` for which the second column contains the dVdl values. 
+    This will yield a file `cphmd-dvdl-1-2.xvg` for which the second column contains the dVdl values of parameterized group. 
 
-10. The included [fit_parameterization.py](scripts/fit_parameterization.py) may now be used to obtain the dV/dl coefficients for ATPT.
+10. The included [fit_parameterization.py](scripts/fit_parameterization.py) may now be used to obtain the initial guess for dV/dl coefficients for ATPT.
+    
+    The general help for `fit_parameterization.py` is as follows
+    ```
+    This script will find optimal parameters for parameterised group. It can work in two modes: (i) parameterisation, and (ii)
+    reweighing. In the parameterisation mode the script will fit optimal polinomial todvdl computed for a set of fixed
+    lambda-s. In the reweighing mode the script will analyse the distributions of lambda-coordinate and adjust the
+    coefficients in order to get flat distributions. As an output, the script will provide entries for lambdagrouptypes.dat
+    and .mdp files.
+
+    options:
+      -h, --help            show this help message and exit
+      -f MDP, --mdp MDP     Input .mdp file
+      -i PREFIX, --prefix PREFIX
+                            Prefix of input folders. Default r for parameterisation, s for reweighing
+      -m {p,s}, --mode {p,s}
+                            Input topology file
+      -nr NREPLICAS, --nreplicas NREPLICAS
+                            Number of replicas run for reweighing. Default is 10
+      -l LAMBDAFILE, --lambdafile LAMBDAFILE
+                            The path to lambdagrouptypes.dat file. By default the script will search a file in the current
+                            directory
+      -g GROUP, --group GROUP
+                            Name of the group for parameterisation
+      -fo FITORDER, --fitorder FITORDER
+                            Fitting order. Default value is 5
+      -o OUT, --out OUT     Name of the outputfile
+    ```
+
+To get the initial guess for dvdl coefficients `fit_parameterization.py` needs to be run in the parameterization mode:
+    ```
+    python fit_parameterization.py -f MD.mdp -m p -g ARGT
+    ```
+
+As an output `fit_parameterization.py` gives a file where and updated entry for `lambdagrouptypes.dat` and `.mdp` files are provided.
 
 11. Add the obtained dvdl_1 coefficients to the lambdagrouptypes.dat (either the default or the one in your working directory).
 
-12. To test whether the parameterization was succesful, it is recommended to run 10 (100ns) replicas of the ligand in a box of water. For this you can simply follow the basic workflow, but you should set simulation pH = ligand pKa, and bias barrier height to 0 kJ/mol (`dwpE = 0`). When plotting the resulting $\lambda$-trajectories as a histogram, one should observe approximately flat distributions as Edwp = 0 implies no contribution from $V_{\text{bias}}$, and pH = pKa implies no contribution from $V_{\text{pH}}$, leaving only $V_{\text{ff}}$ and $V_{\text{corr}}$, which should exactly cancel out if parameterization was succesful.
+12. With the obtained coefficients we now need to run 10 (100ns) replicas of the ligand in a box of water. For this you can simply follow the basic workflow, but you should set simulation pH = ligand pKa, and bias barrier height to 0 kJ/mol (`dwpE = 0`). When plotting the resulting $\lambda$-trajectories as a histogram, one should observe approximately flat distributions as Edwp = 0 implies no contribution from $V_{\text{bias}}$, and pH = pKa implies no contribution from $V_{\text{pH}}$, leaving only $V_{\text{ff}}$ and $V_{\text{corr}}$, which should exactly cancel out if parameterization was succesful. However, due to poor sampling efficiency during parameterization, those distributions are not flat even after longer parameterization runs. To overcome that, we will have to update the dvdl coefficients by adding the correction which should flatten the distribution. The correction for dvdl is computed as the derivative of $U(\lambda)$, where $U$ is the Boltzmann inversion of the distribution $p(\lambda)$: $U = -R T \log(p)$. To get this correction `fit_parameterization.py` needs to be run in reweighing mode:
 
-13. Once it has been observed that the distributions are flat, you are ready to use the parameterized ligand for CpHMD simulations. If not, there might be mistakes in your parameterization procedure, you might need to use a higher-order fit, or there are sampling issues and you might need to modify (bonded) parameters.
+    ```
+    python fit_parameterisation.py -f MD.mdp -m s -g ARGT
+    ```
+
+13. The updated coefficients can be run to check the distributions are now flat. The reweighing can be repeated several times, but usually one repetition is enouhg.
+
+14. Once it has been observed that the distributions are flat, you are ready to use the parameterized ligand for CpHMD simulations. If not, there might be mistakes in your parameterization procedure, you might need to use a higher-order fit, or there are sampling issues and you might need to modify (bonded) parameters.
