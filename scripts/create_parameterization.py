@@ -54,7 +54,7 @@ if __name__ == "__main__":
     pref = args.out
     refp = os.path.abspath(args.ref)
 
-    for l in np.arange(-0.1, 1.15, 0.05):
+    for l in np.arange(-0.1, 1.15, 0.1):
         folder = f"{pref}_{l:.2f}_{(1-l):.2f}"
         if os.path.exists(f"{folder}"):
             os.system(f"rm -r {folder}")
