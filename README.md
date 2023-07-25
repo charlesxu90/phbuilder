@@ -1,10 +1,17 @@
-<b>Description</b>
+[![GitHub issues](https://img.shields.io/badge/issue_tracking-github-blue.svg)](https://github.com/AntonJansen96/phbuilder/issues)
 
-System builder for constant-pH simulations in [GROMACS](https://www.gromacs.org/). phbuilder consists of three tools: gentopol, neutralize, and genparams. Each tool performs a specific task for preparing a constant-pH simulation.
+<img src="logo.png" alt="drawing" width="600"/>
 
----
+phbuilder  automates setting up constant-pH MD (CpHMD) simulations in [GROMACS](https://www.gromacs.org/).
 
-<b>Installation instructions</b>
+For the GROMACS CpHMD publications, please see:
+* [Scalable Constant pH Molecular Dynamics in GROMACS](https://pubs.acs.org/doi/10.1021/acs.jctc.2c00516).
+* [Best Practices in Constant pH MD Simulations: Accuracy and Sampling](https://pubs.acs.org/doi/full/10.1021/acs.jctc.2c00517).
+
+For the publication associated with phbuilder, please see:
+* [phbuilder: a tool for efficiently setting up constant pH molecular dynamics simulations in GROMACS]().
+
+## Installation 
 
 0. This works for Linux and should also work for macOS. If you're on Windows, it is strongly recommended to use [WSL](https://docs.microsoft.com/en-us/windows/wsl/about).
 
