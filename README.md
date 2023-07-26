@@ -1,8 +1,14 @@
+<div style="width: 830px">
+
 [![GitHub issues](https://img.shields.io/badge/issue_tracking-github-blue.svg)](https://github.com/AntonJansen96/phbuilder/issues)
 
-<img src="logo.png" alt="drawing" width="600"/>
+<p align="center">
+  <img src="logo.png" width="600"/>
+</p>
 
-phbuilder  automates setting up constant-pH MD (CpHMD) simulations in [GROMACS](https://www.gromacs.org/).
+## phbuilder
+
+phbuilder is a command line tool that automates setting up constant-pH (CpHMD) simulations in [GROMACS](https://www.gromacs.org/).
 
 For the GROMACS CpHMD publications, please see:
 * [Scalable Constant pH Molecular Dynamics in GROMACS](https://pubs.acs.org/doi/10.1021/acs.jctc.2c00516).
@@ -13,39 +19,30 @@ For the publication associated with phbuilder, please see:
 
 ## Installation 
 
-0. This works for Linux and should also work for macOS. If you're on Windows, it is strongly recommended to use [WSL](https://docs.microsoft.com/en-us/windows/wsl/about).
+1. To enable GPU acceleration, make sure you first install [CUDA](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#pre-installation-actions).
 
-1. If you have a GPU and want to use GPU-acceleration, make sure you first install [CUDA](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#pre-installation-actions).
+2. Download the [gromacs-constantph](https://gitlab.com/gromacs-constantph/) beta build.
 
-2. Obtain the [GROMACS constant-pH beta build](https://gitlab.com/gromacs-constantph/).
-
-3. Install using the instructions [here](https://manual.gromacs.org/documentation/current/install-guide/index.html). Suggested CMake command:
+3. Build and install using the instructions [here](https://manual.gromacs.org/current/install-guide/index.html). Suggested CMake command:
     ```
     cmake .. -DGMX_BUILD_OWN_FFTW=ON -DGMX_GPU=CUDA -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=/usr/local/gromacs_constantph
     ```
-    The default path phbuilder will look for the GROMACS CpHMD install is `/usr/local/gromacs_constantph`. If GROMACS was installed in a different location, you are required to set the `GMXPH_BASEPATH` environment variable (e.g. in your `~/.bashrc`).
-4. Install phbuilder using:
+
+    NOTE: running `make check` will give multiple failures. This is to be expected for the CpHMD beta version. It is recommended to skip `make check`.
+
+    NOTE: By default, phbuilder will look for the GROMACS CpHMD installation in `/usr/local/gromacs_constantph`. If you install the CpHMD code in a different location, make sure to update this in the phbuilder configuration file `lambdagrouptypes.dat`, or alternatively set `GMXPH_BASEPATH`.
+
+4. Install phbuilder (test version):
     ```
-    pip3 install --index-url https://test.pypi.org/simple/ --no-deps phbuilder
+    pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple phbuilder
     ```
-    This is a testing version of the official PyPI repository (to-be-created later). The installation includes the modified CHARMM36M force field as well as all lambdagrouptypes.dat file, which contains the CpHMD-topology parameters.
-5. phbuilder has [argcomplete](https://pypi.org/project/argcomplete/) functionality. To make sure this works, you should run:
+
+5. phbuilder has [argcomplete](https://pypi.org/project/argcomplete/) functionality. To make sure this works, run:
     ```
     activate-global-python-argcomplete --user 
     ```
-    once (and reload your terminal(s)).
+    once and reload your terminal.
 
-<!-- 5. Clone phbuilder (this) repository.
-6. Set the appropriate environment variables in `~/.bashrc` or `~/.zprofile`: <br /> `export PATH=$PATH:/path/to/clone/phbuilder` <br /> `export PHFFIELD=/path/to/clone/ffield` <br /> The ffield dir contains the modified CHARMM36M force field, as well as the lambdagrouptypes.dat file containing CpHMD specific topology data.
-7. Make sure that the (base)path to your GROMACS constant-pH build is set correctly in lambdagrouptypes.dat (default = `/usr/local/gromacs_constantph`). -->
-
-<!-- <b>Required Python packages</b>
-
-* argcomplete (requires more than just installing in pip, look into this)
-* argparse (should be a simple `pip3 install argparse`)
-* configparser (should be a simple `pip3 install configparser`)
-* os (should be a simple `pip3 install os`)
-* subprocess (should be a simple `pip3 install subprocess`) -->
 
 ---
 
