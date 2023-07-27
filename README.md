@@ -2,9 +2,9 @@
 
 [![GitHub issues](https://img.shields.io/badge/issue_tracking-github-blue.svg)](https://github.com/AntonJansen96/phbuilder/issues)
 
-<!-- <p align="center">
+<p align="center">
   <img src="logo.png" width="600"/>
-</p> -->
+</p>
 
 ## phbuilder
 
@@ -25,7 +25,7 @@ For the publication associated with phbuilder, please see:
 
 3. Build and install using the instructions [here](https://manual.gromacs.org/current/install-guide/index.html). Suggested CMake command:
     ```
-    cmake .. -DGMX_BUILD_OWN_FFTW=ON -DGMX_GPU=CUDA -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=/usr/local/gromacs_constantph
+    cmake .. -DGMX_BUI`LD_OWN_FFTW=ON -DGMX_GPU=CUDA -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=/usr/local/gromacs_constantph
     ```
 
     NOTE: running `make check` will give multiple failures. This is to be expected for the CpHMD beta version. It is recommended to skip `make check`.
@@ -53,36 +53,36 @@ In addition to the command line input provided by the user, phbuilder has a few 
 ## Basic workflow
 
 #### 1. Prepare your structure file. 
-This is an important step, and it applies especially to .pdbs that are straight from [RCSB](https://www.rcsb.org/).
+This is an important step, and it applies especially to structures that are straight from [RCSB](https://www.rcsb.org/).
 
-Make sure your structure file only contains one MODEL, does not contain alternate location indicators, does not miss certain atoms/residues, etc. 
-It is also important that your protein(s)/molecule(s) containing the titratable groups are <i>at the top</i> of the structure file. So first the titratable protein(s), and only then solvent, ions, lipids, etc. Furthermore, it is strongly recommended that every (non-ion/water) molecule has a chain identifier. If you have only one chain you can simply set everything to A. A check to see if your input file contains mistakes can be to simply run:
-```
-gmx editconf -f input.pdb -o test.pdb
-```
-and see if you get any errors and how `test.pdb` differs from `input.pdb`.
+* Make sure your structure only contains one MODEL, does not contain alternate location indicators, does not miss atoms or residues, etc.
+* Basically, if you cannot use your structure to succesfully set up normal MD simulations with GROMACS, you should first make sure this works before continuing.
+* It is also important that your molecules(s) containing the titratable groups are *at the top* of the structure file. So first the titratable protein(s), and only then solvent, ions, lipids, etc.
+* It is also strongly recommended that every (non-ion / water) molecule has a chain identifier. If you have only one chain you can simply set everything to A.
 
-#### 2. Make sure all moleculetypes in your structure file are part of CHARMM36 [to be updated]
+#### 2. Make sure that topologies are available for all moleculetypes present in your structure file.
 
-Check whether your structure file contains any moleculetypes that <i>are</i> part of CHARMM36M, but for which `gmx pdb2gmx` <i>cannot</i> generate the topology data. Take as an example the lipid POPC. A CHARMM36M topology for POPC exists in the form of a stand-alone POPC.itp file, but if you supply just POPC.pdb to `gmx pdb2gmx`, it won't be able to generate topol.top. If your structure file contains such residues, phbuilder can still be used but you'll be prompted for the path to POPC.itp when gentopol is called.
+phbuilder cannot provide topology information for non-standard residue types (those not included by default in CHARMM36 → not present in `residuetypes.dat`). In such cases, the user is expected to provide separate topology (`.itp`) files. Additionally, be aware that `gmx pdb2gmx` cannot add hydrogens to non-standard residues, so you either have to add an entry to the force field `.hdb` file, or make sure that hydrogens are already present in the structure for this residue type. For more information, see the relevant [GROMACS documentation](https://manual.gromacs.org/current/how-to/topology.html).
 
-#### 3. Decide which residues are to be made titratable, and which initial protonation state they should have.
+#### 3. Use `phbuilder gentopol` to (re)generate the CpHMD topology.
 
-Decide which residues you want to have titratable, and in which protonation state those residues should be at $t = 0$ (i.e. which initial $\lambda$-values they should have). If you do not care about this, you can use the `-ph <ph>` flag to have `gentopol` automatically choose the appropriate initial $\lambda$-values based on the specified pH and the (macroscopic) pKas of the lambdagrouptypes.
+First, decide which residues you want to have titratable, and in which protonation state those residues should be at $t = 0$ (essentially which initial $\lambda$-values they should have). If you do not care about this, you can use the `-ph <ph>` flag to have `gentopol` automatically choose the appropriate initial $\lambda$-values based on the specified pH and the (macroscopic) pKas of the lambdagrouptypes.
 
-#### 4. Use `phbuilder gentopol` to (re)generate the CpHMD topology
+Manually choose which residues to make titratable and in which initial state, and (re)generate the topology:
 
-(Re)generate the topology using:
 ```
 phbuilder gentopol -f input.pdb
 ``` 
-Alternatively, you can set the -ph flag and run:
+
+Alternatively, you can set the -ph flag and simply run:
+
 ```
 phbuilder gentopol -f input.pdb -ph <ph>
 ```
-In the latter case, the initial lambda values will be guessed based on the system ph together with the pKa specified in lambdagrouptypes.dat.
 
-#### 5. Add a periodic box and solvent (if not already present).
+In the latter case, the initial $\lambda$-values will be guessed based on the specified system pH, together with the (macroscopic) pKa specified in `lambdagrouptypes.dat`.
+
+#### 4. Add a periodic box and solvent (if not already present).
 
 Periodic box (see [gmx editconf](https://manual.gromacs.org/documentation/current/onlinehelp/gmx-editconf.html)):
 
@@ -96,46 +96,46 @@ Solvent (see [gmx solvate](https://manual.gromacs.org/documentation/current/onli
 gmx solvate -cp box.pdb -p topol.top -o solvated.pdb
 ```
 
-#### 6. (Optional) Remove incorrectly placed water molecules.
+#### 5. (Optional) Remove incorrectly placed water molecules.
 
-[gmx solvate](https://manual.gromacs.org/documentation/current/onlinehelp/gmx-solvate.html) is a relatively basic program and will by default add solvent simply based on the van der Waals radii of the solute. This can lead to water molecules being generated in locations where there should not be any (e.g. hydrophobic pockets). It is good practice to check this, and if this occurs in your system, we recommend you to utilize the included [clean_after_solvate.py](scripts/clean_after_solvate.py) script.
+`gmx solvate` is a relatively basic program and will by default add solvent simply based on the van der Waals radii of the solute. This can lead to water molecules being generated in locations where there should not be any (e.g. in hydrophobic pockets in your protein). It is good practice to check for this, and if this occurs in your system, we recommend you to utilize the included [clean_after_solvate.py](scripts/clean_after_solvate.py) script to clean up your system.
 
-#### 8. Use `phbuilder neutralize` to ensure a net-neutral simulation system.
+#### 6. Use `phbuilder neutralize` to ensure a net-neutral simulation system.
 
-8. Add the appropriate number of positive/negative ions and buffers to ensure a net-neutral system:
-    ```
-    phbuilder neutralize -f solvated.pdb
-    ```
-    Alternatively, if you want a specific ion concentration (in mol/L) and/or a specific number of buffer particles , you could do:
-    ```
-    phbuilder neutralize -f solvated.pdb -conc 0.15 -nbufs 20
-    ```
-    Note that phbuilder neutralize neutralizes the system by <i>adding</i> ions to the input structure, not by removing or rebalancing existing ones. This implies the ion concentration in your output files cannot and will not be lower than the ion concentration in your input file.
+Add the appropriate number of positive/negative ions and buffers to ensure a net-neutral system:
+```
+phbuilder neutralize -f solvated.pdb
+```
+Alternatively, if you want a specific ion concentration (in mol/L = mmol/mL) and/or a specific number of buffer particles , you could do:
+```
+phbuilder neutralize -f solvated.pdb -conc 0.15 -nbufs 20
+```
+NOTE: `phbuilder neutralize` neutralizes the system by <i>adding</i> ions to the input structure, not by removing or rebalancing existing ones. This implies the final ion concentration in your output files will never be lower than the ion concentration in your input file. For this reason, you should not add any ions to your system when embedding membrane systems with e.g. CHARMM-GUI but rather let phbuilder take care of this.
 
-9. At this point, if everything went correctly both your structure and topology file(s) should be completed and constitute a net-neutral system when running CpHMD. What is now left is the actual simulation part: energy minimization, equilibration and production using the correct MD parameters.
+#### 7. Use `phbuilder genparams` to generate the `.mdp` and `.ndx` files required for CpHMD.
 
-#### 10. Use `phbuilder genparams` to generate the `.mdp` and `.ndx` files required for CpHMD.
+At this point, if everything went correctly both your structure and topology file(s) should be completed and constitute a net-neutral system when running CpHMD. What is now left is the actual simulation part: energy minimization, equilibration and production using the correct CpHMD parameters.
 
-Generate the .mdp files for EM/EQ/MD, including the constant-pH parameters for a specific simulation pH: 
+Generate the `.mdp` files for EM/EQ/MD, including the CpHMD parameters for a specific simulation pH: 
 
 ```
 phbuilder genparams -f phneutral.pdb -ph 4.0 
 ```
 
 By default, the following files will be written:
-* EM.mdp
-* NVT.mdp
-* NPT.mdp
-* MD.mdp
-* index.ndx
+* `EM.mdp`
+* `NVT.mdp`
+* `NPT.mdp`
+* `MD.mdp`
+* `index.ndx`
 
-NOTE: If you previously used the auto feature for `gentopol`, i.e. the `-ph` flag, the pH you specify for `genparams` should be equal to this.
+NOTE: If you previously used the auto feature (`-ph` flag) for `gentopol`, the pH you specify for `genparams` should be equal to this.
 
-#### 11. Check the generated files and modify parameters specific to your system as required. 
+#### 8. Check the generated files and modify parameters specific to your system as required. 
 
-For example, if your system explodes upon starting NVT, you might need to adjust the time step for NVT coupling. Also note that by default no position restraints are used for the protein during NVT and NPT coupling.
+The `.mdp` files generated by `genparams` are generic files for CHARMM36. They should work for basic simulations, but for advanced stuff like semi-isotropic pressure coupling for membranes, pull code, AWH, more gradual equilibration, etc. you should modify these generic files accordingly. Also note that by default no position restraints are used for the protein during NVT and NPT coupling.
 
-#### 12. Perform equilibration.
+#### 9. Perform equilibration.
 
 ```
 #!/bin/bash
@@ -153,7 +153,7 @@ gmx grompp -f NPT.mdp -c NVT.pdb -p topol.top -n index.ndx -o NPT.tpr
 gmx mdrun -v -deffnm NPT -c NPT.pdb -npme 0
 ```
 
-#### 13. Perform the CpHMD production simulation.
+#### 10. Perform the CpHMD production simulation.
 
 ```
 #!/bin/bash
@@ -165,13 +165,16 @@ gmx grompp -f MD.mdp -c NPT.pdb -p topol.top -n index.ndx -o MD.tpr
 gmx mdrun -v -deffnm MD -c MD.pdb -x MD.xtc -npme 0
 ```
 
-#### 14. Extract the trajectories of the $\lambda$-coordinates.
+#### 11. Extract the trajectories of the $\lambda$-coordinates.
 
 After the CpHMD simulation is completed one can extrate the $\lambda$-coordinate trajectories from the `.edr` file in the form of readable `.xvg` files using the following command:
 
 ```
 gmx cphmd -s MD.tpr -e MD.edr -numplot 1
 ```
+
+<!-- ## Running CpHMD simulations on HPC resources -->
+
 
 <!-- 
 ## phbuilder gentopol
