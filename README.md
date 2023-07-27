@@ -20,7 +20,7 @@ For the publication associated with phbuilder, please see:
 1. [Installation](#installation)
 3. [Basic Tool Description](#basic-tool-description)
 4. [Basic Workflow](#basic-workflow)
-5. [Performing Titrations](#performing-titations)
+5. [Performing Titrations](#performing-titrations)
 6. [Performing Parameterizations](#performing-parameterizations)
 7. [Running CpHMD simulations on HPC resources](#running-cphmd-simulations-on-hpc-resources)
 8. [Synopsis `phbuilder gentopol`](#synopsis-phbuilder-gentopol)
@@ -37,7 +37,7 @@ For the publication associated with phbuilder, please see:
 
 3. Build and install using the instructions [here](https://manual.gromacs.org/current/install-guide/index.html). Suggested CMake command:
     ```
-    cmake .. -DGMX_BUI`LD_OWN_FFTW=ON -DGMX_GPU=CUDA -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=/usr/local/gromacs_constantph
+    cmake .. -DGMX_BUILD_OWN_FFTW=ON -DGMX_GPU=CUDA -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=/usr/local/gromacs_constantph
     ```
 
     NOTE: running `make check` will give multiple failures. This is to be expected for the CpHMD beta version. It is recommended to skip `make check`.
@@ -64,7 +64,7 @@ In addition to the command line input provided by the user, phbuilder has a few 
 
 ## Basic Tool Description
 
-phbuilder is a command line tool that automates setting up constant-pH (CpHMD) simulations in [GROMACS](https://www.gromacs.org/). phbuilder consists of three (sub)tools: gentopol, neutralize, and genparams. Each tool fulfills a specific function in the setup process. gentopol allows you to select which sites to make titratable, and in which initial lambda (protonation) state they should be. gentopol also regenerates your system topology using the modified CHARMM36m CpHMD force field. neutralize adds the appropriate number of ions and buffer particles to ensure a net-neutral simulations. genparams generates the CpHMD-specific `.mdp` files and `.ndx` file. Functionality for setting up titration and paramterization is also provided with the help of included stand-alone Python scripts.
+phbuilder is a command line tool that automates setting up constant-pH (CpHMD) simulations in [GROMACS](https://www.gromacs.org/). phbuilder consists of three (sub)tools: gentopol, neutralize, and genparams. Each tool fulfills a specific function in the setup process. gentopol allows you to select which sites to make titratable, and in which initial lambda (protonation) state they should be. gentopol also regenerates your system topology using the modified CHARMM36m CpHMD force field. neutralize adds the appropriate number of ions and buffer particles to ensure a net-neutral simulations. genparams generates the CpHMD-specific `.mdp` files and `.ndx` file. Functionality for setting up titration and parameterization is also provided with the help of included stand-alone Python scripts.
 
 ## Basic Workflow
 
@@ -72,7 +72,7 @@ phbuilder is a command line tool that automates setting up constant-pH (CpHMD) s
 This is an important step, and it applies especially to structures that are straight from [RCSB](https://www.rcsb.org/).
 
 * Make sure your structure only contains one MODEL, does not contain alternate location indicators, does not miss atoms or residues, etc.
-* Basically, if you cannot use your structure to succesfully set up normal MD simulations with GROMACS, you should first make sure this works before continuing.
+* Basically, if you cannot use your structure to successfully set up normal MD simulations with GROMACS, you should first make sure this works before continuing.
 * It is also important that your molecules(s) containing the titratable groups are *at the top* of the structure file. So first the titratable protein(s), and only then solvent, ions, lipids, etc.
 * It is also strongly recommended that every (non-ion / water) molecule has a chain identifier. If you have only one chain you can simply set everything to A.
 
@@ -183,13 +183,13 @@ gmx mdrun -v -deffnm MD -c MD.pdb -x MD.xtc -npme 0
 
 #### 11. Extract the trajectories of the $\lambda$-coordinates.
 
-After the CpHMD simulation is completed one can extrate the $\lambda$-coordinate trajectories from the `.edr` file in the form of readable `.xvg` files using the following command:
+After the CpHMD simulation is completed one can extract the $\lambda$-coordinate trajectories from the `.edr` file in the form of readable `.xvg` files using the following command:
 
 ```
 gmx cphmd -s MD.tpr -e MD.edr -numplot 1
 ```
 
-## Performing titations
+## Performing titrations
 
 Performing a computational titration is helpful for determining the microscopic pKas of titratable sites. After steps 1 to 9 of the basic workflow have been completed, one can use the included [create_titration.py](scripts/create_titration.py) to setup a titration. For example, the command:
 
@@ -201,7 +201,7 @@ creates directories corresponding to pH 1 to 9, with each subdirectory containin
 
 ## Performing parameterizations
 
-The following section describes a procedure for parameterizing (new) *two-state* ligands for CpHMD simulations. For convenience, we will use the word ligand to refer to any new lambdagrouptype. In this workflow, we will consider parameterizing arginine as an example. As in our previous work, for amino acid paramterization we use capped tripeptides. Note that performing parameterizations correctly is relatively complicated, and the reader is advised to check [Scalable Constant pH Molecular Dynamics in GROMACS](https://pubs.acs.org/doi/10.1021/acs.jctc.2c00516) for more information on parameterization in CpHMD as well as [phbuilder: a tool for efficiently setting up constant-pH simulations in GROMACS](). Here, we will use a two-step procedure introduced in phbuilder paper.
+The following section describes a procedure for parameterizing (new) *two-state* ligands for CpHMD simulations. For convenience, we will use the word ligand to refer to any new lambdagrouptype. In this workflow, we will consider parameterizing arginine as an example. As in our previous work, for amino acid parameterization we use capped tripeptides. Note that performing parameterizations correctly is relatively complicated, and the reader is advised to check [Scalable Constant pH Molecular Dynamics in GROMACS](https://pubs.acs.org/doi/10.1021/acs.jctc.2c00516) for more information on parameterization in CpHMD as well as [phbuilder: a tool for efficiently setting up constant-pH simulations in GROMACS](). Here, we will use a two-step procedure introduced in phbuilder paper.
 
 #### 1. Prepare the residuetype topology.
 
@@ -290,7 +290,7 @@ For example, the command:
 create_parameterization.py -f MD.mdp -c NPT.pdb -r NPT.pdb -p topol.top -n index.ndx
 ```
 
-creates directories corresponding to different $\lambda$-values, each containing a `.tpr` run input file for `gmx mdrun`. The 2-step protocol assumes that first, short paramterization runs are conducted, followed by reweighting of long 100 nanasecond sampling rus of the ligand in a box (more on that later). We recommend using this 2-step protocol, since it is easier to obtain satisfactory **dvdl** coefficients. Thus, we run only 13 paramterization runs for only 1 nanosecond.
+creates directories corresponding to different $\lambda$-values, each containing a `.tpr` run input file for `gmx mdrun`. The 2-step protocol assumes that first, short parameterization runs are conducted, followed by reweighting of long 100 nanosecond sampling runs of the ligand in a box (more on that later). We recommend using this 2-step protocol, since it is easier to obtain satisfactory **dvdl** coefficients. Thus, we run only 13 parameterization runs for only 1 nanosecond.
 
 #### 8. Perform the parameterization simulations.
 
@@ -309,9 +309,9 @@ This will yield a file `cphmd-dvdl-1-2.xvg` for which the second column contains
 The general help for `fit_parameterization.py` is as follows:
 
 ```
-This script will find optimal parameters for parameterised group. It can work in two modes: (i) paramterization, and (ii)
-reweighing. In the paramterization mode the script will fit optimal polinomial todvdl computed for a set of fixed
-lambda-s. In the reweighing mode the script will analyse the distributions of lambda-coordinate and adjust the
+This script will find optimal parameters for parameterized group. It can work in two modes: (i) parameterization, and (ii)
+reweighting. In the parameterization mode the script will fit optimal polynomial to dvdl computed for a set of fixed
+lambda-s. In the reweighting mode the script will analyze the distributions of lambda-coordinate and adjust the
 coefficients in order to get flat distributions. As an output, the script will provide entries for lambdagrouptypes.dat
 and .mdp files.
 
@@ -319,16 +319,16 @@ options:
     -h, --help            show this help message and exit
     -f MDP, --mdp MDP     Input .mdp file
     -i PREFIX, --prefix PREFIX
-                        Prefix of input folders. Default r for paramterization, s for reweighing
+                        Prefix of input folders. Default r for parameterization, s for reweighting
     -m {p,s}, --mode {p,s}
                         Input topology file
     -nr NREPLICAS, --nreplicas NREPLICAS
-                        Number of replicas run for reweighing. Default is 10
+                        Number of replicas run for reweighting. Default is 10
     -l LAMBDAFILE, --lambdafile LAMBDAFILE
                         The path to lambdagrouptypes.dat file. By default the script will search a file in the current
                         directory
     -g GROUP, --group GROUP
-                        Name of the group for paramterization
+                        Name of the group for parameterization
     -fo FITORDER, --fitorder FITORDER
                         Fitting order. Default value is 5
     -o OUT, --out OUT     Name of the outputfile
@@ -348,15 +348,15 @@ This can be either the default or the one in your working directory.
 
 #### 12. Use inverse-Boltzmann to refine the parameterization.
 
-With the obtained coefficients we now need to run 10 (100ns) replicas of the ligand in a box of water. For this you can simply follow the basic workflow, but you should set simulation pH = ligand pKa, and bias barrier height to 0 kJ/mol (`dwpE = 0`). When plotting the resulting $\lambda$-trajectories as a histogram, one should observe approximately flat distributions as Edwp = 0 implies no contribution from $V_{\text{bias}}$, and pH = pKa implies no contribution from $V_{\text{pH}}$, leaving only $V_{\text{ff}}$ and $V_{\text{corr}}$, which should exactly cancel out if parameterization was succesful. However, due to poor sampling efficiency during parameterization, those distributions are not flat even after longer parameterization runs. To overcome that, we will have to update the dvdl coefficients by adding the correction which should flatten the distribution. The correction for dvdl is computed as the derivative of $U(\lambda)$, where $U$ is the Boltzmann inversion of the distribution $p(\lambda)$: $U = -R T \log(p)$. To get this correction `fit_parameterization.py` needs to be run in reweighing mode:
+With the obtained coefficients we now need to run 10 (100ns) replicas of the ligand in a box of water. For this you can simply follow the basic workflow, but you should set simulation pH = ligand pKa, and bias barrier height to 0 kJ/mol (`dwpE = 0`). When plotting the resulting $\lambda$-trajectories as a histogram, one should observe approximately flat distributions as Edwp = 0 implies no contribution from $V_{\text{bias}}$, and pH = pKa implies no contribution from $V_{\text{pH}}$, leaving only $V_{\text{ff}}$ and $V_{\text{corr}}$, which should exactly cancel out if parameterization was successful. However, due to poor sampling efficiency during parameterization, those distributions are not flat even after longer parameterization runs. To overcome that, we will have to update the dvdl coefficients by adding the correction which should flatten the distribution. The correction for dvdl is computed as the derivative of $U(\lambda)$, where $U$ is the Boltzmann inversion of the distribution $p(\lambda)$: $U = -R T \log(p)$. To get this correction `fit_parameterization.py` needs to be run in reweighting mode:
 
 ```
-python fit_paramterization.py -f MD.mdp -m s -g ARGT
+python fit_parameterization.py -f MD.mdp -m s -g ARGT
 ```
 
 #### 13. Perform simulations with the updated coefficient to check that the distributions are now flat.
 
-The reweighing can be repeated several times, but usually one repetition is enough. Once it has been observed that the distributions are flat, you are ready to use the parameterized ligand for CpHMD simulations. If not, there might be mistakes in your parameterization procedure, you might need to use a higher-order fit, or there are sampling issues and you might need to modify (bonded) parameters.
+The reweighting can be repeated several times, but usually one repetition is enough. Once it has been observed that the distributions are flat, you are ready to use the parameterized ligand for CpHMD simulations. If not, there might be mistakes in your parameterization procedure, you might need to use a higher-order fit, or there are sampling issues and you might need to modify (bonded) parameters.
 
 ## Running CpHMD simulations on HPC resources
 

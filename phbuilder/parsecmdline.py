@@ -178,7 +178,7 @@ def parsecmdline():
                           dest='nstout',
                           action='store',
                           default=500,
-                          help='[<int>] (500) Specify output frequency for the lambda_xxx.dat files. 500 is large enough for subsequent frames to be uncoupled.',
+                          help='[<int>] (500) Specify output frequency for the lambda files. 500 is large enough for subsequent frames to be uncoupled.',
                           type=int)
 
     parser_3.add_argument('-dwpE',
