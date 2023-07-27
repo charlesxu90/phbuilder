@@ -16,7 +16,7 @@ def parsecmdline():
     desc_1 = "System builder for constant-pH simulations in GROMACS. phbuilder consists of three tools: gentopol, neutralize, and genparams. Each tool performs a specific task for preparing a constant-pH simulation."
 
     # Epilogue. Also used by subcommands.
-    desc_2 = "phbuilder VERSION 0.0.8. For more information, examples and helpful scripts, please visit https://github.com/AntonJansen96/phbuilder."
+    desc_2 = "phbuilder VERSION 1.0.1. For a detailed user manual, please visit https://github.com/AntonJansen96/phbuilder."
 
     # gentopol main description.
     desc_3 = "gentopol encapsulates gmx pdb2gmx and allows you to (re)generate the topology for your system using our modified version of the CHARMM36 force field. This is necessary as some dihedral parameters were modified for titratable residues (ref manuscript 2). gentopol by default allows you to interactively set the initial lambda value (protonation state) for each residue associated with a defined lambdagrouptype. This behavior can be automated by setting the -ph <ph> flag. In this case, every residue associated with a defined lambdagrouptype will automatically be made titratable, and the initial lambda values will be guessed based on the specified ph, together with the pKa defined in the lambdagrouptypes.dat file. Note that you should use the same pH value for genparams."
