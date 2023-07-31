@@ -9,6 +9,8 @@
 phbuilder is a command line tool that automates setting up constant-pH (CpHMD) simulations in [GROMACS](https://www.gromacs.org/).
 phbuilder is developed by Anton Jansen, Pavel Buslaev, Noora Aho, Gerrit Groenhof, and Berk Hess.
 
+For bug reports and feature requests, please use the [issues](https://github.com/AntonJansen96/phbuilder/issues) section.
+
 For the GROMACS CpHMD publications, please see:
 * [Scalable Constant pH Molecular Dynamics in GROMACS](https://pubs.acs.org/doi/10.1021/acs.jctc.2c00516).
 * [Best Practices in Constant pH MD Simulations: Accuracy and Sampling](https://pubs.acs.org/doi/full/10.1021/acs.jctc.2c00517).
@@ -66,6 +68,14 @@ In addition to the command line input provided by the user, phbuilder has a few 
 ## Basic Tool Description
 
 phbuilder is a command line tool that automates setting up constant-pH (CpHMD) simulations in [GROMACS](https://www.gromacs.org/). phbuilder consists of three (sub)tools: gentopol, neutralize, and genparams. Each tool fulfills a specific function in the setup process. gentopol allows you to select which sites to make titratable, and in which initial lambda (protonation) state they should be. gentopol also regenerates your system topology using the modified CHARMM36m CpHMD force field. neutralize adds the appropriate number of ions and buffer particles to ensure a net-neutral simulations. genparams generates the CpHMD-specific `.mdp` files and `.ndx` file. Functionality for setting up titration and parameterization is also provided with the help of included stand-alone Python scripts.
+
+Out of the box, phbuilder comes with the force field and CpHMD topology parameters required for setting up Asp, Glu, and His sites in the CHARMM36m force field. A modified version of this force field ([why?](https://pubs.acs.org/doi/full/10.1021/acs.jctc.2c00517)), together with the global phbuilder parameter file `lambdagrouptypes.dat` are placed in the Python package directory
+
+```
+/path/to/python3.xx/package_data/phbuilder/ffield/
+```
+
+upon installation. By default, phbuilder uses/copies the force field and `lambdagrouptypes.dat` file from this location to the relevant working directory. It is strongly recommended to not modify these default files. Instead, if you wants to set up CpHMD simulations using a modified force field or `lambdagrouptypes.dat` file (e.g. when parameterizing new lambdagrouptypes), you can simply place modified versions of these files in your working directory, and the local files will override the default ones.
 
 ## Basic Workflow
 
@@ -484,7 +494,7 @@ phbuilder genparams [-h] -f FILE -ph PH [-mdp MDP] [-ndx NDX] [-nstout NSTOUT] [
 
 ## Tips and Tricks
 
-To be expanded.
+* One can use the experimental [EQ_smart.py](scripts/EQ_smart.py) to perform a more sound CpHMD equilibration. When using this script, the lambda coordinates from the last frame of an equilibration step are extracted from the `.edr` file and inserted in the `.mdp` file for the next equilibration step.
 
 ## Frequently Asked Questions
 
