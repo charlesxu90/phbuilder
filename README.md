@@ -58,13 +58,6 @@ For the publication associated with phbuilder, please see:
     ```
     once and reload your terminal.
 
-<!-- ## Dependencies and configuration file locations
-
-In addition to the command line input provided by the user, phbuilder has a few (file) dependencies. These dependencies are outlined here.
-
-1. phbuilder requires that GROMACS CpHMD beta build is installed. See installation step 3.
-2. phbuilder uses a central configuration file `lambdagrouptypes.dat`. The default version of this file is located in the installation directory of the phbuilder Python package, i.e. `/path/to/lib/python3.xx/site-packages/phbuilder/ffield`. -->
-
 ## Basic Tool Description
 
 phbuilder is a command line tool that automates setting up constant-pH (CpHMD) simulations in [GROMACS](https://www.gromacs.org/). phbuilder consists of three (sub)tools: gentopol, neutralize, and genparams. Each tool fulfills a specific function in the setup process. gentopol allows you to select which sites to make titratable, and in which initial lambda (protonation) state they should be. gentopol also regenerates your system topology using the modified CHARMM36m CpHMD force field. neutralize adds the appropriate number of ions and buffer particles to ensure a net-neutral simulations. genparams generates the CpHMD-specific `.mdp` files and `.ndx` file. Functionality for setting up titration and parameterization is also provided with the help of included stand-alone Python scripts.
@@ -72,7 +65,7 @@ phbuilder is a command line tool that automates setting up constant-pH (CpHMD) s
 Out of the box, phbuilder comes with the force field and CpHMD topology parameters required for setting up Asp, Glu, and His sites in the CHARMM36m force field. A modified version of this force field ([why?](https://pubs.acs.org/doi/full/10.1021/acs.jctc.2c00517)), together with the global phbuilder parameter file `lambdagrouptypes.dat` are placed in the Python package directory
 
 ```
-/path/to/python3.xx/package_data/phbuilder/ffield/
+/path/to/python3.11/site-packages/phbuilder/ffield/
 ```
 
 upon installation. By default, phbuilder uses/copies the force field and `lambdagrouptypes.dat` file from this location to the relevant working directory. It is strongly recommended to not modify these default files. Instead, if you wants to set up CpHMD simulations using a modified force field or `lambdagrouptypes.dat` file (e.g. when parameterizing new lambdagrouptypes), you can simply place modified versions of these files in your working directory, and the local files will override the default ones.
