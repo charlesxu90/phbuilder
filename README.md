@@ -3,7 +3,7 @@
 [![GitLab issues](https://img.shields.io/badge/issue_tracking-gitlab-blue.svg)](https://gitlab.com/gromacs-constantph/phbuilder/-/issues)
 
 <p align="center">
-  <img src="https://gitlab.com/gromacs-constantph/phbuilder/logo.png" width="600"/>
+  <img src="https://gitlab.com/gromacs-constantph/phbuilder/-/raw/main/logo.png" width="600"/>
 </p>
 
 phbuilder is a command line tool that automates setting up constant-pH (CpHMD) simulations in [GROMACS](https://www.gromacs.org/).</br>
