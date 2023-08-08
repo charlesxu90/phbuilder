@@ -1378,4 +1378,4 @@ class phbuilder(User):
     def pleaseCite(self):
         """Print citation request.
         """
-        self.update('If this software contributed to your research, please cite <doi_phbuilder_paper>.')
+        self.update('If this software contributed to your research, please cite [preprintlink].')

@@ -1,15 +1,15 @@
-<div style="width: 830px">
+<!-- <div style="width: 830px"> -->
 
-[![GitHub issues](https://img.shields.io/badge/issue_tracking-github-blue.svg)](https://github.com/AntonJansen96/phbuilder/issues)
+[![GitLab issues](https://img.shields.io/badge/issue_tracking-gitlab-blue.svg)](https://gitlab.com/gromacs-constantph/phbuilder/-/issues)
 
 <p align="center">
-  <img src="logo.png" width="600"/>
+  <img src="https://gitlab.com/gromacs-constantph/phbuilder/logo.png" width="600"/>
 </p>
 
-phbuilder is a command line tool that automates setting up constant-pH (CpHMD) simulations in [GROMACS](https://www.gromacs.org/).
+phbuilder is a command line tool that automates setting up constant-pH (CpHMD) simulations in [GROMACS](https://www.gromacs.org/).</br>
 phbuilder is developed by Anton Jansen, Pavel Buslaev, Noora Aho, Gerrit Groenhof, and Berk Hess.
 
-For bug reports and feature requests, please use the [issues](https://github.com/AntonJansen96/phbuilder/issues) section.
+For bug reports and feature requests, please use the [issues](https://gitlab.com/gromacs-constantph/phbuilder/-/issues) section.
 
 For the GROMACS CpHMD publications, please see:
 * [Scalable Constant pH Molecular Dynamics in GROMACS](https://pubs.acs.org/doi/10.1021/acs.jctc.2c00516).
