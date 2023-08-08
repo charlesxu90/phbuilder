@@ -1,4 +1,4 @@
-<!-- <div style="width: 830px"> -->
+<div style="width: 830px">
 
 [![GitLab issues](https://img.shields.io/badge/issue_tracking-gitlab-blue.svg)](https://gitlab.com/gromacs-constantph/phbuilder/-/issues)
 
