@@ -16,7 +16,7 @@ For the GROMACS CpHMD publications, please see:
 * [Best Practices in Constant pH MD Simulations: Accuracy and Sampling](https://pubs.acs.org/doi/full/10.1021/acs.jctc.2c00517).
 
 For the publication associated with phbuilder, please see:
-* [phbuilder: a tool for efficiently setting up constant pH molecular dynamics simulations in GROMACS]().
+* [phbuilder: a tool for efficiently setting up constant pH molecular dynamics simulations in GROMACS](https://chemrxiv.org/engage/chemrxiv/article-details/64d4d5af69bfb8925ab380a4).
 
 ## Table of contents
 
@@ -205,7 +205,7 @@ creates directories corresponding to pH 1 to 9, with each subdirectory containin
 
 ## Performing parameterizations
 
-The following section describes a procedure for parameterizing (new) *two-state* ligands for CpHMD simulations. For convenience, we will use the word ligand to refer to any new lambdagrouptype. In this workflow, we will consider parameterizing arginine as an example. As in our previous work, for amino acid parameterization we use capped tripeptides. Note that performing parameterizations correctly is relatively complicated, and the reader is advised to check [Scalable Constant pH Molecular Dynamics in GROMACS](https://pubs.acs.org/doi/10.1021/acs.jctc.2c00516) for more information on parameterization in CpHMD as well as [phbuilder: a tool for efficiently setting up constant-pH simulations in GROMACS](). Here, we will use a two-step procedure introduced in phbuilder paper.
+The following section describes a procedure for parameterizing (new) *two-state* ligands for CpHMD simulations. For convenience, we will use the word ligand to refer to any new lambdagrouptype. In this workflow, we will consider parameterizing arginine as an example. As in our previous work, for amino acid parameterization we use capped tripeptides. Note that performing parameterizations correctly is relatively complicated, and the reader is advised to check [Scalable Constant pH Molecular Dynamics in GROMACS](https://pubs.acs.org/doi/10.1021/acs.jctc.2c00516) for more information on parameterization in CpHMD as well as [phbuilder: a tool for efficiently setting up constant-pH simulations in GROMACS](https://chemrxiv.org/engage/chemrxiv/article-details/64d4d5af69bfb8925ab380a4). Here, we will use a two-step procedure, introduced in the phbuilder paper.
 
 #### 1. Prepare the residuetype topology.
 
