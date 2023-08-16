@@ -3,7 +3,7 @@
 [![GitLab issues](https://img.shields.io/badge/issue_tracking-gitlab-blue.svg)](https://gitlab.com/gromacs-constantph/phbuilder/-/issues)
 
 <p align="center">
-  <img src="logo.png" width="600"/>
+  <img src="figures/logo.png" width="600"/>
 </p>
 
 phbuilder is a command line tool that automates setting up constant-pH (CpHMD) simulations in [GROMACS](https://www.gromacs.org/).<br>
@@ -22,36 +22,38 @@ For the publication associated with phbuilder, please see:
 ## Table of contents
 
 1. [Installation](#installation)
-3. [Basic Tool Description](#basic-tool-description)
-4. [Basic Workflow](#basic-workflow)
-5. [Performing Titrations](#performing-titrations)
-6. [Performing Parameterizations](#performing-parameterizations)
-7. [Running CpHMD simulations on HPC resources](#running-cphmd-simulations-on-hpc-resources)
-8. [Synopsis `phbuilder gentopol`](#synopsis-phbuilder-gentopol)
-9. [Synopsis `phbuilder neutralize`](#synopsis-phbuilder-neutralize)
-10. [Synopsis `phbuilder genparams`](#synopsis-phbuilder-genparams)
-11. [Tips and Tricks](#tips-and-tricks)
-12. [Frequently Asked Questions](#frequently-asked-questions)
+2. [Description](#description)
+3. [Basic Workflow](#basic-workflow)
+4. [Performing Titrations](#performing-titrations)
+5. [Performing Parameterizations](#performing-parameterizations)
+6. [Running CpHMD simulations on HPC resources](#running-cphmd-simulations-on-hpc-resources)
+7. [Synopsis `phbuilder gentopol`](#synopsis-phbuilder-gentopol)
+8. [Synopsis `phbuilder neutralize`](#synopsis-phbuilder-neutralize)
+9. [Synopsis `phbuilder genparams`](#synopsis-phbuilder-genparams)
+10. [Tips and Tricks](#tips-and-tricks)
+11. [Frequently Asked Questions](#frequently-asked-questions)
 
 ## Installation 
 
 1. To enable GPU acceleration, make sure you first install [CUDA](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#pre-installation-actions).
 
-2. Download the [gromacs-constantph](https://gitlab.com/gromacs-constantph/) beta build.
+2. Download the [gromacs-constantph](https://gitlab.com/gromacs-constantph/constantph/) beta.
 
 3. Build and install using the instructions [here](https://manual.gromacs.org/current/install-guide/index.html). Suggested CMake command:
     ```
     cmake .. -DGMX_BUILD_OWN_FFTW=ON -DGMX_GPU=CUDA -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=/usr/local/gromacs_constantph
     ```
 
-    NOTE: running `make check` will give multiple failures. This is to be expected for the CpHMD beta version. It is recommended to skip `make check`.
+    NOTE: running `make check` will give multiple failures. This is to be expected for the CpHMD beta. It is recommended to skip `make check`.
 
     NOTE: By default, phbuilder will look for the GROMACS CpHMD installation in `/usr/local/gromacs_constantph`. If you install the CpHMD code in a different location, make sure to update this in the phbuilder configuration file `lambdagrouptypes.dat`, or alternatively set `GMXPH_BASEPATH`.
 
-4. Install phbuilder (test version):
+4. Install phbuilder:
     ```
     pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple phbuilder
     ```
+
+    NOTE: Python 3.11 or newer is currently required.
 
 5. phbuilder has [argcomplete](https://pypi.org/project/argcomplete/) functionality. To make sure this works, run:
     ```
@@ -59,27 +61,27 @@ For the publication associated with phbuilder, please see:
     ```
     once and reload your terminal.
 
-## Basic Tool Description
+## Description
 
-phbuilder is a command line tool that automates setting up constant-pH (CpHMD) simulations in [GROMACS](https://www.gromacs.org/). phbuilder consists of three (sub)tools: gentopol, neutralize, and genparams. Each tool fulfills a specific function in the setup process. gentopol allows you to select which sites to make titratable, and in which initial lambda (protonation) state they should be. gentopol also regenerates your system topology using the modified CHARMM36m CpHMD force field. neutralize adds the appropriate number of ions and buffer particles to ensure a net-neutral simulations. genparams generates the CpHMD-specific `.mdp` files and `.ndx` file. Functionality for setting up titration and parameterization is also provided with the help of included stand-alone Python scripts.
+phbuilder is a command line tool that automates setting up constant-pH (CpHMD) simulations in [GROMACS](https://www.gromacs.org/). phbuilder consists of three (sub)tools: `gentopol`, `neutralize`, and `genparams`. Each tool fulfills a specific function in the setup process. `gentopol` allows you to select which residues to make titratable and which initial lambda (protonation) state they should have. `gentopol` also (re)generates the system topology using the modified CHARMM36m CpHMD force field ([why?](https://pubs.acs.org/doi/full/10.1021/acs.jctc.2c00517)). `neutralize` adds the appropriate number of ions and buffer particles to ensure a net-neutral simulation, and `genparams` generates the CpHMD-specific `.mdp` and `.ndx` files. Functionality for setting up titration and parameterization is also provided with the help of included stand-alone Python scripts.
 
-Out of the box, phbuilder comes with the force field and CpHMD topology parameters required for setting up Asp, Glu, and His sites in the CHARMM36m force field. A modified version of this force field ([why?](https://pubs.acs.org/doi/full/10.1021/acs.jctc.2c00517)), together with the global phbuilder parameter file `lambdagrouptypes.dat` are placed in the Python package directory
+Out of the box, phbuilder comes with the force field and CpHMD topology parameters required for setting up titratable Asp, Glu, and His residues in CHARMM36m. A modified version of this force field, together with the global phbuilder parameter file `lambdagrouptypes.dat` are placed in the Python package directory
 
 ```
 /path/to/python3.11/site-packages/phbuilder/ffield/
 ```
 
-upon installation. By default, phbuilder uses/copies the force field and `lambdagrouptypes.dat` file from this location to the relevant working directory. It is strongly recommended to not modify these default files. Instead, if you wants to set up CpHMD simulations using a modified force field or `lambdagrouptypes.dat` file (e.g. when parameterizing new lambdagrouptypes), you can simply place modified versions of these files in your working directory, and the local files will override the default ones.
+upon installation. By default, phbuilder copies and uses the force field and `lambdagrouptypes.dat` file from this location to the relevant working directory. It is strongly recommended to not modify these default files. Instead, if you wants to set up CpHMD simulations using a modified force field or `lambdagrouptypes.dat` file (e.g. when parameterizing a new lambdagrouptype), you can simply place modified versions of these files in your working directory, and the local files will override the default ones.
 
 ## Basic Workflow
 
 #### 1. Prepare your structure file. 
 This is an important step, and it applies especially to structures that are straight from [RCSB](https://www.rcsb.org/).
 
-* Make sure your structure only contains one MODEL, does not contain alternate location indicators, does not miss atoms or residues, etc.
+* Make sure your structure adheres to the proper [PDB format](https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/tutorials/pdbintro.html), only contains one MODEL, does not contain alternate location indicators, does not miss atoms or residues, etc.
 * Basically, if you cannot use your structure to successfully set up normal MD simulations with GROMACS, you should first make sure this works before continuing.
 * It is also important that your molecules(s) containing the titratable groups are *at the top* of the structure file. So first the titratable protein(s), and only then solvent, ions, lipids, etc.
-* It is also strongly recommended that every (non-ion / water) molecule has a chain identifier. If you have only one chain you can simply set everything to A.
+* Furthermore, it is recommended that every (non-ion / water) molecule has a chain identifier. If you have only one chain you can simply set everything to A.
 
 #### 2. Make sure that topologies are available for all moleculetypes present in your structure file.
 
@@ -87,7 +89,9 @@ phbuilder cannot provide topology information for non-standard residue types (th
 
 #### 3. Use `phbuilder gentopol` to (re)generate the CpHMD topology.
 
-First, decide which residues you want to have titratable, and in which protonation state those residues should be at $t = 0$ (essentially which initial $\lambda$-values they should have). If you do not care about this, you can use the `-ph <ph>` flag to have `gentopol` automatically choose the appropriate initial $\lambda$-values based on the specified pH and the (macroscopic) pKas of the lambdagrouptypes.
+First, decide which residues you want to make titratable, and which initial protonation (lambda) states those residues should assume at $t = 0$.
+
+One should ideally choose initial protonation states that are expected to be seen during the majority of the simulation. This way, the amount of charge absorbed by the buffers is minimized. For example, if you perform a simulation at pH = 2.0, one would expect Asp and Glu residues (pKa 3.65 and 4.25, respectively) to be mostly protonated. In this case, one should start the residues in the protonated state. Conversely, at neutral or high pH it is sensible to choose initial lambda values corresponding to the deprotonated state. By choosing the initial lambda values wisely, one can minimize the amount of charge absorbed by the buffers and thus the required number of buffer particles.
 
 Manually choose which residues to make titratable and in which initial state, and (re)generate the topology:
 
@@ -95,13 +99,11 @@ Manually choose which residues to make titratable and in which initial state, an
 phbuilder gentopol -f input.pdb
 ``` 
 
-Alternatively, you can set the -ph flag and simply run:
+If you don't want to manually set initial lambda values, you can use the `-ph <ph>` flag to have `gentopol` automatically choose the appropriate initial lambda values, based on the criterion: pH > pKa means start deprotonated, else start protonated.
 
 ```
 phbuilder gentopol -f input.pdb -ph <ph>
 ```
-
-In the latter case, the initial $\lambda$-values will be guessed based on the specified system pH, together with the (macroscopic) pKa specified in `lambdagrouptypes.dat`.
 
 #### 4. Add a periodic box and solvent (if not already present).
 
@@ -123,14 +125,28 @@ gmx solvate -cp box.pdb -p topol.top -o solvated.pdb
 
 #### 6. Use `phbuilder neutralize` to ensure a net-neutral simulation system.
 
+`phbuilder neutralize` performs two tasks: it adds ions to ensure a net-neutral system at $t = 0$, and it adds buffer particles in order to maintain a net-neutral system at $t > 0$.
+
+Adding ions to obtain a net-neutral simulation system at $t = 0$ is not as trivial as it may first seem. When setting up a CpHMD simulation, The titratable residues in the *structure* file are always in their most protonated state as we need all titratable hydrogen atoms to be present, but the *topology* (the actual charges of the titratable residues at $t = 0$) depend on the initial lambda values, which are set during the `gentopol` step and are provided to GROMACS in the `.mdp` files.
+
+Adding buffers to maintain a net neutral system at $t > 0$ comes down to the number of buffers to be added, which depends on the number of titratable sites in the system. Each buffer particle can absorb up to $\pm0.5$ charge, which means one needs at most $2N_{\text{sites}}$ buffer particles, although you can often get away with significantly less. The amount of charge that is required to be 'absorbed' from the titratable groups is distributed evenly over all buffer particles, so if we have $-10$ charge to 'absorb' and 100 buffer particles, each buffer particle would take on a $+0.1$ charge in order to keep the system neutral (see below).
+
+<p align="center">
+  <img src="figures/neutral.png" width="400"/>
+</p>
+
 Add the appropriate number of positive/negative ions and buffers to ensure a net-neutral system:
+
 ```
 phbuilder neutralize -f solvated.pdb
 ```
-Alternatively, if you want a specific ion concentration (in mol/L = mmol/mL) and/or a specific number of buffer particles , you could do:
+
+Alternatively, if you want a specific ion concentration (mol/L) and/or a specific number of buffer particles, one can do:
+
 ```
 phbuilder neutralize -f solvated.pdb -conc 0.15 -nbufs 20
 ```
+
 NOTE: `phbuilder neutralize` neutralizes the system by <i>adding</i> ions to the input structure, not by removing or rebalancing existing ones. This implies the final ion concentration in your output files will never be lower than the ion concentration in your input file. For this reason, you should not add any ions to your system when embedding membrane systems with e.g. CHARMM-GUI but rather let phbuilder take care of this.
 
 #### 7. Use `phbuilder genparams` to generate the `.mdp` and `.ndx` files required for CpHMD.
@@ -161,7 +177,6 @@ The `.mdp` files generated by `genparams` are generic files for CHARMM36m. They 
 ```
 #!/bin/bash
 
-# GROMACS version to use:
 source /usr/local/gromacs_constantph/bin/GMXRC
 
 gmx grompp -f EM.mdp -c phneutral.pdb -p topol.top -n index.ndx -o EM.tpr -maxwarn 1
@@ -179,14 +194,13 @@ gmx mdrun -v -deffnm NPT -c NPT.pdb -npme 0
 ```
 #!/bin/bash
 
-# GROMACS version to use:
 source /usr/local/gromacs_constantph/bin/GMXRC
 
 gmx grompp -f MD.mdp -c NPT.pdb -p topol.top -n index.ndx -o MD.tpr
 gmx mdrun -v -deffnm MD -c MD.pdb -x MD.xtc -npme 0
 ```
 
-#### 11. Extract the trajectories of the $\lambda$-coordinates.
+#### 11. Extract the trajectories of the lambda-coordinates.
 
 After the CpHMD simulation is completed one can extract the $\lambda$-coordinate trajectories from the `.edr` file in the form of readable `.xvg` files using the following command:
 
@@ -365,7 +379,7 @@ The reweighting can be repeated several times, but usually one repetition is eno
 
 ## Running CpHMD simulations on HPC resources
 
-To run CpHMD simulations on cluster (backend) nodes (with GPU support) you will likely have to compile the CpHMD beta version yourself. For this we suggest the following batch script (modify as needed):
+To run CpHMD simulations on a cluster you will likely have to compile the CpHMD beta yourself. For this we suggest the following batch script (modify as needed):
 
 ```
 #!/bin/bash
@@ -403,10 +417,9 @@ cd "$simdir"
 
 gmx grompp -f MD.mdp -c NPT.pdb -p topol.top -n index.ndx -o MD.tpr
 gmx mdrun -deffnm MD -x MD.xtc -npme 0 -nt $SLURM_JOB_CPUS_PER_NODE
-
 ```
 
-This is assuming you have the gromacs-constantph code located in your home `~` directory.
+This is assuming you have the gromacs-constantph beta located in your home `~` directory.
 
 ## Synopsis `phbuilder gentopol`
 
@@ -474,7 +487,7 @@ phbuilder genparams [-h] -f FILE -ph PH [-mdp MDP] [-ndx NDX] [-nstout NSTOUT] [
 
 #### OPTIONS
 
-| Flag<span style="color:white">____</span> | Description    |
+| Flag_____ | Description    |
 |--------------|----------------|
 | `-f`         | [\<.pdb/.gro>] (required) <br /> Specify input structure file. |
 | `-ph`        | [\<real>] (required) <br /> Specify simulation pH. |
@@ -492,4 +505,6 @@ phbuilder genparams [-h] -f FILE -ph PH [-mdp MDP] [-ndx NDX] [-nstout NSTOUT] [
 
 ## Frequently Asked Questions
 
-To be expanded.
+**Q : Where are the default `charmm36-mar2019-cphmd.ff` and `lambdagrouptypes.dat` files located?**
+
+A : To find out, run a `phbuilder` command with the `-v` flag. The path to the default files will be provided as extra user output.
