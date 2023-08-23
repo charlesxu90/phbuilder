@@ -19,7 +19,7 @@ For the GROMACS CpHMD publications, please see:
 For the publication associated with phbuilder, please see:
 * [phbuilder: a tool for efficiently setting up constant pH molecular dynamics simulations in GROMACS](https://chemrxiv.org/engage/chemrxiv/article-details/64d4d5af69bfb8925ab380a4).
 
-## Table of contents
+# Table of contents
 
 1. [Installation](#installation)
 2. [Description](#description)
@@ -33,7 +33,7 @@ For the publication associated with phbuilder, please see:
 10. [Tips and Tricks](#tips-and-tricks)
 11. [Frequently Asked Questions](#frequently-asked-questions)
 
-## Installation 
+# Installation 
 
 1. To enable GPU acceleration, make sure you first install [CUDA](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#pre-installation-actions).
 
@@ -61,7 +61,7 @@ For the publication associated with phbuilder, please see:
     ```
     once and reload your terminal.
 
-## Description
+# Description
 
 phbuilder is a command line tool that automates setting up constant-pH (CpHMD) simulations in [GROMACS](https://www.gromacs.org/). phbuilder consists of three (sub)tools: `gentopol`, `neutralize`, and `genparams`. Each tool fulfills a specific function in the setup process. `gentopol` allows you to select which residues to make titratable and which initial lambda (protonation) state they should have. `gentopol` also (re)generates the system topology using the modified CHARMM36m CpHMD force field ([why?](https://pubs.acs.org/doi/full/10.1021/acs.jctc.2c00517)). `neutralize` adds the appropriate number of ions and buffer particles to ensure a net-neutral simulation, and `genparams` generates the CpHMD-specific `.mdp` and `.ndx` files. Functionality for setting up titration and parameterization is also provided with the help of included stand-alone Python scripts.
 
@@ -73,9 +73,9 @@ Out of the box, phbuilder comes with the force field and CpHMD topology paramete
 
 upon installation. By default, phbuilder copies and uses the force field and `lambdagrouptypes.dat` file from this location to the relevant working directory. It is strongly recommended to not modify these default files. Instead, if you wants to set up CpHMD simulations using a modified force field or `lambdagrouptypes.dat` file (e.g. when parameterizing a new lambdagrouptype), you can simply place modified versions of these files in your working directory, and the local files will override the default ones.
 
-## Basic Workflow
+# Basic Workflow
 
-#### 1. Prepare your structure file. 
+### 1. Prepare your structure file. 
 This is an important step, and it applies especially to structures that are straight from [RCSB](https://www.rcsb.org/).
 
 * Make sure your structure adheres to the proper [PDB format](https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/tutorials/pdbintro.html), only contains one MODEL, does not contain alternate location indicators, does not miss atoms or residues, etc.
@@ -83,11 +83,17 @@ This is an important step, and it applies especially to structures that are stra
 * It is also important that your molecules(s) containing the titratable groups are *at the top* of the structure file. So first the titratable protein(s), and only then solvent, ions, lipids, etc.
 * Furthermore, it is recommended that every (non-ion / water) molecule has a chain identifier. If you have only one chain you can simply set everything to A.
 
-#### 2. Make sure that topologies are available for all moleculetypes present in your structure file.
+### 2. Make sure that topologies are available for all moleculetypes present in your structure file.
 
-phbuilder cannot provide topology information for non-standard residue types (those not included by default in CHARMM36m → not present in `residuetypes.dat`). In such cases, the user is expected to provide separate topology (`.itp`) files. Additionally, be aware that `gmx pdb2gmx` cannot add hydrogens to non-standard residues, so you either have to add an entry to the force field `.hdb` file, or make sure that hydrogens are already present in the structure for this residue type. For more information, see the relevant [GROMACS documentation](https://manual.gromacs.org/current/how-to/topology.html). See also parameterization steps 1 and 2.
+phbuilder cannot provide topology information for non-standard residue types (those not present in `residuetypes.dat`). In such cases, the user has two options:
 
-#### 3. Use `phbuilder gentopol` to (re)generate the CpHMD topology.
+1. **Make sure you have a separate `.itp` file.** If `gentopol` detects any non-standard residue types, it will ask the user to provide a path to the corresponding `.itp` file(s). Internally, phbuilder splits the input structure file into a standard and a non-standard part, and only run `gmx pdb2gmx` on the standard part. Note that despite providing a separate `.itp` file, you might still have to make additions to the force field. This possibly includes new atom, bond, pair, angle, and dihedral types not present in the standard force field, but present in the provided topology.
+
+2. **Add the non-standard residue type to the force field.** This will require making additions in the `residuetypes.dat`, `merged.rtp`, and possibly `merged.hdb` files. This will likely be more involved compared to the first option, but the advantage is that `gmx pdb2gmx` will be able to process your full structure.
+
+In the end, providing the correct topology and/or performing force field modifications for non-standard residue types is the responsibility of the user. For more information, see the relevant [GROMACS documentation](https://manual.gromacs.org/current/how-to/topology.html).
+
+### 3. Use `phbuilder gentopol` to (re)generate the CpHMD topology.
 
 First, decide which residues you want to make titratable, and which initial protonation (lambda) states those residues should assume at $t = 0$.
 
@@ -105,7 +111,7 @@ If you don't want to manually set initial lambda values, you can use the `-ph <p
 phbuilder gentopol -f input.pdb -ph <ph>
 ```
 
-#### 4. Add a periodic box and solvent (if not already present).
+### 4. Add a periodic box and solvent (if not already present).
 
 Periodic box (see [gmx editconf](https://manual.gromacs.org/documentation/current/onlinehelp/gmx-editconf.html)):
 
@@ -119,11 +125,11 @@ Solvent (see [gmx solvate](https://manual.gromacs.org/documentation/current/onli
 gmx solvate -cp box.pdb -p topol.top -o solvated.pdb
 ```
 
-#### 5. (Optional) Remove incorrectly placed water molecules.
+### 5. (Optional) Remove incorrectly placed water molecules.
 
 `gmx solvate` is a relatively basic program and will by default add solvent simply based on the van der Waals radii of the solute. This can lead to water molecules being generated in locations where there should not be any (e.g. in hydrophobic pockets in your protein). It is good practice to check for this, and if this occurs in your system, we recommend you to utilize the included [clean_after_solvate.py](scripts/clean_after_solvate.py) script to clean up your system.
 
-#### 6. Use `phbuilder neutralize` to ensure a net-neutral simulation system.
+### 6. Use `phbuilder neutralize` to ensure a net-neutral simulation system.
 
 `phbuilder neutralize` performs two tasks: it adds ions to ensure a net-neutral system at $t = 0$, and it adds buffer particles in order to maintain a net-neutral system at $t > 0$.
 
@@ -149,7 +155,7 @@ phbuilder neutralize -f solvated.pdb -conc 0.15 -nbufs 20
 
 NOTE: `phbuilder neutralize` neutralizes the system by <i>adding</i> ions to the input structure, not by removing or rebalancing existing ones. This implies the final ion concentration in your output files will never be lower than the ion concentration in your input file. For this reason, you should not add any ions to your system when embedding membrane systems with e.g. CHARMM-GUI but rather let phbuilder take care of this.
 
-#### 7. Use `phbuilder genparams` to generate the `.mdp` and `.ndx` files required for CpHMD.
+### 7. Use `phbuilder genparams` to generate the `.mdp` and `.ndx` files required for CpHMD.
 
 At this point, if everything went correctly both your structure and topology file(s) should be completed and constitute a net-neutral system when running CpHMD. What is now left is the actual simulation part: energy minimization, equilibration and production using the correct CpHMD parameters.
 
@@ -168,11 +174,11 @@ By default, the following files will be written:
 
 NOTE: If you previously used the auto feature (`-ph` flag) for `gentopol`, the pH you specify for `genparams` should be equal to this.
 
-#### 8. Check the generated files and modify parameters specific to your system as required. 
+### 8. Check the generated files and modify parameters specific to your system as required. 
 
 The `.mdp` files generated by `genparams` are generic files for CHARMM36m. They should work for basic simulations, but for advanced stuff like semi-isotropic pressure coupling for membranes, pull code, AWH, more gradual equilibration, etc. you should modify these generic files accordingly. Also note that by default no position restraints are used for the protein during NVT and NPT coupling.
 
-#### 9. Perform equilibration.
+### 9. Perform equilibration.
 
 ```
 #!/bin/bash
@@ -189,7 +195,7 @@ gmx grompp -f NPT.mdp -c NVT.pdb -p topol.top -n index.ndx -o NPT.tpr
 gmx mdrun -v -deffnm NPT -c NPT.pdb -npme 0
 ```
 
-#### 10. Perform the CpHMD production simulation.
+### 10. Perform the CpHMD production simulation.
 
 ```
 #!/bin/bash
@@ -200,7 +206,7 @@ gmx grompp -f MD.mdp -c NPT.pdb -p topol.top -n index.ndx -o MD.tpr
 gmx mdrun -v -deffnm MD -c MD.pdb -x MD.xtc -npme 0
 ```
 
-#### 11. Extract the trajectories of the lambda-coordinates.
+### 11. Extract the trajectories of the lambda-coordinates.
 
 After the CpHMD simulation is completed one can extract the $\lambda$-coordinate trajectories from the `.edr` file in the form of readable `.xvg` files using the following command:
 
@@ -208,7 +214,7 @@ After the CpHMD simulation is completed one can extract the $\lambda$-coordinate
 gmx cphmd -s MD.tpr -e MD.edr -numplot 1
 ```
 
-## Performing titrations
+# Performing titrations
 
 Performing a computational titration is helpful for determining the microscopic pKas of titratable sites. After steps 1 to 9 of the basic workflow have been completed, one can use the included [create_titration.py](scripts/create_titration.py) to setup a titration. For example, the command:
 
@@ -218,22 +224,65 @@ create_titration.py -f MD.mdp -c NPT.pdb -p topol.top -n index.ndx -pH 1:10:1 -n
 
 creates directories corresponding to pH 1 to 9, with each subdirectory containing two replicas (each containing the appropriate input files for `gmx mdrun`).
 
-## Performing parameterizations
+# Performing parameterizations
 
-The following section describes a procedure for parameterizing (new) *two-state* ligands for CpHMD simulations. For convenience, we will use the word ligand to refer to any new lambdagrouptype. In this workflow, we will consider parameterizing arginine as an example. As in our previous work, for amino acid parameterization we use capped tripeptides. Note that performing parameterizations correctly is relatively complicated, and the reader is advised to check [Scalable Constant pH Molecular Dynamics in GROMACS](https://pubs.acs.org/doi/10.1021/acs.jctc.2c00516) for more information on parameterization in CpHMD as well as [phbuilder: a tool for efficiently setting up constant-pH simulations in GROMACS](https://chemrxiv.org/engage/chemrxiv/article-details/64d4d5af69bfb8925ab380a4). Here, we will use a two-step procedure, introduced in the phbuilder paper.
+As mentioned, out of the box phbuilder comes with the topology and parameterization parameters (`lambdagrouptypes.dat`) required for setting up CpHMD simulation with Asp, Glu, and His in CHARMM36m. Although we expect this to be sufficient for most purposes, we recognize that scenarios (titratable ligands, titratable lipids, different force fields, etc.) exist for which CpHMD could be beneficial, but for which no parameterization is currently available.
 
-#### 1. Prepare the residuetype topology.
+The following section describes a procedure for parameterizing *two-state* ligands for CpHMD simulations. For convenience, we will use the word "ligand" to refer to any new lambdagrouptype. Here, we consider parameterizing arginine as an example. As in [our previous work](https://pubs.acs.org/doi/full/10.1021/acs.jctc.2c00517), for amino acid parameterization we use capped tripeptides. Note that performing parameterizations correctly is relatively complicated, and the reader is advised to check [Scalable Constant pH Molecular Dynamics in GROMACS](https://pubs.acs.org/doi/10.1021/acs.jctc.2c00516) for more information on parameterization in CpHMD as well as [phbuilder: a tool for efficiently setting up constant-pH simulations in GROMACS](https://chemrxiv.org/engage/chemrxiv/article-details/64d4d5af69bfb8925ab380a4). Here, we will use a two-step procedure, introduced in the phbuilder paper.
 
-[gmx pdb2gmx](https://manual.gromacs.org/documentation/current/onlinehelp/gmx-pdb2gmx.html) cannot create topologies for non-standard residuetypes, so you most likely have to provide your own `.itp` file. The fields in those `.itp` file should follow the following:
+NOTE: the structure for the arginine tripeptide may be found [here](figures/arg_tript.pdb).
 
-The names in the [ atoms ] section should reflect the titratable name of the residue (in our case ARGT):
+### 1. Prepare your working directory.
+
+By default, phbuilder uses/copies `lambdagrouptypes.dat`, `residuetypes.dat`, and `charmm36-mar2019-cphmd.ff` from
 
 ```
-[ atoms ]
-; nr	type	resnr	residu	atom	cgnr	charge	mass
-17        NH1      3   ARGT      N     13      -0.47     14.007
-etc.
+/path/to/python3.11/site-packages/phbuilder/ffield/
 ```
+
+to your working directory whenever used. To parameterize arginine, we will have to use modified versions of these files. Since it is not recommended to modify the default ones, we suggest placing copies in your working directory (either manually or by simply running `phbuilder gentopol` once). The files in your working directory will then override the default ones.
+
+### 2. Modify `lambdagrouptypes.dat`.
+
+To parameterize arginine, the `lambdagrouptypes.dat` in your working directory should look like this:
+
+```
+[ GROMACS ]
+path  = /usr/local/gromacs_constantph
+
+[ FORCEFIELD ]
+name  = charmm36-mar2019-cphmd.ff
+water = tip3p
+
+[ ARGT ]
+incl   = ARG
+atoms  = CD NE HE CZ NH1 HH11 HH12 NH2 HH21 HH22
+qqA    = 0.20 -0.70 0.44 0.64 -0.80 0.46 0.46 -0.80 0.46 0.46
+pKa_1  = 10.7
+qqB_1  = -0.11 -0.54 0.36 0.59 -0.91 0.37 0.00 -0.60 0.33 0.33
+dvdl_1 = 0.0
+
+[ BUF ]
+range = -0.50 0.50
+dvdl  = 823.85 -2457.8 2172.2 -144.05 -1289 576.74 
+```
+
+Here, it can be seen that `ARGT` will be used as the name for the titratable arginine. One can also see which atoms are to be made titratable, and which charge they should have in which protonation state. Finally, notice that `dvdl_1` is set to zero, as this is the parameter we are going to obtain during the parameterization.
+
+### 3. Make sure that the topology is available for the titratable ligand.
+
+As mentioned earlier, phbuilder cannot provide topology information for non-standard residue types (those not present in `residuetypes.dat`). `ARGT`, or whichever name you choose for your titratable ligand, should by default fall under non-standard residue types. The user now has two options:
+
+**Option 1 : Make sure you have a separate `.itp` file for the titratable ligand.** If `gentopol` detects any non-standard  residue types, it will ask the user to provide a path to the corresponding `.itp` file. Internally, phbuilder splits the input structure file into a standard and a non-standard part, and only run `gmx pdb2gmx` on the standard part. If this option is chosen, it is crucial that the input `.pdb` and `.itp` files correspond to the *most protonated state* of the non-standard residue type (i.e. with all hydrogens present). Note that despite providing a separate `.itp` file, you might still have to make additions to the force field. This possibly includes new atom, bond, pair, angle, and dihedral types not present in the standard force field, but present in the provided topology.
+
+  In your provided `.itp` file, the names in the [ atoms ] section should reflect the titratable name of the residue:
+
+  ```
+  [ atoms ]
+  ; nr	type	resnr	residu	atom	cgnr	charge	mass
+  17        NH1      3   ARGT      N     13      -0.47     14.007
+  etc.
+  ```
 
 Furthermore, at the end of the `.itp` file there should be a position restraining section:
 
@@ -243,7 +292,67 @@ Furthermore, at the end of the `.itp` file there should be a position restrainin
 #endif
 ```
 
-Where the ifdef must be POSRES. The posre.itp file should contain the specific atom(s) of the ligand you want to restrain, e.g. posre.itp:
+**Option 2 : Add the titratable ligand to the force field.** This will require making additions in the `residuetypes.dat`, `merged.rtp`, and possibly `merged.hdb` file.
+
+This will likely be more involved compared to the first option, but the advantage is that `gmx pdb2gmx` will be able to process your full structure. If you're lucky, `merged.rtp` and `merged.hdb` already contain entries for the (non titratable) moleculetype, and you can simply copy those entries and modify the name. I.e. ARG already exists, so to make the topology of ARGT available, all we have to do is copy the entries for ARG and change the name.
+
+Concretely, to make the topology of ARGT available, we did the following:
+
+First, add the name of the new lambdagrouptype `ARGT` to `residuetypes.dat`, i.e. append the line:
+
+```
+ARGT Protein
+```
+
+Second, make sure an entry for `ARGT` exists in the `charmm36-mar2019-cphmd.ff/merged.rtp`. It is crucial that the topology defined here always corresponds to the most protonated state, i.e. the state with all possible hydrogen atoms present. One can create an entry by simply copying and pasting the entry for `ARG` and changing the name to `ARGT`:
+
+```
+[ ARGT ] ; titratable ARG
+  [ atoms ]
+	    N   NH1   -0.470  0
+	   HN     H    0.310  1
+	   CA   CT1    0.070  2
+	   HA   HB1    0.090  3
+	   CB   CT2   -0.180  4
+etc.
+```
+
+Third, make sure an entry for `ARGT` exists in the `charmm36-mar2019-cphmd.ff/merged.hdb`. One can do this by simply copying and pasting the entry for `ARG` and changing the name to `ARGT`:
+
+```
+ARGT	8		
+1	1	HN	N	-C	CA
+1	5	HA	CA	N	C	CB
+2	6	HB	CB	CG	CA
+2	6	HG	CG	CD	CB
+2	6	HD	CD	NE	CG
+1	1	HE	NE	CD	CZ
+2	3	HH1 NH1 CZ	NE
+2	3	HH2 NH2 CZ	NE
+```
+
+In the end, providing the correct topology and/or performing force field modifications for titratable ligands is the responsibility of the user. For more information, see the relevant [GROMACS documentation](https://manual.gromacs.org/current/how-to/topology.html).
+
+### 4. Run `phbuilder gentopol`.
+
+You can now generate the CpHMD topology by running
+
+```
+phbuilder gentopol -f arg_tript.pdb
+```
+
+Make sure to set the initial lambda equal to the most protonated state (for ARGT choose option 1 when prompted). Also make sure to choose "2. Add additional flags", set the `-ter` flag for `pdb2gmx`, and choose None for the terminals.
+
+If everything went correctly, `topol.top` should now contain
+
+```
+; Include Position restraint file
+#ifdef POSRES
+#include "posre.itp"
+#endif
+```
+
+towards the bottom, and a `posre.itp` file should have been generated in your working directory. `posre.itp` contains the specific atom(s) of the ligand to be restrained, which by default contains all heavy atoms, but in our case should only be the CA of ARGT. So:
 
 ```
 [ position_restraints ]
@@ -251,57 +360,41 @@ Where the ifdef must be POSRES. The posre.itp file should contain the specific a
 19  1  1000  1000  1000
 ```
 
-will position restrain atom 19 (of moleculetype ARGT). Position restraining during the calibration is required to avoid (strong) interactions between the titratable atoms and the neutralizing buffer particle (by preventing them from moving too close together in the simulation box). If the ligand and buffer particle accidentally get close to each other in some of the calibration runs, the resulting **dVdl** coefficients will be significantly affected. It is also important to remember while selecting atoms for which positions are restrained, that we want to keep the distance between the titratable group and the buffer particle large, but at the same time we want to sample as much orientational configurations as possible. Thus, in the case of ARGT we only fix the $\text{C}_\alpha$ atom of arginine. The suitable selection of atoms to restrain is system-dependent and therefore the responsibility of the user.
+will position restrain only atom 19. Position restraining during the calibration is required to avoid (strong) interactions between the titratable atoms and the neutralizing buffer particle (by preventing them from moving too close together in the simulation box). If the ligand and buffer particle accidentally get close to each other in some of the calibration runs, the resulting **dVdl** coefficients will be significantly affected. It is also important to remember while selecting atoms for which positions are restrained, that we want to keep the distance between the titratable group and the buffer particle large, but at the same time we want to sample as much orientational configurations as possible. Thus, in the case of ARGT we only fix the $\text{C}_\alpha$ atom of arginine. The suitable selection of atoms to restrain is system-dependent and therefore the responsibility of the user.
 
-#### 2. Modify the force field
+### 5. Perform basic workflow steps 4 to 6 to obtain a solvate structure.
 
-In addition to providing and setting up your .itp file, you will likely have to make an addition to the CpHMD force field. This possibly includes new atom, bond, pair, angle, and dihedral types not present in the standard force field, but present in ligand topology. phbuilder does not take care of this and modifying the force field is the responsibility of the user.
-
-#### 3. Place a (copy of the default) lambdagrouptypes.dat file in your working directory.
-
-Doing so will override the default file, and this will allow you to define custom lambdagrouptypes. To the lambdagrouptypes.dat (in your working dir) add the parameters corresponding to the new type. For ARGT:
-
-```
-[ ARGT ]
-incl   = ARG
-atoms  = CD NE HE CZ NH1 HH11 HH12 NH2 HH21 HH22
-qqA    = 0.20 -0.70 0.44 0.64 -0.80 0.46 0.46 -0.80 0.46 0.46
-pKa_1  = 10.7
-qqB_1  = -0.11 -0.54 0.36 0.59 -0.91 0.37 0.00 -0.60 0.33 0.33
-dvdl_1 = 0.
-```
-
-dvdl_1 is initially set to zero as this is the parameter we are going to obtain during the calibration.
-
-#### 4. Perform basic workflow steps 1 to 5 to obtain a solvate structure.
-
-Make sure to set the initial lambda equal to the *protonated* state. Next, perform the neutralization step setting `-nbufs = 1 -rmin 2.0`:
+When performing the neutralization step, we want to add only one buffer particle, and we want the buffer to be at least 2 nm away from the tripeptide. We therefore set the `-nbufs 1` and `-rmin 2.0` flags:
 
 ```
 phbuilder neutralize -f solvated.pdb -nbufs 1 -rmin 2.0
 ```
 
-#### 5. Generate .mdp files for EM/EQ/MD in calibration mode.
+### 6. Use `genparams` to generate the `.mdp` files in calibration mode.
 
-This can be done by setting the additional `-cal` flag for genparams:
+This can be done by setting the `-cal` flag:
 
 ```
 phbuilder genparams -f phneutral.pdb -ph 4.0 -cal
 ```
 
-Setting the `-cal` flag will modify the resulting .mdp files. It will not only set 
+Setting the `-cal` flag will modify the resulting .mdp files. It will not only set
+
 ```
 lambda-dynamics-calibration = yes
 ```
+
 but also add
+
 ```
 define = -DPOSRES -DPOSRES_BUF
 ```
-position restraints. Here, `DPOSRES` corresponds to the ligand atom(s) as described in step 1, and `DPOSRES_BUF` corresponds to the buffer. Finally, setting the `-cal` flag modifies the range and initial lambda for the buffer.
 
-#### 6. Perform basic workflow steps 7-9 (check generic .mdp files and perform EM+EQ).
+position restraints. Here, `DPOSRES` corresponds to the ligand atom(s) as described in step 2, and `DPOSRES_BUF` corresponds to the buffer. Finally, setting the `-cal` flag modifies the range and initial lambda for the buffer.
 
-#### 7. Use the included [create_parameterization.py](scripts/create_parameterization.py) to setup the parameterization runs.
+### 7. Perform basic workflow steps 7-9 (check generic .mdp files and perform EM+EQ).
+
+### 8. Use the included [create_parameterization.py](scripts/create_parameterization.py) to setup the parameterization runs.
 
 For example, the command:
 
@@ -311,9 +404,9 @@ create_parameterization.py -f MD.mdp -c NPT.pdb -r NPT.pdb -p topol.top -n index
 
 creates directories corresponding to different $\lambda$-values, each containing a `.tpr` run input file for `gmx mdrun`. The 2-step protocol assumes that first, short parameterization runs are conducted, followed by reweighting of long 100 nanosecond sampling runs of the ligand in a box (more on that later). We recommend using this 2-step protocol, since it is easier to obtain satisfactory **dvdl** coefficients. Thus, we run only 13 parameterization runs for only 1 nanosecond.
 
-#### 8. Perform the parameterization simulations.
+### 7. Perform the parameterization simulations.
 
-#### 9. Extract the dVdl values from the parameterization runs.
+### 8. Extract the dVdl values from the parameterization runs.
 
 Run the command:
 
@@ -323,7 +416,7 @@ gmx cphmd -s run.tpr -e run.edr -dvdl --coordinate no
 
 This will yield a file `cphmd-dvdl-1-2.xvg` for which the second column contains the dVdl values of parameterized group. 
 
-#### 10. Use [fit_parameterization.py](scripts/fit_parameterization.py) to obtain the initial guess for the dV/dl coefficients for ATPT.
+### 9. Use [fit_parameterization.py](scripts/fit_parameterization.py) to obtain the initial guess for the dV/dl coefficients for ATPT.
 
 The general help for `fit_parameterization.py` is as follows:
 
@@ -361,11 +454,11 @@ python fit_parameterization.py -f MD.mdp -m p -g ARGT
 
 As an output `fit_parameterization.py` gives a file where and updated entry for `lambdagrouptypes.dat` and `.mdp` files are provided.
 
-#### 11. Add the obtained dvdl_1 coefficients to the lambdagrouptypes.dat.
+### 10. Add the obtained dvdl_1 coefficients to the lambdagrouptypes.dat.
 
 This can be either the default or the one in your working directory.
 
-#### 12. Use inverse-Boltzmann to refine the parameterization.
+### 11. Use inverse-Boltzmann to refine the parameterization.
 
 With the obtained coefficients we now need to run 10 (100ns) replicas of the ligand in a box of water. For this you can simply follow the basic workflow, but you should set simulation pH = ligand pKa, and bias barrier height to 0 kJ/mol (`dwpE = 0`). When plotting the resulting $\lambda$-trajectories as a histogram, one should observe approximately flat distributions as Edwp = 0 implies no contribution from $V_{\text{bias}}$, and pH = pKa implies no contribution from $V_{\text{pH}}$, leaving only $V_{\text{ff}}$ and $V_{\text{corr}}$, which should exactly cancel out if parameterization was successful. However, due to poor sampling efficiency during parameterization, those distributions are not flat even after longer parameterization runs. To overcome that, we will have to update the dvdl coefficients by adding the correction which should flatten the distribution. The correction for dvdl is computed as the derivative of $U(\lambda)$, where $U$ is the Boltzmann inversion of the distribution $p(\lambda)$: $U = -R T \log(p)$. To get this correction `fit_parameterization.py` needs to be run in reweighting mode:
 
@@ -373,13 +466,13 @@ With the obtained coefficients we now need to run 10 (100ns) replicas of the lig
 python fit_parameterization.py -f MD.mdp -m s -g ARGT
 ```
 
-#### 13. Perform simulations with the updated coefficient to check that the distributions are now flat.
+### 12. Perform simulations with the updated coefficient to check that the distributions are now flat.
 
 The reweighting can be repeated several times, but usually one repetition is enough. Once it has been observed that the distributions are flat, you are ready to use the parameterized ligand for CpHMD simulations. If not, there might be mistakes in your parameterization procedure, you might need to use a higher-order fit, or there are sampling issues and you might need to modify (bonded) parameters.
 
-## Running CpHMD simulations on HPC resources
+# Running CpHMD simulations on HPC resources
 
-To run CpHMD simulations on a cluster you will likely have to compile the CpHMD beta yourself. For this we suggest the following batch script (modify as needed):
+To run CpHMD simulations on a cluster you will likely have to compile the CpHMD beta yourself. For this we suggest the following slurm script (modify as needed):
 
 ```
 #!/bin/bash
@@ -421,17 +514,17 @@ gmx mdrun -deffnm MD -x MD.xtc -npme 0 -nt $SLURM_JOB_CPUS_PER_NODE
 
 This is assuming you have the gromacs-constantph beta located in your home `~` directory.
 
-## Synopsis `phbuilder gentopol`
+# Synopsis `phbuilder gentopol`
 
 ```
 phbuilder gentopol [-h] -f FILE [-o OUTPUT] [-list LIST] [-ph PH] [-v]
 ```
 
-#### DESCRIPTION
+### DESCRIPTION
 
 gentopol encapsulates [gmx pdb2gmx](https://manual.gromacs.org/current/onlinehelp/gmx-pdb2gmx.html), allows you to select which residues to make titratable, and allows you to set the initial lambda values (protonation states) for the titratable sites. It also (re)generate the topology for your system using our modified version of the CHARMM36m force field. This is necessary as some dihedral parameters were modified for titratable residues ([see](https://pubs.acs.org/doi/full/10.1021/acs.jctc.2c00517)). gentopol by default allows you to interactively set the initial lambda value (protonation state) for each residue associated with a defined lambdagrouptype. This behavior can be automated by setting the `-ph <ph>` flag. In this case, every residue associated with a defined lambdagrouptype will automatically be made titratable, and the initial lambda values will be guessed based on the specified `ph`, together with the pKa defined in the `lambdagrouptypes.dat` file. Note that you should use the same pH value for genparams.
 
-#### LIMITATIONS
+### LIMITATIONS
 
 * It is important that your protein(s)/molecule(s) containing the titratable groups is *at the top* of your structure file. So first the titratable protein(s), and only then solvent, ions, lipids, etc.
 
@@ -445,24 +538,24 @@ OPTIONS
 | `-list`      | [\<.txt>] <br /> Provide a subset of resid(ue)s to consider. Helpful if you do not want to manually go through many (unimportant) residues. |
 | `-v`         | (no) <br /> Be more verbose. |
 
-## Synopsis `phbuilder neutralize`
+# Synopsis `phbuilder neutralize`
 
 ```
 phbuilder neutralize [-h] -f FILE [-p TOPOL] [-o OUTPUT] [-solname SOLNAME] [-pname PNAME] [-nname NNAME] [-conc CONC] [-nbufs NBUFS] [-v]
 ```
 
-#### DESCRIPTION
+### DESCRIPTION
 
 The purpose of this tool is to ensure a charge-neutral system by adding the appropriate number of ions and buffer particles.
 
-#### LIMITATIONS
+### LIMITATIONS
 
 * phbuilder neutralize only keeps track of one type of positive (default NA), and one type of negative (default CL) ion. If you have either no ions or only NA and CL in your input structure, things should work. If you have or want to use a different type, you can use the `-pname` and `-nname` options (see below). If you have or want multiple different types of ions in your system, phbuilder is not guaranteed to work.
 * Similar to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html), phbuilder neutralize neutralizes the system by *adding* ions to the input structure, not by removing or rebalancing existing ones. This implies the ion concentration in your output files cannot and will not be lower than the ion concentration in your input file.
 
-#### OPTIONS
+### OPTIONS
 
-| Flag_____    | Description    |
+| Flag______   | Description    |
 |--------------|----------------|
 | `-f`         | [\<.pdb/.gro>] (required) <br /> Specify input structure file. | 
 | `-p`         | [\<.top>] (topol.top) <br /> Specify input topology file. |
@@ -475,19 +568,19 @@ The purpose of this tool is to ensure a charge-neutral system by adding the appr
 | `-rmin`      | [\<real>] (0.6) <br /> Set the minimum distance the ions and buffers should be placed from the solute. Analogous to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html).
 | `-v`         | (no) <br /> Be more verbose. |
 
-## Synopsis `phbuilder genparams`
+# Synopsis `phbuilder genparams`
 
 ```
 phbuilder genparams [-h] -f FILE -ph PH [-mdp MDP] [-ndx NDX] [-nstout NSTOUT] [-dwpE DWPE] [-inter] [-v]
 ```
 
-#### DESCRIPTION
+### DESCRIPTION
 
 `genparams` generates the `.mdp` and files, including all the required constant-pH parameters as well as the required `index.ndx` file. `genparams` requires the existence of a `phrecord.dat` (created when running `gentopol`) file for setting the initial $\lambda$-values.
 
-#### OPTIONS
+### OPTIONS
 
-| Flag_____ | Description    |
+| Flag______ | Description    |
 |--------------|----------------|
 | `-f`         | [\<.pdb/.gro>] (required) <br /> Specify input structure file. |
 | `-ph`        | [\<real>] (required) <br /> Specify simulation pH. |
@@ -499,11 +592,11 @@ phbuilder genparams [-h] -f FILE -ph PH [-mdp MDP] [-ndx NDX] [-nstout NSTOUT] [
 | `-cal`       | (no) <br /> If this flag is set, the CpHMD simulation will be run in calibration mode: forces on the lambdas are computed, but they will not be updated. This is used for calibration purposes. |
 | `-v`         | (no) <br /> Be more verbose. |
 
-## Tips and Tricks
+# Tips and Tricks
 
 * One can use the experimental [EQ_smart.py](scripts/EQ_smart.py) to perform a more sound CpHMD equilibration. When using this script, the lambda coordinates from the last frame of an equilibration step are extracted from the `.edr` file and inserted in the `.mdp` file for the next equilibration step.
 
-## Frequently Asked Questions
+# Frequently Asked Questions
 
 **Q : Where are the default `charmm36-mar2019-cphmd.ff` and `lambdagrouptypes.dat` files located?**
 
