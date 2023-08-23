@@ -222,7 +222,7 @@ Performing a computational titration is helpful for determining the microscopic 
 create_titration.py -f MD.mdp -c NPT.pdb -p topol.top -n index.ndx -pH 1:10:1 -nr 2
 ```
 
-creates directories corresponding to pH 1 to 9, with each subdirectory containing two replicas (each containing the appropriate input files for `gmx mdrun`).
+creates directories corresponding to pH 1 to 9, with each subdirectory containing two replicates (each containing the appropriate input files for `gmx mdrun`).
 
 # Performing parameterizations
 
@@ -273,7 +273,9 @@ Here, it can be seen that `ARGT` will be used as the name for the titratable arg
 
 As mentioned earlier, phbuilder cannot provide topology information for non-standard residue types (those not present in `residuetypes.dat`). `ARGT`, or whichever name you choose for your titratable ligand, should by default fall under non-standard residue types. The user now has two options:
 
-**Option 1 : Make sure you have a separate `.itp` file for the titratable ligand.** If `gentopol` detects any non-standard  residue types, it will ask the user to provide a path to the corresponding `.itp` file. Internally, phbuilder splits the input structure file into a standard and a non-standard part, and only run `gmx pdb2gmx` on the standard part. If this option is chosen, it is crucial that the input `.pdb` and `.itp` files correspond to the *most protonated state* of the non-standard residue type (i.e. with all hydrogens present). Note that despite providing a separate `.itp` file, you might still have to make additions to the force field. This possibly includes new atom, bond, pair, angle, and dihedral types not present in the standard force field, but present in the provided topology.
+**Option 1 : Make sure you have a separate `.itp` file for the titratable ligand.**
+
+If `gentopol` detects any non-standard  residue types, it will ask the user to provide a path to the corresponding `.itp` file. Internally, phbuilder splits the input structure file into a standard and a non-standard part, and only run `gmx pdb2gmx` on the standard part. If this option is chosen, it is crucial that the input `.pdb` and `.itp` files correspond to the *most protonated state* of the non-standard residue type (i.e. with all hydrogens present). Note that despite providing a separate `.itp` file, you might still have to make additions to the force field. This possibly includes new atom, bond, pair, angle, and dihedral types not present in the standard force field, but present in the provided topology.
 
   In your provided `.itp` file, the names in the [ atoms ] section should reflect the titratable name of the residue:
 
@@ -292,9 +294,9 @@ Furthermore, at the end of the `.itp` file there should be a position restrainin
 #endif
 ```
 
-**Option 2 : Add the titratable ligand to the force field.** This will require making additions in the `residuetypes.dat`, `merged.rtp`, and possibly `merged.hdb` file.
+**Option 2 : Add the titratable ligand to the force field.**
 
-This will likely be more involved compared to the first option, but the advantage is that `gmx pdb2gmx` will be able to process your full structure. If you're lucky, `merged.rtp` and `merged.hdb` already contain entries for the (non titratable) moleculetype, and you can simply copy those entries and modify the name. I.e. ARG already exists, so to make the topology of ARGT available, all we have to do is copy the entries for ARG and change the name.
+This will require making additions in the `residuetypes.dat`, `merged.rtp`, and possibly `merged.hdb` file. This will likely be more involved compared to the first option, but the advantage is that `gmx pdb2gmx` will be able to process your full structure. If you're lucky, `merged.rtp` and `merged.hdb` already contain entries for the (non titratable) moleculetype, and you can simply copy those entries and modify the name. I.e. ARG already exists, so to make the topology of ARGT available, all we have to do is copy the entries for ARG and change the name.
 
 Concretely, to make the topology of ARGT available, we did the following:
 
@@ -378,97 +380,79 @@ This can be done by setting the `-cal` flag:
 phbuilder genparams -f phneutral.pdb -ph 4.0 -cal
 ```
 
-Setting the `-cal` flag will modify the resulting .mdp files. It will not only set
+Setting the `-cal` flag will do a number of things. Most importantly, it will set 
 
 ```
 lambda-dynamics-calibration = yes
 ```
 
-but also add
+The effect of this is that the force on the $\lambda$-coordinates (resulting from the force field) will be computed, but the $\lambda$-positions won't actually be updated. This allows us to sample **dVdl** values for a specific $\lambda$-value, which is what we need for the parameterization. This is opposite from regular simulations where **dVdl** is "given" and we're instead interested in the position of the $\lambda$-coordinate.
 
-```
-define = -DPOSRES -DPOSRES_BUF
-```
+Setting `-cal` also adds `define = -DPOSRES -DPOSRES_BUF` to the `.mdp` files as we don't want the ligand and buffer to move too close, and the `-cal` flag modifies the range and initial lambda for the buffer.
 
-position restraints. Here, `DPOSRES` corresponds to the ligand atom(s) as described in step 2, and `DPOSRES_BUF` corresponds to the buffer. Finally, setting the `-cal` flag modifies the range and initial lambda for the buffer.
-
-### 7. Perform basic workflow steps 7-9 (check generic .mdp files and perform EM+EQ).
+### 7. Perform basic workflow steps 8-9 (check generic `.mdp` files and perform EQ).
 
 ### 8. Use the included [create_parameterization.py](scripts/create_parameterization.py) to setup the parameterization runs.
-
-For example, the command:
 
 ```
 create_parameterization.py -f MD.mdp -c NPT.pdb -r NPT.pdb -p topol.top -n index.ndx
 ```
 
-creates directories corresponding to different $\lambda$-values, each containing a `.tpr` run input file for `gmx mdrun`. The 2-step protocol assumes that first, short parameterization runs are conducted, followed by reweighting of long 100 nanosecond sampling runs of the ligand in a box (more on that later). We recommend using this 2-step protocol, since it is easier to obtain satisfactory **dvdl** coefficients. Thus, we run only 13 parameterization runs for only 1 nanosecond.
+creates directories corresponding to different $\lambda$-values, each containing a `.tpr` run input file for `gmx mdrun`.
 
-### 7. Perform the parameterization simulations.
+### 9. Perform the parameterization simulations.
 
-### 8. Extract the dVdl values from the parameterization runs.
+The 2-step parameterization protocol assumes that first, short parameterization runs are conducted, followed by reweighting of long 100 nanosecond sampling runs of the ligand in a box (more on that later). We recommend using this 2-step protocol, since it is easier to obtain satisfactory **dVdl** coefficients. Thus, we run only 13 parameterization runs for only 1 nanosecond.
 
-Run the command:
+### 10. Extract the dVdl values from the parameterization runs.
+
+After the parameterization simulations are completed, running the command
 
 ```
 gmx cphmd -s run.tpr -e run.edr -dvdl --coordinate no
 ```
 
-This will yield a file `cphmd-dvdl-1-2.xvg` for which the second column contains the dVdl values of parameterized group. 
+will yield a file `cphmd-dvdl-1-2.xvg` for which the second column contains the **dVdl** values of parameterized group. This should be done for each of the 13 parameterization simulations.
 
-### 9. Use [fit_parameterization.py](scripts/fit_parameterization.py) to obtain the initial guess for the dV/dl coefficients for ATPT.
+### 11. Use [fit_parameterization.py](scripts/fit_parameterization.py) to obtain the initial guess for the dVdl coefficients.
 
-The general help for `fit_parameterization.py` is as follows:
-
-```
-This script will find optimal parameters for parameterized group. It can work in two modes: (i) parameterization, and (ii)
-reweighting. In the parameterization mode the script will fit optimal polynomial to dvdl computed for a set of fixed
-lambda-s. In the reweighting mode the script will analyze the distributions of lambda-coordinate and adjust the
-coefficients in order to get flat distributions. As an output, the script will provide entries for lambdagrouptypes.dat
-and .mdp files.
-
-options:
-    -h, --help            show this help message and exit
-    -f MDP, --mdp MDP     Input .mdp file
-    -i PREFIX, --prefix PREFIX
-                        Prefix of input folders. Default r for parameterization, s for reweighting
-    -m {p,s}, --mode {p,s}
-                        Input topology file
-    -nr NREPLICAS, --nreplicas NREPLICAS
-                        Number of replicas run for reweighting. Default is 10
-    -l LAMBDAFILE, --lambdafile LAMBDAFILE
-                        The path to lambdagrouptypes.dat file. By default the script will search a file in the current
-                        directory
-    -g GROUP, --group GROUP
-                        Name of the group for parameterization
-    -fo FITORDER, --fitorder FITORDER
-                        Fitting order. Default value is 5
-    -o OUT, --out OUT     Name of the outputfile
-```
-
-To get the initial guess for dvdl coefficients `fit_parameterization.py` needs to be run in the parameterization mode:
+To get the initial guess for dVdl coefficients, `fit_parameterization.py` needs to be run in the parameterization mode:
 
 ```
-python fit_parameterization.py -f MD.mdp -m p -g ARGT
+fit_parameterization.py -f MD.mdp -m p -g ARGT
 ```
 
-As an output `fit_parameterization.py` gives a file where and updated entry for `lambdagrouptypes.dat` and `.mdp` files are provided.
+As an output, `fit_parameterization.py` gives a file where and updated entry for `lambdagrouptypes.dat` and the `.mdp` files are provided.
 
-### 10. Add the obtained dvdl_1 coefficients to the lambdagrouptypes.dat.
+### 12. Perform replicates to test the obtained dVdl coefficients.
 
-This can be either the default or the one in your working directory.
+At this point, if everything went correctly, you have obtained an initial guess for the **dVdl** of your new titratable ligand. This concludes step one of the two-step parameterization protocol. 
 
-### 11. Use inverse-Boltzmann to refine the parameterization.
+It is now time to test how the **dVdl** coefficients perform, and whether the second Boltzmann-reweighting step is required. For this, you can set up regular CpHMD simulations of the ligand in a box of water using the basic workflow. 
 
-With the obtained coefficients we now need to run 10 (100ns) replicas of the ligand in a box of water. For this you can simply follow the basic workflow, but you should set simulation pH = ligand pKa, and bias barrier height to 0 kJ/mol (`dwpE = 0`). When plotting the resulting $\lambda$-trajectories as a histogram, one should observe approximately flat distributions as Edwp = 0 implies no contribution from $V_{\text{bias}}$, and pH = pKa implies no contribution from $V_{\text{pH}}$, leaving only $V_{\text{ff}}$ and $V_{\text{corr}}$, which should exactly cancel out if parameterization was successful. However, due to poor sampling efficiency during parameterization, those distributions are not flat even after longer parameterization runs. To overcome that, we will have to update the dvdl coefficients by adding the correction which should flatten the distribution. The correction for dvdl is computed as the derivative of $U(\lambda)$, where $U$ is the Boltzmann inversion of the distribution $p(\lambda)$: $U = -R T \log(p)$. To get this correction `fit_parameterization.py` needs to be run in reweighting mode:
+* You should not reuse simulation files from the parameterization but rather start from scratch following the basic workflow (but with the updated `lambdagrouptypes.dat`).
+* When setting up the replicates, be sure that pH = ligand pKa and that `-dwpE 0` is specified for `genparams`.
+* It is recommended to have 10 replicates of 100ns for adequate sampling.
+
+When plotting the resulting $\lambda$-trajectories as a histogram, one should observe approximately flat distributions as Edwp = 0 implies no contribution from $V_{\text{bias}}$, and pH = pKa implies no contribution from $V_{\text{pH}}$, leaving only $V_{\text{ff}}$ and $V_{\text{corr}}$, which should exactly cancel out if parameterization was successful. However, due to poor sampling efficiency during parameterization, those distributions might not be flat even after longer parameterization runs.
+
+### 13. If necessary, use inverse-Boltzmann to refine the parameterization.
+
+If the distribution are not flat, we will have to update the dVdl coefficients by adding the correction which should flatten the distribution. The correction for dVdl is computed as the derivative of $U(\lambda)$, where $U$ is the Boltzmann inversion of the distribution $p(\lambda)$: $U = -R T \log(p)$. To get this correction `fit_parameterization.py` needs to be run in reweighting mode:
 
 ```
 python fit_parameterization.py -f MD.mdp -m s -g ARGT
 ```
 
-### 12. Perform simulations with the updated coefficient to check that the distributions are now flat.
+### 14. Perform simulations with the updated coefficient to check that the distributions are now flat.
 
 The reweighting can be repeated several times, but usually one repetition is enough. Once it has been observed that the distributions are flat, you are ready to use the parameterized ligand for CpHMD simulations. If not, there might be mistakes in your parameterization procedure, you might need to use a higher-order fit, or there are sampling issues and you might need to modify (bonded) parameters.
+
+<p align="center">
+  <img src="figures/reweighting.png" width="800"/>
+</p>
+
+Figure: The initial guess for the **dV/dl** coefficients for ARGT yields replicates for which the distributions are consistent but not flat (left). Upon performing the inverse-Boltzmann refinement and rerunning the replicates, the distributions are now both consistent and flat (right).
 
 # Running CpHMD simulations on HPC resources
 
