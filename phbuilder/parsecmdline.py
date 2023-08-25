@@ -136,6 +136,13 @@ def parsecmdline():
                           help='[<real>] (0.6) Set the minimum distance the ions and buffers should be placed from the solute. Analogous to gmx genion.',
                           type=float)
 
+    parser_2.add_argument('-ignw',
+                          required=False,
+                          dest='ignw',
+                          action='store_const',
+                          const=1,
+                          help='(no) Ignore all gmx grompp warnings.')
+
     parser_2.add_argument('-v',
                           required=False,
                           dest='verbosity',

@@ -366,9 +366,11 @@ will position restrain only atom 19. Position restraining during the parameteriz
 
 ### 5. Perform basic workflow steps 4 to 6 to obtain a solvate structure.
 
-When performing the neutralization step, we want to add only one buffer particle, and we want the buffer to be at least 2 nm away from the tripeptide. We therefore set the `-nbufs 1` and `-rmin 2.0` flags:
+When performing the neutralization step, we want to add only one buffer particle, and we want the buffer to be at least 2 nm away from the tripeptide. We therefore set the `-nbufs 1` and `-rmin 2.0` flags. Essentially:
 
 ```
+gmx editconf -f phprocessed.pdb -o box.pdb -bt cubic -d 1.5
+gmx solvate -cp box.pdb -p topol.top -o solvated.pdb
 phbuilder neutralize -f solvated.pdb -nbufs 1 -rmin 2.0
 ```
 
@@ -380,7 +382,9 @@ This can be done by setting the `-cal` flag:
 phbuilder genparams -f phneutral.pdb -ph 4.0 -cal
 ```
 
-Setting the `-cal` flag will do a number of things. Most importantly, it will set 
+We set pH = 4.0 only because `-ph` is a required parameter for `gentopol`. The actual value we supply doesn't matter as $V_{\text{pH}}$ is never computed during parameterization (explained below).
+
+Setting the `-cal` flag will do a number of things. Most importantly, it will set
 
 ```
 lambda-dynamics-calibration = yes
@@ -550,6 +554,7 @@ The purpose of this tool is to ensure a charge-neutral system by adding the appr
 | `-conc`      | [\<real>] (0.0) <br /> Specify ion concentration in mol/L. Analogous to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html) but will use the solvent volume for calculating the required number of ions, not the periodic box volume as genion does. |
 | `-nbufs`     | [\<int>] <br /> Manually specify the number of buffer particles to add. If this flag is not set, a (more generous than necessarily required) estimate will be made based on the number of titratable sites. Currently $N_{\text{buf}} = N_{\text{sites}} / 2q_{\text{max}}$ with $q_{\text{max}} = 0.5$. |
 | `-rmin`      | [\<real>] (0.6) <br /> Set the minimum distance the ions and buffers should be placed from the solute. Analogous to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html).
+| `-ignw`      | (no) <br /> Ignore all gmx grompp warnings. |
 | `-v`         | (no) <br /> Be more verbose. |
 
 # Synopsis `phbuilder genparams`

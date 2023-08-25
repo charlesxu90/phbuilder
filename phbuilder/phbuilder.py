@@ -84,6 +84,11 @@ class phbuilder(User):
             if CLI.nbufs is not None:
                 self.ph_nbufs = Sanitize(CLI.nbufs, 'nbufs').num(signed=True, Type=int)
 
+            if CLI.ignw is not None:
+                self.d_ignw = -1
+            else:
+                self.d_ignw = 0
+
             # This needs to be defined because neutralize calls writeLambda_mdp.
             self.ph_cal = False
 
@@ -363,8 +368,7 @@ class phbuilder(User):
         elif self.d_target == 'genparams':
             self.update('Running genparams...')
             self.genparams()
-
-        self.pleaseCite()
+            self.pleaseCite()
 
     def gentopol(self):
         """gentopol prepares the topology.
@@ -818,7 +822,7 @@ class phbuilder(User):
 
             # Execute grompp on this using cpHMD GROMACS version and direct output to charge.log.
             self.update("Getting the net-charge of the system (running grompp, this can take some time for larger systems)...")
-            self.gromacs("grompp -f {0}.mdp -c {1} -p {2} -n {0}.ndx -o {0}.tpr".format(name, file, self.d_topol), logFile='{}.log'.format(name))
+            self.gromacs("grompp -f {0}.mdp -c {1} -p {2} -n {0}.ndx -o {0}.tpr -maxwarn {3}".format(name, file, self.d_topol, self.d_ignw), logFile='{}.log'.format(name))
 
             # Grep total charge from grompp output message
             QQtotalcpHMD = 0
@@ -966,7 +970,7 @@ class phbuilder(User):
             # We don't need the cpHMD parameters for adding the buffers, therefore
             # we create a dummy buffers.mdp file (containing nothing).
             open('buffers.mdp', 'w+').close()
-            self.gromacs("grompp -f buffers.mdp -c phions.pdb -p {} -o buffers.tpr".format(self.d_topol))
+            self.gromacs("grompp -f buffers.mdp -c phions.pdb -p {} -o buffers.tpr -maxwarn {}".format(self.d_topol, self.d_ignw))
 
             # Run genion to add the appropriate number of buffers.
             self.gromacs("genion -s buffers.tpr -o {} -p {} -pname BUF -np {} -rmin {}".format(self.d_output, self.d_topol, nbufs, self.d_rmin), stdin=['SOL'])  # this is always SOL, even if the molname is e.g. HOH...
