@@ -362,7 +362,7 @@ towards the bottom, and a `posre.itp` file should have been generated in your wo
 19  1  1000  1000  1000
 ```
 
-will position restrain only atom 19. Position restraining during the calibration is required to avoid (strong) interactions between the titratable atoms and the neutralizing buffer particle (by preventing them from moving too close together in the simulation box). If the ligand and buffer particle accidentally get close to each other in some of the calibration runs, the resulting **dVdl** coefficients will be significantly affected. It is also important to remember while selecting atoms for which positions are restrained, that we want to keep the distance between the titratable group and the buffer particle large, but at the same time we want to sample as much orientational configurations as possible. Thus, in the case of ARGT we only fix the $\text{C}_\alpha$ atom of arginine. The suitable selection of atoms to restrain is system-dependent and therefore the responsibility of the user.
+will position restrain only atom 19. Position restraining during the parameterization is required to avoid (strong) interactions between the titratable atoms and the neutralizing buffer particle (by preventing them from moving too close together in the simulation box). If the ligand and buffer particle accidentally get close to each other in some of the parameterization runs, the resulting **dVdl** coefficients will be significantly affected. It is also important to remember while selecting atoms for which positions are restrained, that we want to keep the distance between the titratable group and the buffer particle large, but at the same time we want to sample as much orientational configurations as possible. Thus, in the case of ARGT we only fix the $\text{C}_\alpha$ atom of arginine. The suitable selection of atoms to restrain is system-dependent and therefore the responsibility of the user.
 
 ### 5. Perform basic workflow steps 4 to 6 to obtain a solvate structure.
 
@@ -452,7 +452,7 @@ The reweighting can be repeated several times, but usually one repetition is eno
   <img src="figures/reweighting.png" width="800"/>
 </p>
 
-Figure: The initial guess for the **dV/dl** coefficients for ARGT yields replicates for which the distributions are consistent but not flat (left). Upon performing the inverse-Boltzmann refinement and rerunning the replicates, the distributions are now both consistent and flat (right).
+Figure: The initial guess for the **dVdl** coefficients for ARGT yields replicates for which the distributions are consistent but not flat (left). Upon performing the inverse-Boltzmann refinement and rerunning the replicates, the distributions are now both consistent and flat (right).
 
 # Running CpHMD simulations on HPC resources
 
@@ -539,7 +539,7 @@ The purpose of this tool is to ensure a charge-neutral system by adding the appr
 
 ### OPTIONS
 
-| Flag______   | Description    |
+| Flag_______   | Description    |
 |--------------|----------------|
 | `-f`         | [\<.pdb/.gro>] (required) <br /> Specify input structure file. | 
 | `-p`         | [\<.top>] (topol.top) <br /> Specify input topology file. |
@@ -573,7 +573,7 @@ phbuilder genparams [-h] -f FILE -ph PH [-mdp MDP] [-ndx NDX] [-nstout NSTOUT] [
 | `-nstout`    | [\<int>] (500) <br /> Specify output frequency for the $\lambda$-files. 500 is large enough for subsequent frames to be uncoupled.
 | `-dwpE`      | [\<real>] (7.5) <br /> Specify default height of bias potential barrier in kJ/mol. 7.5 should be large enough in most cases, but if you observe a lambda coordinate spending a significant amount of time between physical ($\lambda = 0, 1$) states, you should manually increase this (either directly in the .mdp file or by setting the `-inter` flag).
 | `-inter`     | (no) <br /> If this flag is set, the user can manually specify the height of the bias potential barrier (in kJ/mol) for every titratable group.
-| `-cal`       | (no) <br /> If this flag is set, the CpHMD simulation will be run in calibration mode: forces on the lambdas are computed, but they will not be updated. This is used for calibration purposes. |
+| `-cal`       | (no) <br /> If this flag is set, the CpHMD simulation will be run in calibration mode: forces on the lambdas are computed, but they will not be updated. This is used for parameterization purposes. |
 | `-v`         | (no) <br /> Be more verbose. |
 
 # Tips and Tricks

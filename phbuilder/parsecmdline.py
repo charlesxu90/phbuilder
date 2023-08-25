@@ -201,7 +201,7 @@ def parsecmdline():
                           dest='cal',
                           action='store_const',
                           const=1,
-                          help='(no) If this flag is set, the CpHMD simulation will be run in calibration mode: forces on the lambdas are computed, but they will not be updated. This is used for calibration purposes.')
+                          help='(no) If this flag is set, the CpHMD simulation will be run in calibration mode: forces on the lambdas are computed, but they will not be updated. This is used for parameterization purposes.')
 
     parser_3.add_argument('-v',
                           required=False,
