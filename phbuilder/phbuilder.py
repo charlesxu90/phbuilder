@@ -223,7 +223,7 @@ class phbuilder(User):
                 continue
 
             # Parse groupname
-            groupname = sect.strip()[0:4]
+            groupname = sect.strip()
 
             # Parse incl
             incl = str2strList(parser.get(sect, 'incl'))
