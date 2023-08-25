@@ -295,7 +295,6 @@ class phbuilder(User):
             int: return code (0 if things were successful).
         """
 
-        # If we do not pass any envvars to subprocess (which happens by default) this will work.
         path_to_gmx = os.path.normpath(self.d_gmxbasepath + '/' + 'bin/gmx')
         command = "{} {}".format(path_to_gmx, command)
 
@@ -307,11 +306,40 @@ class phbuilder(User):
 
         self.verbose("Running {} ...".format(command))
 
+        envDict = os.environ.copy()
+
+        # Remove all GROMACS-related envvars EXCEPT LD_LIBRARY_PATH and PATH
+        # from the envvars that the subprocess inherits. This is for cleanliness
+        # as the only GROMACS envvar that seems to matter is LD_LIBRARY_PATH.
+        for gmxenv in ['GMXDATA', 'GMXBIN', 'GMXLDLIB', 'GROMACS_DIR', 'GMXMAN', 'PKG_CONFIG_PATH', 'MANPATH']:
+            if gmxenv in envDict:
+                del envDict[gmxenv]
+
+        # Make sure all /some/gromacs/version/lib paths are removed from
+        # LD_LIBRARY_PATH, and add /usr/local/gromacs_constantph/lib to the front.
+        filtered = ''
+        if 'LD_LIBRARY_PATH' in envDict:
+            for path in envDict['LD_LIBRARY_PATH'].split(':'):
+                if not (os.path.exists(f"{path}/../bin/GMXRC") and os.path.exists(f"{path}/../bin/gmx")):
+                    filtered += path + ':'
+        envDict['LD_LIBRARY_PATH'] = os.path.normpath(f"{self.d_gmxbasepath}/lib") + (':' + filtered)[:-1]
+        self.verbose(f"The LD_LIBRARY_PATH used in the subprocess for GROMACS is {envDict['LD_LIBRARY_PATH']}.")
+
+        # Make sure all /some/gromacs/version/bin paths are removed from
+        # PATH, and add /usr/local/gromacs_constantph/bin to the front.
+        filtered = ''
+        if 'PATH' in envDict:
+            for path in envDict['PATH'].split(':'):
+                if not (os.path.exists(f"{path}/GMXRC") and os.path.exists(f"{path}/gmx")):
+                    filtered += path + ':'
+        envDict['PATH'] = os.path.normpath(f"{self.d_gmxbasepath}/bin") + (':' + filtered)[:-1]
+        self.verbose(f"The PATH used in the subprocess for GROMACS is {envDict['PATH']}.")
+
         if terminal:
-            process = subprocess.run(command, shell=True, env={})
+            process = subprocess.run(command, shell=True, env=envDict)
         else:
             with open(logFile, 'a+') as file:
-                process = subprocess.run(command, shell=True, stdout=file, stderr=file, env={})
+                process = subprocess.run(command, shell=True, stdout=file, stderr=file, env=envDict)
 
         if process.returncode != 0:
             if terminal:
