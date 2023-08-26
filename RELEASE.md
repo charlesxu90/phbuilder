@@ -2,6 +2,7 @@
 * Initial release.
 
 ## 1.1
-* Environment variables are now being passed to the subprocess running GROMACS and checked/modified.
-* groupnames in lambdagrouptypes.dat are now sanitized properly; they should be maximum 4 chars in order to adhere to the .pdb format.
-* Add an `-ignw` option for `neutralize` that when set passes `-maxwarn -1` to `grompp`.
+* Environment variables are now passed to the GROMACS subprocess.
+* phbuilder now uses the GROMACS path set in `lambdagrouptypes.dat` to check whether the correct GROMACS install was loaded in the environment phbuilder was called from, rather than using this path to execute GROMACS and disregarding any environment variables.
+* groupnames in lambdagrouptypes.dat are now sanitized properly; they should be maximum 4 chars in order to adhere to the `.pdb` format.
+* Add `-ignw` option for `neutralize`. When set, it passes `-maxwarn -1` to the encapsulated `grompp` calls.

@@ -126,6 +126,7 @@ class phbuilder(User):
         self.verbose(vars(CLI))
 
         self.parseLambdaGroupTypesFile()
+        self.checkCorrectGromacsSettings()
 
     def parseLambdaGroupTypesFile(self):
         """Parse lambdagrouptypes.dat file and load into internal data structure.
@@ -185,6 +186,8 @@ class phbuilder(User):
             if not os.path.isfile(p_lambdagrouptypes):
                 self.error('Did not find lambdagrouptypes.dat in {}. Please check your directory and/or update your PHFFIELD environment variable in your ~/.bashrc and reload terminal(s).'.format(self.p_ffield))
 
+        self.p_lambdagrouptypes = p_lambdagrouptypes
+
         # User update
         self.verbose('path to ffield dir = {}'.format(self.p_ffield))
         self.verbose('path to lambdagrouptypes.dat = {}\n'.format(p_lambdagrouptypes))
@@ -196,23 +199,9 @@ class phbuilder(User):
         # Loop through the sections.
         for sect in parser.sections():
 
-            # Parse GROMACS parameters
-            if (sect.strip() == "GROMACS"):
+            # Parse GROMACS base path
+            if sect.strip() == "GROMACS":
                 self.d_gmxbasepath = parser.get(sect, 'path')
-
-                # Check if there actually is a GROMACS installation in this path.
-                if not os.path.isdir(self.d_gmxbasepath):
-                    self.warning(f"GROMACS base path '{self.d_gmxbasepath}' specified in {p_lambdagrouptypes} does not seem to exist, will instead use GMXPH_BASEPATH environment variable...")
-                    # Get the GROMACS base path from the environment variable.
-                    fromEnvVar = os.getenv('GMXPH_BASEPATH')
-
-                    if not isinstance(fromEnvVar, str):  # If empty...
-                        self.error("GMXPH_BASEPATH environment variable is not set. Please update your GMXPH_BASEPATH.")
-                    if not os.path.isdir(fromEnvVar):  # If not empty but not valid...
-                        self.error(f"GMXPH_BASEPATH was found but the specified path '{fromEnvVar}' does not seem to exist. Please update your GMXPH_BASEPATH environment variable.")
-
-                    self.d_gmxbasepath = fromEnvVar
-
                 continue
 
             # Parse force field parameters
@@ -287,8 +276,48 @@ class phbuilder(User):
         self.verbose("BUF_range = {}".format(self.ph_BUF_range))
         self.verbose("BUF_dvdl  = {}".format(self.ph_BUF_dvdl))
 
+    def checkCorrectGromacsSettings(self) -> None:
+        """This function attempts to make sure that the GROMACS CpHMD install is correctly loaded in the environment from which phbuilder is called."""
+
+        # Part I is to make sure a valid path to the (supposed) GROMACS CpHMD
+        # installation is provided (either in lambdagrouptypes.dat or as the
+        # envvar GMXPH_BASEPATH).
+        if not os.path.isdir(self.d_gmxbasepath):
+            self.warning(f"GROMACS base path '{self.d_gmxbasepath}' specified in {self.p_lambdagrouptypes} does not seem to exist, will instead look for the GMXPH_BASEPATH environment variable...")
+
+            # Get the GROMACS base path from the environment variable.
+            fromEnvVar = os.getenv('GMXPH_BASEPATH')
+
+            if not isinstance(fromEnvVar, str):  # If empty...
+                self.error("GMXPH_BASEPATH is not set. Please update your lambdagrouptypes.dat or GMXPH_BASEPATH.")
+
+            if not os.path.isdir(fromEnvVar):  # If not empty but not existing...
+                self.error(f"GMXPH_BASEPATH was found, but the specified path '{fromEnvVar}' does not seem to exist. Please update your GMXPH_BASEPATH environment variable.")
+
+            self.d_gmxbasepath = fromEnvVar
+
+        # Now we do part II, we check if the GROMACS version loaded in the user
+        # environment matches the (supposed) path to th CpHMD version.
+
+        envDict = os.environ.copy()  # Get a copy of the environment variables.
+
+        if 'GROMACS_DIR' not in envDict:
+            self.error(f"The GROMACS_DIR environment appears to not be set, indicating the GROMACS CpHMD installation was not or incorrectly loaded. The GROMACS CpHMD installation needs to be loaded for phbuilder to function correctly. Please try 'source {os.path.normpath(f'{self.d_gmxbasepath}/bin/GMXRC')}' or equivalent (e.g. module load) to load the correct version (printenv to check) before continuing.")
+
+        if envDict['GROMACS_DIR'] != self.d_gmxbasepath:
+            self.error(f"The detected GROMACS_DIR environment variable ({envDict['GROMACS_DIR']}) does not correspond to the correct GROMACS CpHMD installation ({self.d_gmxbasepath}). The GROMACS CpHMD installation needs to be loaded for phbuilder to function correctly. Please try 'source {os.path.normpath(f'{self.d_gmxbasepath}/bin/GMXRC')}' or equivalent (e.g. module load) to load the correct version (printenv to check) before continuing.")
+
+        else:
+            p1 = os.path.normpath(f"{self.d_gmxbasepath}/lib")
+            if 'LD_LIBRARY_PATH' in envDict and p1 not in envDict["LD_LIBRARY_PATH"]:
+                self.error(f"Although GROMACS_DIR appears to be set correctly, the LD_LIBRARY_PATH environment variable does not appear to include '{p1}', indicating the GROMACS CpHMD installation was loaded incorrectly. The GROMACS CpHMD installation needs to be loaded for phbuilder to function correctly. Please try 'source {os.path.normpath(f'{self.d_gmxbasepath}/bin/GMXRC')}' or equivalent (e.g. module load) to load the correct version (printenv to check) before continuing.")
+
+            p2 = os.path.normpath(f"{self.d_gmxbasepath}/bin")
+            if 'PATH' in envDict and p2 not in envDict["PATH"]:
+                self.error(f"Although GROMACS_DIR and LD_LIBRARY_PATH appear to be set correctly, the PATH environment variable does not appear to include '{p2}', indicating the GROMACS CpHMD installation was loaded incorrectly. The GROMACS CpHMD installation needs to be loaded for phbuilder to function correctly. Please try 'source {os.path.normpath(f'{self.d_gmxbasepath}/bin/GMXRC')}' or equivalent (e.g. module load) to load the correct version (printenv to check) before continuing.")
+
     def gromacs(self, command: str, stdin: list = [], terminal: bool = False, logFile: str = 'builder.log') -> int:
-        """Python function for handling calls to GROMACS.
+        """Handles calls to GROMACS. Assumes the correct environment was set by checkCorrectGromacsSettings.
 
         Args:
             command (str): GROMACS command, e.g. 'make_ndx -f protein.pdb'.
@@ -300,9 +329,6 @@ class phbuilder(User):
             int: return code (0 if things were successful).
         """
 
-        path_to_gmx = os.path.normpath(self.d_gmxbasepath + '/' + 'bin/gmx')
-        command = "{} {}".format(path_to_gmx, command)
-
         if stdin:
             xstr = ' << EOF\n'
             for val in stdin:
@@ -313,38 +339,11 @@ class phbuilder(User):
 
         envDict = os.environ.copy()
 
-        # Remove all GROMACS-related envvars EXCEPT LD_LIBRARY_PATH and PATH
-        # from the envvars that the subprocess inherits. This is for cleanliness
-        # as the only GROMACS envvar that seems to matter is LD_LIBRARY_PATH.
-        for gmxenv in ['GMXDATA', 'GMXBIN', 'GMXLDLIB', 'GROMACS_DIR', 'GMXMAN', 'PKG_CONFIG_PATH', 'MANPATH']:
-            if gmxenv in envDict:
-                del envDict[gmxenv]
-
-        # Make sure all /some/gromacs/version/lib paths are removed from
-        # LD_LIBRARY_PATH, and add /usr/local/gromacs_constantph/lib to the front.
-        filtered = ''
-        if 'LD_LIBRARY_PATH' in envDict:
-            for path in envDict['LD_LIBRARY_PATH'].split(':'):
-                if not (os.path.exists(f"{path}/../bin/GMXRC") and os.path.exists(f"{path}/../bin/gmx")):
-                    filtered += path + ':'
-        envDict['LD_LIBRARY_PATH'] = os.path.normpath(f"{self.d_gmxbasepath}/lib") + (':' + filtered)[:-1]
-        self.verbose(f"The LD_LIBRARY_PATH used in the subprocess for GROMACS is {envDict['LD_LIBRARY_PATH']}.")
-
-        # Make sure all /some/gromacs/version/bin paths are removed from
-        # PATH, and add /usr/local/gromacs_constantph/bin to the front.
-        filtered = ''
-        if 'PATH' in envDict:
-            for path in envDict['PATH'].split(':'):
-                if not (os.path.exists(f"{path}/GMXRC") and os.path.exists(f"{path}/gmx")):
-                    filtered += path + ':'
-        envDict['PATH'] = os.path.normpath(f"{self.d_gmxbasepath}/bin") + (':' + filtered)[:-1]
-        self.verbose(f"The PATH used in the subprocess for GROMACS is {envDict['PATH']}.")
-
         if terminal:
-            process = subprocess.run(command, shell=True, env=envDict)
+            process = subprocess.run("gmx " + command, shell=True, env=envDict)
         else:
             with open(logFile, 'a+') as file:
-                process = subprocess.run(command, shell=True, stdout=file, stderr=file, env=envDict)
+                process = subprocess.run("gmx " + command, shell=True, stdout=file, stderr=file, env=envDict)
 
         if process.returncode != 0:
             if terminal:
