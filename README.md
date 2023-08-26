@@ -67,7 +67,7 @@ phbuilder is a command line tool that automates setting up constant-pH (CpHMD) s
 Out of the box, phbuilder comes with the force field and CpHMD topology parameters required for setting up titratable Asp, Glu, and His residues in CHARMM36m. A modified version of this force field, together with the global phbuilder parameter file `lambdagrouptypes.dat` are placed in the Python package directory
 
 ```
-/path/to/python3.11/site-packages/phbuilder/ffield/
+/path/to/python3.xx/site-packages/phbuilder/ffield/
 ```
 
 upon installation. By default, phbuilder copies and uses the force field and `lambdagrouptypes.dat` file from this location to the relevant working directory. It is strongly recommended to not modify these default files. Instead, if you wants to set up CpHMD simulations using a modified force field or `lambdagrouptypes.dat` file (e.g. when parameterizing a new lambdagrouptype), you can simply place modified versions of these files in your working directory, and the local files will override the default ones.
@@ -509,7 +509,7 @@ phbuilder gentopol [-h] -f FILE [-o OUTPUT] [-ph PH] [-v]
 
 ### DESCRIPTION
 
-System builder for constant-pH simulations in GROMACS. phbuilder consists of three tools: gentopol, neutralize, and genparams. Each tool performs a specific task for preparing a constant-pH simulation. Functionality for setting up titrations and parameterizations is provided with the help of stand-alone Python scripts, provided on the gitlab. Out of the box, phbuilder comes with the force field and CpHMD topology parameters required for setting up titratable Asp, Glu, and His residues in CHARMM36m.
+Allows you to select which residues to make titratable and which initial lambda (protonation) state they should have. Also (re)generates the system topology using the modified CHARMM36m force field. If you don't want to manually set initial lambda values, you can use the -ph flag to have gentopol automatically choose the appropriate initial lambda values, based on the criterion: pH > pKa means start deprotonated, else start protonated.
 
 ### LIMITATIONS
 
@@ -579,7 +579,7 @@ Generates the CpHMD-specific `.mdp` and `.ndx` files. Will write generic EM.mdp 
 | `-cal`       | (no) <br /> Run CpHMD simulation in calibration mode: forces on the lambda coordinates are computed, but their positions won't be updated. This is only used for parameterization purposes. |
 | `-v`         | (no) <br /> Be more verbose. |
 
-# Tips, Tricks and FAQ
+# Tips, Tricks, and FAQ
 
 * One can use the experimental [EQ_smart.py](scripts/EQ_smart.py) to perform a more sound CpHMD equilibration. When using this script, the lambda coordinates from the last frame of an equilibration step are extracted from the `.edr` file and inserted in the `.mdp` file for the next equilibration step.
 
