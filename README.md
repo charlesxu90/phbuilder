@@ -53,7 +53,7 @@ For the publication associated with phbuilder, please see:
     pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple phbuilder
     ```
 
-    NOTE: Python 3.11 or newer is currently required.
+    NOTE: Python 3.8 or newer is required.
 
 5. phbuilder has [argcomplete](https://pypi.org/project/argcomplete/) functionality. To make sure this works, run:
     ```
