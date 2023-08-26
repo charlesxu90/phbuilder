@@ -49,7 +49,7 @@ For the publication associated with phbuilder, please see:
 
 4. Install phbuilder:
     ```
-    pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple phbuilder
+    pip install phbuilder
     ```
 
     NOTE: Python 3.8 or newer is required.
