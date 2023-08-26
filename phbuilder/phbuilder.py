@@ -60,15 +60,6 @@ class phbuilder(User):
             self.d_output = Sanitize(CLI.output, 'output').path(ext=['.pdb', '.gro'], out=True)
             self.ph_auto  = CLI.ph  # None if not set, else float
 
-            # Process whether the -list flag was or wasn't set.
-            if CLI.list is not None:
-                Sanitize(CLI.list, 'list').path()
-                resid = []
-                for line in open(CLI.list).readlines():
-                    resid.append(line.split()[0])
-
-                self.ph_list_resid = [int(i) for i in resid]
-
         # If we run neutralize...
         elif (CLI.target == 'neutralize'):
             # Either required or has a default value.
@@ -945,14 +936,15 @@ class phbuilder(User):
                     titratables += 1
 
             # This is the equation we use to estimate the required number of buffers (hardcoded).
-            q_max = abs(self.ph_BUF_range[0])
-            nbufs = int(titratables / (2 * q_max))
+            # q_max = abs(self.ph_BUF_range[0])
+            # nbufs = int(titratables / (2 * q_max))
+            nbufs = 2 * titratables + 1
 
-            self.update("Will add {} buffer(s) based on guess ( = Tsites / 2q_max )...".format(nbufs))
+            self.update(f"Will add 2N_sites + 1 = {nbufs} buffer(s)...")
 
         else:
             nbufs = self.ph_nbufs
-            self.update("Will add {} buffer(s) (user specified)...".format(nbufs))
+            self.update(f"Will add {nbufs} buffer(s) (user), allowing a max charge fluctuation of ±{nbufs/2.0:.1f}...")
 
         nbufspresent = self.countRes(pdb, 'BUF')
 

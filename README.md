@@ -30,8 +30,7 @@ For the publication associated with phbuilder, please see:
 7. [Synopsis `phbuilder gentopol`](#synopsis-phbuilder-gentopol)
 8. [Synopsis `phbuilder neutralize`](#synopsis-phbuilder-neutralize)
 9. [Synopsis `phbuilder genparams`](#synopsis-phbuilder-genparams)
-10. [Tips and Tricks](#tips-and-tricks)
-11. [Frequently Asked Questions](#frequently-asked-questions)
+10. [Tips, Tricks, and FAQ](#tips-tricks-and-faq)
 
 # Installation 
 
@@ -505,12 +504,12 @@ This is assuming you have the gromacs-constantph beta located in your home `~` d
 # Synopsis `phbuilder gentopol`
 
 ```
-phbuilder gentopol [-h] -f FILE [-o OUTPUT] [-list LIST] [-ph PH] [-v]
+phbuilder gentopol [-h] -f FILE [-o OUTPUT] [-ph PH] [-v]
 ```
 
 ### DESCRIPTION
 
-gentopol encapsulates [gmx pdb2gmx](https://manual.gromacs.org/current/onlinehelp/gmx-pdb2gmx.html), allows you to select which residues to make titratable, and allows you to set the initial lambda values (protonation states) for the titratable sites. It also (re)generate the topology for your system using our modified version of the CHARMM36m force field. This is necessary as some dihedral parameters were modified for titratable residues ([see](https://pubs.acs.org/doi/full/10.1021/acs.jctc.2c00517)). gentopol by default allows you to interactively set the initial lambda value (protonation state) for each residue associated with a defined lambdagrouptype. This behavior can be automated by setting the `-ph <ph>` flag. In this case, every residue associated with a defined lambdagrouptype will automatically be made titratable, and the initial lambda values will be guessed based on the specified `ph`, together with the pKa defined in the `lambdagrouptypes.dat` file. Note that you should use the same pH value for genparams.
+System builder for constant-pH simulations in GROMACS. phbuilder consists of three tools: gentopol, neutralize, and genparams. Each tool performs a specific task for preparing a constant-pH simulation. Functionality for setting up titrations and parameterizations is provided with the help of stand-alone Python scripts, provided on the gitlab. Out of the box, phbuilder comes with the force field and CpHMD topology parameters required for setting up titratable Asp, Glu, and His residues in CHARMM36m.
 
 ### LIMITATIONS
 
@@ -518,23 +517,22 @@ gentopol encapsulates [gmx pdb2gmx](https://manual.gromacs.org/current/onlinehel
 
 OPTIONS
 
-| Flag___      | Description    |
+| Flag__       | Description    |
 |--------------|----------------|
 | `-f`         | [\<.pdb/.gro>] (required) <br /> Specify input structure file. | 
 | `-o`         | [\<.pdb/.gro>] (phprocessed.pdb) <br /> Specify output structure file. | 
-| `-ph`        | [\<real>] <br /> Use automatic mode and specify the simulation pH to base guess for initial lambda values on. |
-| `-list`      | [\<.txt>] <br /> Provide a subset of resid(ue)s to consider. Helpful if you do not want to manually go through many (unimportant) residues. |
+| `-ph`        | [\<float>] <br /> Specify intended simulation pH. Will be used together with the macroscopic pKas of the titratable sites to auto set the initial lambdas. |
 | `-v`         | (no) <br /> Be more verbose. |
 
 # Synopsis `phbuilder neutralize`
 
 ```
-phbuilder neutralize [-h] -f FILE [-p TOPOL] [-o OUTPUT] [-solname SOLNAME] [-pname PNAME] [-nname NNAME] [-conc CONC] [-nbufs NBUFS] [-v]
+phbuilder neutralize [-h] -f FILE [-p TOPOL] [-o OUTPUT] [-solname SOLNAME] [-pname PNAME] [-nname NNAME] [-conc CONC] [-nbufs NBUFS] [-rmin RMIN] [-ignw] [-v]
 ```
 
 ### DESCRIPTION
 
-The purpose of this tool is to ensure a charge-neutral system by adding the appropriate number of ions and buffer particles.
+Adds the appropriate number of ions to ensure a net-neutral system at t=0, and adds buffer particles in order to maintain a net-neutral system at t>0. The system charge a t=0 depends on the chosen initial lambda (protonation) states. At t>0, protonation states can change dynamically, meaning the resulting charge difference needs to be 'absorbed' by buffer particles. Each buffer particle can absorb up to ±0.5 charge, and charge is distributed evenly across all buffers (-10 system charge and 100 BUF implies every BUF +0.1).
 
 ### LIMITATIONS
 
@@ -548,44 +546,42 @@ The purpose of this tool is to ensure a charge-neutral system by adding the appr
 | `-f`         | [\<.pdb/.gro>] (required) <br /> Specify input structure file. | 
 | `-p`         | [\<.top>] (topol.top) <br /> Specify input topology file. |
 | `-o`         | [\<.pdb/.gro>] (phneutral.pdb) <br /> Specify output structure file. |
-| `-solname`   | [\<string>] (SOL) <br /> Specify solvent name (of which to replace molecules with ions and buffers). |
-| `-pname`     | [\<string>] (NA) <br /> Specify name of positive ion to use. Analogous to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html).|
-| `-nname`     | [\<string>] (CL) <br /> Specify name of negative ion to use. Analogous to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html). |
-| `-conc`      | [\<real>] (0.0) <br /> Specify ion concentration in mol/L. Analogous to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html) but will use the solvent volume for calculating the required number of ions, not the periodic box volume as genion does. |
-| `-nbufs`     | [\<int>] <br /> Manually specify the number of buffer particles to add. If this flag is not set, a (more generous than necessarily required) estimate will be made based on the number of titratable sites. Currently $N_{\text{buf}} = N_{\text{sites}} / 2q_{\text{max}}$ with $q_{\text{max}} = 0.5$. |
-| `-rmin`      | [\<real>] (0.6) <br /> Set the minimum distance the ions and buffers should be placed from the solute. Analogous to [gmx genion](https://manual.gromacs.org/current/onlinehelp/gmx-genion.html).
+| `-solname`   | [\<str>] (SOL) <br /> Specify solvent name (of which to replace molecules with ions and buffers). |
+| `-pname`     | [\<str>] (NA) <br /> Specify name of positive ion to use. |
+| `-nname`     | [\<str>] (CL) <br /> Specify name of negative ion to use. |
+| `-conc`      | [\<float>] (0.0) <br /> Specify ion concentration in mol/L. Note: uses solvent volume for calculating the required number of ions, not the periodic box volume as gmx genion does. |
+| `-nbufs`     | [\<int>] <br /> Specify number of buffer particles to add. If not set, $N_{\text{buf}} = 2N_{\text{sites}} + 1$. This ensures enough buffer particles will always be added, although you can likely get away with much less for larger systems. |
+| `-rmin`      | [\<float>] (0.6) <br /> Set the minimum distance the ions and buffers should be placed from the solute.
 | `-ignw`      | (no) <br /> Ignore all gmx grompp warnings. |
 | `-v`         | (no) <br /> Be more verbose. |
 
 # Synopsis `phbuilder genparams`
 
 ```
-phbuilder genparams [-h] -f FILE -ph PH [-mdp MDP] [-ndx NDX] [-nstout NSTOUT] [-dwpE DWPE] [-inter] [-v]
+phbuilder genparams [-h] -f FILE -ph PH [-mdp MDP] [-ndx NDX] [-nstout NSTOUT] [-dwpE DWPE] [-inter] [-cal] [-v]
 ```
 
 ### DESCRIPTION
 
-`genparams` generates the `.mdp` and files, including all the required constant-pH parameters as well as the required `index.ndx` file. `genparams` requires the existence of a `phrecord.dat` (created when running `gentopol`) file for setting the initial $\lambda$-values.
+Generates the CpHMD-specific `.mdp` and `.ndx` files. Will write generic EM.mdp EQ.mdp, and MD.mdp files for CHARMM36m and append the CpHMD parameters at the bottom. genparams requires the existence of a phrecord.dat file, which contains the initial lambda values and is created during the gentopol step. Note: if you previously used the auto feature (`-ph` flag) for gentopol, the pH you specify for genparams should reflect this.
 
 ### OPTIONS
 
 | Flag______ | Description    |
 |--------------|----------------|
 | `-f`         | [\<.pdb/.gro>] (required) <br /> Specify input structure file. |
-| `-ph`        | [\<real>] (required) <br /> Specify simulation pH. |
-| `-mdp`       | [\<.mdp>] (MD.mdp) <br /> Specify .mdp file for the constant-pH parameters to be appended to. If the specified file does not exist, the .mdp file will be generated from scratch. Note that this only applies to production (MD), for energy minimization (EM) and equilibration (NVT/NPT), the .mdp files will be generated from scratch regardless. |
-| `-ndx`       | [\<.idx>] (index.ndx) <br /> Specify .ndx file for the constant-pH (lambda) groups to be appended to. If the specified file does not exist, the .ndx file will be generated from scratch. |
-| `-nstout`    | [\<int>] (500) <br /> Specify output frequency for the $\lambda$-files. 500 is large enough for subsequent frames to be uncoupled.
-| `-dwpE`      | [\<real>] (7.5) <br /> Specify default height of bias potential barrier in kJ/mol. 7.5 should be large enough in most cases, but if you observe a lambda coordinate spending a significant amount of time between physical ($\lambda = 0, 1$) states, you should manually increase this (either directly in the .mdp file or by setting the `-inter` flag).
-| `-inter`     | (no) <br /> If this flag is set, the user can manually specify the height of the bias potential barrier (in kJ/mol) for every titratable group.
-| `-cal`       | (no) <br /> If this flag is set, the CpHMD simulation will be run in calibration mode: forces on the lambdas are computed, but they will not be updated. This is used for parameterization purposes. |
+| `-ph`        | [\<float>] (required) <br /> Specify simulation pH. |
+| `-mdp`       | [\<.mdp>] (MD.mdp) <br /> Specify `.mdp` file for the constant-pH parameters to be appended to. If the specified file does not exist, the `.mdp` file will be generated from scratch. Note that this only applies to production (MD), for energy minimization (EM) and equilibration (NVT/NPT), the .mdp files will be generated from scratch regardless. |
+| `-ndx`       | [\<.idx>] (index.ndx) <br /> Specify `.ndx` file to append the CpHMD index groups to. If not set or the specified file does not exist, a generic `index.ndx` will be created first. |
+| `-nstout`    | [\<int>] (500) <br /> Specify lambda coordinate output frequency. 500 is large enough for subsequent frames to be uncoupled (with a $dt = 0.002$).
+| `-dwpE`      | [\<float>] (7.5) <br /> Specify default height of bias potential barrier (kJ/mol).
+| `-inter`     | (no) <br /> Interactively set the height of the bias potential barrier (kJ/mol) for every titratable site.
+| `-cal`       | (no) <br /> Run CpHMD simulation in calibration mode: forces on the lambda coordinates are computed, but their positions won't be updated. This is only used for parameterization purposes. |
 | `-v`         | (no) <br /> Be more verbose. |
 
-# Tips and Tricks
+# Tips, Tricks and FAQ
 
 * One can use the experimental [EQ_smart.py](scripts/EQ_smart.py) to perform a more sound CpHMD equilibration. When using this script, the lambda coordinates from the last frame of an equilibration step are extracted from the `.edr` file and inserted in the `.mdp` file for the next equilibration step.
-
-# Frequently Asked Questions
 
 **Q : Where are the default `charmm36-mar2019-cphmd.ff` and `lambdagrouptypes.dat` files located?**
 
