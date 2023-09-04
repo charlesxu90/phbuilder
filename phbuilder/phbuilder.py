@@ -301,11 +301,11 @@ class phbuilder(User):
         else:
             p1 = os.path.normpath(f"{self.d_gmxbasepath}/lib")
             if 'LD_LIBRARY_PATH' in envDict and p1 not in envDict["LD_LIBRARY_PATH"]:
-                self.error(f"Although GROMACS_DIR appears to be set correctly, the LD_LIBRARY_PATH environment variable does not appear to include '{p1}', indicating the GROMACS CpHMD installation was loaded incorrectly. The GROMACS CpHMD installation needs to be loaded for phbuilder to function correctly. Please try 'source {os.path.normpath(f'{self.d_gmxbasepath}/bin/GMXRC')}' or equivalent (e.g. module load) to load the correct version (printenv to check) before continuing.")
+                self.warning(f"Although GROMACS_DIR appears to be set correctly, the LD_LIBRARY_PATH environment variable does not appear to include '{p1}', indicating the GROMACS CpHMD installation was loaded incorrectly. You may try 'source {os.path.normpath(f'{self.d_gmxbasepath}/bin/GMXRC')}' or equivalent (e.g. module load) to load the correct version (printenv to check) before continuing.")
 
             p2 = os.path.normpath(f"{self.d_gmxbasepath}/bin")
             if 'PATH' in envDict and p2 not in envDict["PATH"]:
-                self.error(f"Although GROMACS_DIR and LD_LIBRARY_PATH appear to be set correctly, the PATH environment variable does not appear to include '{p2}', indicating the GROMACS CpHMD installation was loaded incorrectly. The GROMACS CpHMD installation needs to be loaded for phbuilder to function correctly. Please try 'source {os.path.normpath(f'{self.d_gmxbasepath}/bin/GMXRC')}' or equivalent (e.g. module load) to load the correct version (printenv to check) before continuing.")
+                self.warning(f"Although GROMACS_DIR and LD_LIBRARY_PATH appear to be set correctly, the PATH environment variable does not appear to include '{p2}', indicating the GROMACS CpHMD installation was loaded incorrectly. You may try 'source {os.path.normpath(f'{self.d_gmxbasepath}/bin/GMXRC')}' or equivalent (e.g. module load) to load the correct version (printenv to check) before continuing.")
 
     def gromacs(self, command: str, stdin: list = [], terminal: bool = False, logFile: str = 'builder.log') -> int:
         """Handles calls to GROMACS. Assumes the correct environment was set by checkCorrectGromacsSettings.

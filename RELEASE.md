@@ -11,3 +11,6 @@
 * Changed default number of buffers from N_sites/2q_max to 2N_sites + 1. This is safer for inexperienced users.
 * Output a trajectory frame every 50 ps instead of every 10 ps as a default value in the generic MD.mdp.
 * Change the default simulation time from 100 ps to 100 ns, and to 1 ns when `-cal` is set.
+
+## 1.2
+* Change errors about LD_LIBRARY_PATH and PATH to warnings as some may install the GROMACS library in a non-default location.
