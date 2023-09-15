@@ -636,7 +636,10 @@ class phbuilder(User):
                 file.write('#include \"{}.ff/{}.itp\"\n\n'.format(self.d_modelFF, self.d_modelwater))
                 file.write('; Include topology for ions\n')
                 file.write('#include \"{}.ff/ions.itp\"\n\n'.format(self.d_modelFF))
-                file.write('[ system ]\n; Name\n{}\n\n'.format(pdb.d_title))
+                try:  # try except is a bug fix that prevents crashing if d_title isn't set.
+                    file.write('[ system ]\n; Name\n{}\n\n'.format(pdb.d_title))
+                except AttributeError:
+                    file.write('[ system ]\n; Name\n{}\n\n'.format("DUMMY TITLE"))
                 file.write('[ molecules ]\n; Compounds  #mols\n')
 
         else:
