@@ -15,3 +15,4 @@
 ## 1.2 (DATE)
 * Change errors about LD_LIBRARY_PATH and PATH to warnings as some may install the GROMACS library in a non-default location.
 * Fixed bug where gentopol would crash if the structure does not contain a TITLE and no residues are recognized.
+* Improved the EQ_smart.py script.
