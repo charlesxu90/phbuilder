@@ -89,7 +89,7 @@ def gen_mdp(Type: str, nsteps: int, nstxout: int, posRes=False):
     addTitle("Electrostatics")
     addParam('coulombtype', 'PME', 'Particle Mesh Ewald electrostatics.')
     addParam('rcoulomb', 1.2, 'CHARMM is calibrated for 1.2 nm.')
-    addParam('fourierspacing', 0.14, 'CHARMM is calibrated for 0.14.')
+    addParam('fourierspacing', 0.14)
 
     # VAN DER WAALS
 

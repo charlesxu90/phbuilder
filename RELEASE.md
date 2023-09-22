@@ -1,5 +1,10 @@
-## 1.0.2 (August 11th, 2023)
-* Initial release.
+## 1.2 (DATE)
+* TODO : add two-state ARG, LYS, and TYR parameters to lambdagrouptypes.dat and update the force field and residuetypes.dat.
+* TODO: Turn the GROMACS path errors into warnings.
+* Change errors about LD_LIBRARY_PATH and PATH to warnings as some may install the GROMACS library in a non-default location.
+* Fixed bug where gentopol would crash if the structure does not contain a TITLE and no residues are recognized.
+* Improved the EQ_smart.py script.
+* Removed fourier spacing comment "CHARMM is calibrated for 0.14." to prevent confusion. A value of `0.14` is perfectly fine, however CHARMM technically wasn't 'calibrated' for this value.
 
 ## 1.1 (August 26th, 2023)
 * Changed the required Python version from 3.11 to 3.8 to make the installation more compatible.
@@ -12,7 +17,5 @@
 * Output a trajectory frame every 50 ps instead of every 10 ps as a default value in the generic MD.mdp.
 * Change the default simulation time from 100 ps to 100 ns, and to 1 ns when `-cal` is set.
 
-## 1.2 (DATE)
-* Change errors about LD_LIBRARY_PATH and PATH to warnings as some may install the GROMACS library in a non-default location.
-* Fixed bug where gentopol would crash if the structure does not contain a TITLE and no residues are recognized.
-* Improved the EQ_smart.py script.
+## 1.0.2 (August 11th, 2023)
+* Initial release.
