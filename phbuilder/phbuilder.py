@@ -117,7 +117,8 @@ class phbuilder(User):
         self.verbose(vars(CLI))
 
         self.parseLambdaGroupTypesFile()
-        self.checkCorrectGromacsSettings()
+        self.checkGROMACSLoaded()
+        # self.checkCorrectGromacsSettings()
 
     def parseLambdaGroupTypesFile(self):
         """Parse lambdagrouptypes.dat file and load into internal data structure.
@@ -251,7 +252,7 @@ class phbuilder(User):
             defineLambdaType(groupname, incl, pKa, atoms, qqA, qqB, dvdl)
 
         # USER UPDATE
-        self.verbose("gmxpath   = {}".format(self.d_gmxbasepath))
+        # self.verbose("gmxpath   = {}".format(self.d_gmxbasepath))
         self.verbose("ffname    = {}".format(self.d_modelFF))
         self.verbose("water     = {}\n".format(self.d_modelwater))
 
@@ -266,6 +267,12 @@ class phbuilder(User):
 
         self.verbose("BUF_range = {}".format(self.ph_BUF_range))
         self.verbose("BUF_dvdl  = {}".format(self.ph_BUF_dvdl))
+
+    def checkGROMACSLoaded(self) -> None:
+        """This function checks whether GROMACS (any version) was set in the environment."""
+
+        if not isinstance(os.getenv('GROMACS_DIR'), str):
+            self.error("The GROMACS_DIR environment variable is not set, suggesting GROMACS wasn't properly sourced or loaded. Please make sure to source or module load the GROMACS constant-pH beta.")
 
     def checkCorrectGromacsSettings(self) -> None:
         """This function attempts to make sure that the GROMACS CpHMD install is correctly loaded in the environment from which phbuilder is called."""
@@ -308,7 +315,7 @@ class phbuilder(User):
                 self.warning(f"Although GROMACS_DIR and LD_LIBRARY_PATH appear to be set correctly, the PATH environment variable does not appear to include '{p2}', indicating the GROMACS CpHMD installation was loaded incorrectly. You may try 'source {os.path.normpath(f'{self.d_gmxbasepath}/bin/GMXRC')}' or equivalent (e.g. module load) to load the correct version (printenv to check) before continuing.")
 
     def gromacs(self, command: str, stdin: list = [], terminal: bool = False, logFile: str = 'builder.log') -> int:
-        """Handles calls to GROMACS. Assumes the correct environment was set by checkCorrectGromacsSettings.
+        """Handles calls to GROMACS.
 
         Args:
             command (str): GROMACS command, e.g. 'make_ndx -f protein.pdb'.

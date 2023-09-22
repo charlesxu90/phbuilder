@@ -48,7 +48,7 @@ For the publication associated with phbuilder, please see:
 
     NOTE: running `make check` will give multiple failures. This is to be expected for the CpHMD beta. It is recommended to skip `make check`.
 
-    NOTE: By default, phbuilder assumes the GROMACS CpHMD installation was installed in `/usr/local/gromacs_constantph`. This path will be used to check whether the correct GROMACS install was loaded in your environment when running phbuilder. If you install the CpHMD code in a different location, make sure to update this in the phbuilder configuration file `lambdagrouptypes.dat`, or alternatively set `GMXPH_BASEPATH`.
+    NOTE: it is the responsibility of the user to make sure the GROMACS constant-pH install is correctly sourced / loaded in the user environment when running phbuilder. `gentopol` and `genparams` will probably work with a normal GROMACS install as well, but the constant-pH install MUST be active in order for `neutralize` to work correctly.
 
 4. Install phbuilder:
     ```
