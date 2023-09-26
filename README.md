@@ -366,14 +366,16 @@ towards the bottom, and a `posre.itp` file should have been generated in your wo
 
 will position restrain only atom 19. Position restraining during the parameterization is required to avoid (strong) interactions between the titratable atoms and the neutralizing buffer particle (by preventing them from moving too close together in the simulation box). If the ligand and buffer particle accidentally get close to each other in some of the parameterization runs, the resulting **dVdl** coefficients will be significantly affected. It is also important to remember while selecting atoms for which positions are restrained, that we want to keep the distance between the titratable group and the buffer particle large, but at the same time we want to sample as much orientational configurations as possible. Thus, in the case of ARGT we only fix the $\text{C}_\alpha$ atom of arginine. The suitable selection of atoms to restrain is system-dependent and therefore the responsibility of the user.
 
-### 5. Perform basic workflow steps 4 to 6 to obtain a solvate structure.
+### 5. Perform solvation and neutralization to obtain a net-neutral simulation system.
 
-When performing the neutralization step, we want to add only one buffer particle, and we want the buffer to be at least 2 nm away from the tripeptide. We therefore set the `-nbufs 1` and `-rmin 2.0` flags. Essentially:
+* To prevent finite-size effects for small simulation boxes, we recommend using a simulation box of 5 nm cubed for the paramterization and replica simulations.
+* The effects of ionic strength on the parameterization should be limited, but we nonetheless recommend adding at least a few ions to the parameterization system and replicates, e.g. by setting `-conc 0.15` (physiological NaCl concentration).
+* For more information on the effects of box size and ionic strength on the parameterization, please refer to the [best practices paper](https://pubs.acs.org/doi/full/10.1021/acs.jctc.2c00517).
 
 ```
-gmx editconf -f phprocessed.pdb -o box.pdb -bt cubic -d 1.5
+gmx editconf -f phprocessed.pdb -o box.pdb -bt cubic -d 1.8
 gmx solvate -cp box.pdb -p topol.top -o solvated.pdb
-phbuilder neutralize -f solvated.pdb -nbufs 1 -rmin 2.0
+phbuilder neutralize -f solvated.pdb -nbufs 1 -rmin 2.0 -conc 0.15
 ```
 
 ### 6. Use `genparams` to generate the `.mdp` files in calibration mode.
@@ -439,6 +441,7 @@ It is now time to test how the **dVdl** coefficients perform, and whether the se
 * You should not reuse simulation files from the parameterization but rather start from scratch following the basic workflow (but with the updated `lambdagrouptypes.dat`).
 * When setting up the replicates, be sure that pH = ligand pKa and that `-dwpE 0` is specified for `genparams`.
 * It is recommended to have 10 replicates of 100ns for adequate sampling.
+* To prevent issues with the `fit_parameterization.py` script, make sure your replica directories follow the naming format `s_1`, `s_2`, ..., `s_10`.
 
 When plotting the resulting $\lambda$-trajectories as a histogram, one should observe approximately flat distributions as Edwp = 0 implies no contribution from $V_{\text{bias}}$, and pH = pKa implies no contribution from $V_{\text{pH}}$, leaving only $V_{\text{ff}}$ and $V_{\text{corr}}$, which should exactly cancel out if parameterization was successful. However, due to poor sampling efficiency during parameterization, those distributions might not be flat even after longer parameterization runs.
 
@@ -449,6 +452,8 @@ If the distribution are not flat, we will have to update the dVdl coefficients b
 ```
 python fit_parameterization.py -f MD.mdp -m s -g ARGT
 ```
+
+NOTE: To prevent issues, make sure your replica directories follow the naming format `s_1`, `s_2`, ..., `s_10`.
 
 ### 14. Perform simulations with the updated coefficient to check that the distributions are now flat.
 

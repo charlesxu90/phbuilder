@@ -1,9 +1,10 @@
 ## 1.2 (DATE)
 * TODO : add two-state ARG, LYS, and TYR parameters to lambdagrouptypes.dat and update the force field and residuetypes.dat.
-* phbuilder no-longer checks/complains about which GROMACS version was sourced, we now only error if nothing was set in the environment at all.
-* Fixed bug where gentopol would crash if the structure does not contain a TITLE and no residues are recognized.
 * Improved EQ_smart.py.
+* phbuilder no-longer checks/complains about which GROMACS version was sourced, we now only error if nothing was set in the environment at all.
 * Removed fourier spacing comment "CHARMM is calibrated for 0.14." to prevent confusion. A value of `0.14` is perfectly fine, however CHARMM technically wasn't 'calibrated' for this value.
+* Clarified some things in the parameterization section in the README.
+* Fixed bug where gentopol would crash if the structure does not contain a TITLE and no residues are recognized.
 
 ## 1.1 (August 26th, 2023)
 * Changed the required Python version from 3.11 to 3.8 to make the installation more compatible.
