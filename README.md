@@ -368,6 +368,7 @@ will position restrain only atom 19. Position restraining during the parameteriz
 
 ### 5. Perform solvation and neutralization to obtain a net-neutral simulation system.
 
+* When performing the neutralization step, we want to add only one buffer particle, and we want the buffer to be at least 2 nm away from the tripeptide. We therefore set the `-nbufs 1` and `-rmin 2.0` flags.
 * To prevent finite-size effects for small simulation boxes, we recommend using a simulation box of 5 nm cubed for the paramterization and replica simulations.
 * The effects of ionic strength on the parameterization should be limited, but we nonetheless recommend adding at least a few ions to the parameterization system and replicates, e.g. by setting `-conc 0.15` (physiological NaCl concentration).
 * For more information on the effects of box size and ionic strength on the parameterization, please refer to the [best practices paper](https://pubs.acs.org/doi/full/10.1021/acs.jctc.2c00517).
