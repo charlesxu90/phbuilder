@@ -1055,7 +1055,7 @@ class phbuilder(User):
         file.write("\n; CONSTANT PH\n")
 
         addParam('lambda-dynamics', 'yes')
-        addParam('lambda-dynamics-simulation-ph', "{:.1f}".format(self.ph_ph))
+        addParam('lambda-dynamics-simulation-ph', self.ph_ph)
         addParam('lambda-dynamics-lambda-particle-mass', "{:.1f}".format(5.0))  # lmass is hardcoded to 5.0 (amu).
         addParam('lambda-dynamics-tau', "{:.1f}".format(2.0))  # ltau is hardcoded to 2.0 (ps).
         addParam('lambda-dynamics-update-nst', self.ph_nstout)
