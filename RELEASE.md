@@ -1,11 +1,12 @@
 ## 1.2 (DATE)
-* TODO : add two-state ARG, LYS, and TYR parameters to lambdagrouptypes.dat and update the force field and residuetypes.dat.
+* TODO : add single-site ARG and LYS parameters to lambdagrouptypes.dat and update the force field and residuetypes.dat.
 * Improved EQ_smart.py.
 * phbuilder no-longer checks/complains about which GROMACS version was sourced, we now only error if nothing was set in the environment at all.
-* Removed "CHARMM is calibrated for 0.14." .mdp comment to prevent confusion. A value of `0.14` is fine, however CHARMM technically wasn't 'calibrated' for this.
+* Removed "CHARMM is calibrated for 0.14." .mdp comment to prevent confusion. The value is fine, however CHARMM technically wasn't 'calibrated' for this.
 * Clarified some things in the README parameterization section.
 * Fixed bug where gentopol would crash if the structure does not contain a TITLE and no residues are recognized.
-* Fixed bug where genparams would write the lambda-dynamics-simulation-ph only up to one digital after the decimal point.
+* Fixed bug where genparams would write the lambda-dynamics-simulation-ph only up to one digit after the decimal point.
+* Fixed bug where genparams would write dV/dl coefficients and charge values only up to three digits after the decimal point.
 
 ## 1.1 (August 26th, 2023)
 * Changed the required Python version from 3.11 to 3.8 to make the installation more compatible.

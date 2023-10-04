@@ -1110,18 +1110,15 @@ class phbuilder(User):
 
         # PART 2 - WRITE LAMBDA GROUP TYPES
 
-        def to_string(Input, round):
+        def to_string(Input: list):
             """Convert a list to a string."""
-            string = ""
-            for element in Input:
-                string += "{0:.{arg}f} ".format(element, arg=round)
-            return string
+            return ' '.join([str(float(val)) for val in Input])
 
         def writeLambdaGroupTypeBlock(number, name, multistates, qqA, qqB, pKa, dvdl):
             """Writes the lambda group type block."""
             addParam('lambda-dynamics-group-type{}-name'.format(number), name)
             addParam('lambda-dynamics-group-type{}-n-states'.format(number), multistates)
-            addParam('lambda-dynamics-group-type{}-state-0-charges'.format(number), to_string(qqA, 3))
+            addParam('lambda-dynamics-group-type{}-state-0-charges'.format(number), to_string(qqA))
 
             for idx in range(1, multistates + 1):
                 # When we have a multistate lambdagrouptype, one of the pKas should
@@ -1131,9 +1128,9 @@ class phbuilder(User):
                 if multistates > 1 and float(pKaNew) == 0.0:
                     pKaNew = self.ph_ph
 
-                addParam('lambda-dynamics-group-type{}-state-{}-charges'.format(number, idx), to_string(qqB[idx - 1], 3))
+                addParam('lambda-dynamics-group-type{}-state-{}-charges'.format(number, idx), to_string(qqB[idx - 1]))
                 addParam('lambda-dynamics-group-type{}-state-{}-reference-pka'.format(number, idx), pKaNew)
-                addParam('lambda-dynamics-group-type{}-state-{}-dvdl-coefficients'.format(number, idx), to_string(dvdl[idx - 1], 3))
+                addParam('lambda-dynamics-group-type{}-state-{}-dvdl-coefficients'.format(number, idx), to_string(dvdl[idx - 1]))
 
             file.write('\n')
 
@@ -1178,7 +1175,7 @@ class phbuilder(User):
             """Writes the block for a specific residue."""
             addParam('lambda-dynamics-atom-set{}-name'.format(number), name)
             addParam('lambda-dynamics-atom-set{}-index-group-name'.format(number), 'LAMBDA{}'.format(number))
-            addParam('lambda-dynamics-atom-set{}-initial-lambda'.format(number), to_string(initList, 1))
+            addParam('lambda-dynamics-atom-set{}-initial-lambda'.format(number), to_string(initList))
             addParam('lambda-dynamics-atom-set{}-barrier'.format(number), Edwp)
 
             if constrainCharge:
