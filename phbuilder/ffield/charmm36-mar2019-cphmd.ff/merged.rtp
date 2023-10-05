@@ -11044,6 +11044,66 @@
   [ cmap ]
 	   -C     N    CA     C    +N
 
+[ ARGT ] ; titratable ARG
+  [ atoms ]
+	    N   NH1   -0.470  0
+	   HN     H    0.310  1
+	   CA   CT1    0.070  2
+	   HA   HB1    0.090  3
+	   CB   CT2   -0.180  4
+	  HB1   HA2    0.090  5
+	  HB2   HA2    0.090  6
+	   CG   CT2   -0.180  7
+	  HG1   HA2    0.090  8
+	  HG2   HA2    0.090  9
+	   CD   CT2    0.200 10
+	  HD1   HA2    0.090 11
+	  HD2   HA2    0.090 12
+	   NE   NC2   -0.700 13
+	   HE    HC    0.440 14
+	   CZ     C    0.640 15
+	  NH1   NC2   -0.800 16
+	 HH11    HC    0.460 17
+	 HH12    HC    0.460 18
+	  NH2   NC2   -0.800 19
+	 HH21    HC    0.460 20
+	 HH22    HC    0.460 21
+	    C     C    0.510 22
+	    O     O   -0.510 23
+  [ bonds ]
+	   CB    CA
+	   CG    CB
+	   CD    CG
+	   NE    CD
+	   CZ    NE
+	  NH2    CZ
+	    N    HN
+	    N    CA
+	    C    CA
+	    C    +N
+	   CA    HA
+	   CB   HB1
+	   CB   HB2
+	   CG   HG1
+	   CG   HG2
+	   CD   HD1
+	   CD   HD2
+	   NE    HE
+	  NH1  HH11
+	  NH1  HH12
+	  NH2  HH21
+	  NH2  HH22
+	    O     C
+	   CZ   NH1
+  [ impropers ]
+	    N    -C    CA    HN
+	    C    CA    +N     O
+	   CZ   NH1   NH2    NE
+	  NH1  HH11  HH12    CZ
+	  NH2  HH21  HH22    CZ
+  [ cmap ]
+	   -C     N    CA     C    +N
+
 [ ARHM ]
   [ atoms ]
 	   C1 CC3162    0.340  0

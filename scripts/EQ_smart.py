@@ -26,7 +26,7 @@ for num in range(1, len(os.listdir(base)) + 1):
 
 # Compile a list of titratable residue names in the protein.
 u = MDAnalysis.Universe('EM.gro')
-acidics = list(u.select_atoms('resname ASPT GLUT HSPT').residues.resnames)
+acidics = list(u.select_atoms('resname ASPT GLUT HSPT ARGT LYST').residues.resnames)
 acidics.append('BUF')
 
 # Create the strings to replace the current lines in upcoming .mdp with.
@@ -37,7 +37,7 @@ for atomset in range(0, len(acidics)):
         newCoord = str(values[lidx]) + ' ' + str(values[lidx + 1]) + ' ' + str(values[lidx + 2])
         lidx += 3
 
-    if acidics[atomset] in ['ASPT', 'GLUT', 'BUF']:
+    if acidics[atomset] in ['ASPT', 'GLUT', 'ARGT', 'LYST', 'BUF']:
         newCoord = str(values[lidx])
         lidx += 1
 

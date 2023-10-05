@@ -1,14 +1,20 @@
-## 1.2 (DATE)
-* TODO : add single-site ARG and LYS parameters to lambdagrouptypes.dat and update the force field and residuetypes.dat.
-* Improved EQ_smart.py.
+# 1.2 (DATE)
+
+## Features
+* Out of the box, phbuilder now also includes single-site parameterizations for arginine and lysine in CHARMM36m. The force field modifications and parameterization for lysine were [previously published](https://pubs.acs.org/doi/full/10.1021/acs.jctc.2c00517) but not yet included in the phbuilder package, and the single-site parameterization for arginine was performed as part of the phbuilder paper.
+
+## Improvements
 * phbuilder no-longer checks/complains about which GROMACS version was sourced, we now only error if nothing was set in the environment at all.
-* Removed "CHARMM is calibrated for 0.14." .mdp comment to prevent confusion. The value is fine, however CHARMM technically wasn't 'calibrated' for this.
-* Clarified some things in the README parameterization section.
+* Improved the [EQ_smart.py](scripts/EQ_smart.py) script.
+* Clarified some things in the parameterization section of the README.
+
+## Fixes
+* Removed "CHARMM is calibrated for 0.14." .mdp comment. The value is fine, however CHARMM technically wasn't 'calibrated' for it.
 * Fixed bug where gentopol would crash if the structure does not contain a TITLE and no residues are recognized.
 * Fixed bug where genparams would write the lambda-dynamics-simulation-ph only up to one digit after the decimal point.
 * Fixed bug where genparams would write dV/dl coefficients and charge values only up to three digits after the decimal point.
 
-## 1.1 (August 26th, 2023)
+# 1.1 (August 26th, 2023)
 * Changed the required Python version from 3.11 to 3.8 to make the installation more compatible.
 * Environment variables are now passed to the GROMACS subprocess.
 * phbuilder now uses the GROMACS path set in `lambdagrouptypes.dat` to check whether the correct GROMACS install was loaded in the environment phbuilder was called from, rather than using this path to execute GROMACS and disregarding any environment variables.
@@ -19,5 +25,5 @@
 * Output a trajectory frame every 50 ps instead of every 10 ps as a default value in the generic MD.mdp.
 * Change the default simulation time from 100 ps to 100 ns, and to 1 ns when `-cal` is set.
 
-## 1.0.2 (August 11th, 2023)
-* Initial release.
+# 1.0.2 (August 11th, 2023)
+* Initial release (not available on PyPi).

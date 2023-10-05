@@ -13,7 +13,7 @@ def parsecmdline():
     """
 
     # phbuilder main description.
-    desc_1 = "System builder for constant-pH simulations in GROMACS. phbuilder consists of three tools: gentopol, neutralize, and genparams. Each tool performs a specific task for preparing a constant-pH simulation. Functionality for setting up titrations and parameterizations is provided with the help of stand-alone Python scripts, provided on the gitlab. Out of the box, phbuilder comes with the force field and CpHMD topology parameters required for setting up titratable Asp, Glu, and His residues in CHARMM36m."
+    desc_1 = "System builder for constant-pH simulations in GROMACS. phbuilder consists of three tools: gentopol, neutralize, and genparams. Each tool performs a specific task for preparing a constant-pH simulation. Functionality for setting up titrations and parameterizations is provided with the help of stand-alone Python scripts, provided on the gitlab. Out of the box, phbuilder comes with the force field and CpHMD topology parameters required for setting up titratable Arg, Lys, Asp, Glu, and His residues in CHARMM36m."
 
     # Epilogue. Also used by subcommands.
     desc_2 = "phbuilder VERSION 1.1. For the user manual visit https://gitlab.com/gromacs-constantph/phbuilder."
