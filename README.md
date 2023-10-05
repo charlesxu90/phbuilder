@@ -9,7 +9,7 @@
 phbuilder is a command line tool that automates setting up constant-pH (CpHMD) simulations in [GROMACS](https://www.gromacs.org/).<br>
 phbuilder is developed by Anton Jansen, Pavel Buslaev, Noora Aho, Gerrit Groenhof, and Berk Hess.
 
-For bug reports and feature requests, please use the [issues](https://gitlab.com/gromacs-constantph/phbuilder/-/issues) section.<br>
+**For questions, bug reports, and feature requests, please use the [issues](https://gitlab.com/gromacs-constantph/phbuilder/-/issues) section.**<br>
 For version and release information, please reference the [RELEASE.md](RELEASE.md) file.
 
 For the GROMACS CpHMD publications, please see:
@@ -44,7 +44,7 @@ For the publication associated with phbuilder, please see:
     cmake .. -DGMX_BUILD_OWN_FFTW=ON -DGMX_GPU=CUDA -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=/usr/local/gromacs_constantph
     ```
 
-    NOTE: if you run into compilation issues, GCC 7.4 and CUDA 10.2 have been proven to work.
+    NOTE: if you run into compilation issues, GCC 10.2 and CUDA 11.2.1 have been proven to work.
 
     NOTE: running `make check` will give multiple failures. This is to be expected for the CpHMD beta. It is recommended to skip `make check`.
 
@@ -559,7 +559,7 @@ Adds the appropriate number of ions to ensure a net-neutral system at t=0, and a
 | `-pname`     | [\<str>] (NA) <br /> Specify name of positive ion to use. |
 | `-nname`     | [\<str>] (CL) <br /> Specify name of negative ion to use. |
 | `-conc`      | [\<float>] (0.0) <br /> Specify ion concentration in mol/L. Note: uses solvent volume for calculating the required number of ions, not the periodic box volume as gmx genion does. |
-| `-nbufs`     | [\<int>] <br /> Specify number of buffer particles to add. If not set, $N_{\text{buf}} = 2N_{\text{sites}} + 1$. This ensures enough buffer particles will always be added, although you can likely get away with much less for larger systems. |
+| `-nbufs`     | [\<int>] <br /> Specify number of buffer particles to add. If not set, $N_{\text{buf}} = 2N_{\text{sites}} + 1$. This ensures enough buffer particles will always be added, although you can likely get away with much less for larger systems. The GROMACS CpHMD beta MUST be sourced/loaded for neutralize to work correctly. |
 | `-rmin`      | [\<float>] (0.6) <br /> Set the minimum distance the ions and buffers should be placed from the solute.
 | `-ignw`      | (no) <br /> Ignore all gmx grompp warnings. |
 | `-v`         | (no) <br /> Be more verbose. |
@@ -595,3 +595,7 @@ Generates the CpHMD-specific `.mdp` and `.ndx` files. Will write generic EM.mdp 
 **Q : Where are the default `charmm36-mar2019-cphmd.ff` and `lambdagrouptypes.dat` files located?**
 
 A : To find out, run a `phbuilder` command with the `-v` flag. The path to the default files will be provided as extra user output.
+
+**Q : What does `Condition: (lambdaCoordinate.x < 1.15 && lambdaCoordinate.x > -0.15) Lambda coordinate left the range for which it has been parametrised. Check your input parameters` mean?**
+
+A : If you receive this error, it means one or more of your lambda coordinates moved outside the acceptable [-0.15, 1.15] range. Since V_wall (part of V_bias), which is applied to keep the lambda coordinate in the [0, 1] range, rises very steeply outside [0, 1], it means forces on the lambda coordinate were unacceptably high. This can happen if 1) your dV/dl coefficients / parameterization is incorrect, 2) your system wasn't properly equilibrated (try EQ_smart.py), 3) you didn't added enough buffer particles (forcing the buffer coordinate out of range).
