@@ -16,7 +16,7 @@ def parsecmdline():
     desc_1 = "System builder for constant-pH simulations in GROMACS. phbuilder consists of three tools: gentopol, neutralize, and genparams. Each tool performs a specific task for preparing a constant-pH simulation. Functionality for setting up titrations and parameterizations is provided with the help of stand-alone Python scripts, provided on the gitlab. Out of the box, phbuilder comes with the force field and CpHMD topology parameters required for setting up titratable Arg, Lys, Asp, Glu, and His residues in CHARMM36m."
 
     # Epilogue. Also used by subcommands.
-    desc_2 = "phbuilder VERSION 1.1. For the user manual visit https://gitlab.com/gromacs-constantph/phbuilder."
+    desc_2 = "phbuilder VERSION 1.2. For the user manual visit https://gitlab.com/gromacs-constantph/phbuilder."
 
     # gentopol main description.
     desc_3 = "Allows you to select which residues to make titratable and which initial lambda (protonation) state they should have. Also (re)generates the system topology using the modified CHARMM36m force field. If you don't want to manually set initial lambda values, you can use the -ph flag to have gentopol automatically choose the appropriate initial lambda values, based on the criterion: pH > pKa means start deprotonated, else start protonated."

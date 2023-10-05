@@ -1,15 +1,15 @@
-# 1.2 (DATE)
+# 1.2 (October 5th, 2023)
 
-## Features
+### Features
 * Out of the box, phbuilder now also includes single-site parameterizations for arginine and lysine in CHARMM36m. The force field modifications and parameterization for lysine were [previously published](https://pubs.acs.org/doi/full/10.1021/acs.jctc.2c00517) but not yet included in the phbuilder package, and the single-site parameterization for arginine was performed as part of the phbuilder paper.
 
-## Improvements
+### Improvements
 * phbuilder no-longer checks/complains about which GROMACS version was sourced, we now only error if nothing was set in the environment at all.
 * Improved the [EQ_smart.py](scripts/EQ_smart.py) script.
 * Clarified some things in the parameterization section of the README.
 
-## Fixes
-* Removed "CHARMM is calibrated for 0.14." .mdp comment. The value is fine, however CHARMM technically wasn't 'calibrated' for it.
+### Fixes
+* Removed "CHARMM is calibrated for 0.14." .mdp comment. This fourierspacing value is fine, however CHARMM technically wasn't 'calibrated' for it.
 * Fixed bug where gentopol would crash if the structure does not contain a TITLE and no residues are recognized.
 * Fixed bug where genparams would write the lambda-dynamics-simulation-ph only up to one digit after the decimal point.
 * Fixed bug where genparams would write dV/dl coefficients and charge values only up to three digits after the decimal point.
