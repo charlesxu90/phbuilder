@@ -1,3 +1,9 @@
+# 1.2.1 (October 16th, 2023)
+
+### Fixes
+
+* The CpHMD charges specified in lambdagrouptypes.dat are now no-longer sanitized (previously only charges in the [-1, 1] interval were allowed).
+
 # 1.2 (October 5th, 2023)
 
 ### Features

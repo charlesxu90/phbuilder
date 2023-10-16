@@ -241,12 +241,12 @@ class phbuilder(User):
             groupname = Sanitize(groupname, "groupname in lambdagrouptypes.dat").string(Range=[2, 4], upper=True)
             incl      = [Sanitize(val, f"incl for {groupname} in lambdagrouptypes.dat").string(Range=[2, 4], upper=True) for val in incl]
             atoms     = [Sanitize(val, f"atoms for {groupname} in lambdagrouptypes.dat").string(Range=[1, 4], upper=True) for val in atoms]
-            qqA       = [Sanitize(val, f"qqA for {groupname} in lambdagrouptypes.dat").num(Range=[-1.0, 1.0]) for val in qqA]
+            qqA       = [Sanitize(val, f"qqA for {groupname} in lambdagrouptypes.dat").num() for val in qqA]
             pKa       = [Sanitize(val, f"pKa for {groupname} in lambdagrouptypes.dat").num(Range=[0, 14]) for val in pKa]
 
             for array in qqB:
                 for val in array:
-                    Sanitize(val, f"qqB for {groupname} in lambdagrouptypes.dat").num(Range=[-1, 1])
+                    Sanitize(val, f"qqB for {groupname} in lambdagrouptypes.dat").num()
 
             # Call function that constructs the LambdaType object.
             defineLambdaType(groupname, incl, pKa, atoms, qqA, qqB, dvdl)
