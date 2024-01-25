@@ -1,3 +1,10 @@
+# 1.2.2 (January 25th, 2024)
+
+### Fixes
+
+* Preprint link updated to published JCIM article.
+* Simulation input files link updated to Zenodo.
+
 # 1.2.1 (October 16th, 2023)
 
 ### Fixes

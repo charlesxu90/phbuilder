@@ -17,8 +17,8 @@ For the GROMACS CpHMD publications, please see:
 * [Best Practices in Constant pH MD Simulations: Accuracy and Sampling](https://pubs.acs.org/doi/full/10.1021/acs.jctc.2c00517).
 
 For the publication associated with phbuilder, please see:
-* [phbuilder: a tool for efficiently setting up constant pH molecular dynamics simulations in GROMACS](https://chemrxiv.org/engage/chemrxiv/article-details/64d4d5af69bfb8925ab380a4).
-* For examples of CpHMD simulation set up with phbuilder, have a look at the publication's [simulation input files](https://www.dropbox.com/sh/86bh072wr6dt8zm/AAASu276yeRejI15UweyAXnga?dl=0).
+* [phbuilder: A Tool for Efficiently Setting up Constant pH Molecular Dynamics Simulations in GROMACS](https://pubs.acs.org/doi/full/10.1021/acs.jcim.3c01313).
+* For examples of CpHMD simulation set up with phbuilder, have a look at the publication's [simulation input files](https://zenodo.org/doi/10.5281/zenodo.10468944).
 
 # Table of contents
 
@@ -230,7 +230,7 @@ creates directories corresponding to pH 1 to 9, with each subdirectory containin
 
 As mentioned, out of the box phbuilder comes with the topology and parameterization parameters (`lambdagrouptypes.dat`) required for setting up CpHMD simulation with Asp, Glu, Arg, Lys, and His in CHARMM36m. Although we expect this to be sufficient for most purposes, we recognize that scenarios (titratable ligands, titratable lipids, different force fields, etc.) exist for which CpHMD could be beneficial, but for which no parameterization is currently available.
 
-The following section describes a procedure for *single-site* parameterizations of ligands. For convenience, we will use the word "ligand" to refer to any new lambdagrouptype. Here, we consider parameterizing arginine as an example. As in [our previous work](https://pubs.acs.org/doi/full/10.1021/acs.jctc.2c00517), for amino acid parameterization we use capped tripeptides. Note that performing parameterizations correctly is relatively complicated, and the reader is advised to check [Scalable Constant pH Molecular Dynamics in GROMACS](https://pubs.acs.org/doi/10.1021/acs.jctc.2c00516) for more information on parameterization in CpHMD as well as [phbuilder: a tool for efficiently setting up constant-pH simulations in GROMACS](https://chemrxiv.org/engage/chemrxiv/article-details/64d4d5af69bfb8925ab380a4). Here, we will use a two-step procedure, introduced in the phbuilder paper.
+The following section describes a procedure for *single-site* parameterizations of ligands. For convenience, we will use the word "ligand" to refer to any new lambdagrouptype. Here, we consider parameterizing arginine as an example. As in [our previous work](https://pubs.acs.org/doi/full/10.1021/acs.jctc.2c00517), for amino acid parameterization we use capped tripeptides. Note that performing parameterizations correctly is relatively complicated, and the reader is advised to check [Scalable Constant pH Molecular Dynamics in GROMACS](https://pubs.acs.org/doi/10.1021/acs.jctc.2c00516) for more information on parameterization in CpHMD as well as [phbuilder: A Tool for Efficiently Setting up Constant pH Molecular Dynamics Simulations in GROMACS](https://pubs.acs.org/doi/full/10.1021/acs.jcim.3c01313). Here, we will use a two-step procedure, introduced in the phbuilder paper.
 
 NOTE: the structure for the arginine tripeptide may be found [here](figures/arg_tript.pdb).
 
