@@ -1,3 +1,14 @@
+# 1.2.3 (February 21st, 2024)
+
+### Improvements
+
+* Added [README.md](phbuilder/ffield/README.md) for the CpHMD force field. #7
+* Improved documentation for the [create_titration.py](scripts/create_titration.py) script. #9
+
+### Fixes
+
+* Swapped $\lambda$-2 and $\lambda$-3 of HSPT in `lambdagrouptypes.dat`. $\lambda$-2 now corresponds to the HID state (previously HIE), and $\lambda$-3 now corresponds to the HIE state (previously HID), same as in the publication. #7
+
 # 1.2.2 (January 25th, 2024)
 
 ### Fixes
