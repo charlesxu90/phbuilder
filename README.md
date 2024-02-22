@@ -226,6 +226,22 @@ create_titration.py -f MD.mdp -c NPT.pdb -p topol.top -n index.ndx -pH 1:10:1 -n
 
 creates directories corresponding to pH 1 to 9, with each subdirectory containing two replicates (each containing the appropriate input files for `gmx mdrun`).
 
+**NOTE** `create_titration.py` currently requires small modifications of `MD.mdp` file. In case of multisite groups (e.g. histidine), one of the $\lambda$-coordinates (usually the first coordinate associated with the multisite group) should have pH value equal to $\text{p}K_\text{a}$ (check [manual](https://gitlab.com/gromacs-constantph/constantph/-/blob/main/manual/constantph_usage.md)). To achieve this, `create_titration.py` searches through the **.mdp** file, and if it sees pH and $\text{p}K_\text{a}$ in one line, it replaces pH with actual numeric value. This will ensure the correct set up at all pH values. To give an example:
+```
+lambda-dynamics-group-type3-state-1-reference-pka      = pH
+```
+this line will be sequentially changed to 
+```
+lambda-dynamics-group-type3-state-1-reference-pka      = 1.0
+lambda-dynamics-group-type3-state-1-reference-pka      = 2.0
+lambda-dynamics-group-type3-state-1-reference-pka      = 3.0
+...
+```
+in the corresponding folders.
+
+
+**NOTE** This behaviour will change in the next release of the code.
+
 # Performing parameterizations
 
 As mentioned, out of the box phbuilder comes with the topology and parameterization parameters (`lambdagrouptypes.dat`) required for setting up CpHMD simulation with Asp, Glu, Arg, Lys, and His in CHARMM36m. Although we expect this to be sufficient for most purposes, we recognize that scenarios (titratable ligands, titratable lipids, different force fields, etc.) exist for which CpHMD could be beneficial, but for which no parameterization is currently available.
