@@ -1,4 +1,4 @@
-# 1.2.3 (February 21st, 2024)
+# 1.2.4 (February 22nd, 2024)
 
 ### Improvements
 
@@ -7,7 +7,7 @@
 
 ### Fixes
 
-* Swapped $\lambda$-2 and $\lambda$-3 of HSPT in `lambdagrouptypes.dat`. $\lambda$-2 now corresponds to the HID state (previously HIE), and $\lambda$-3 now corresponds to the HIE state (previously HID), same as in the publication. #7
+* Changed labeling of the $\lambda_2$ and $\lambda_3$ states of HSPT. To clarify: $\lambda_2$ corresponds to HSE/HIE and $\lambda_3$ HSD/HID. #7
 
 # 1.2.2 (January 25th, 2024)
 
