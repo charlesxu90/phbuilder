@@ -2,6 +2,9 @@ import configparser
 import subprocess
 import os
 
+from sympy.parsing.sympy_parser import parse_expr
+from sympy import symbols
+
 from .user import User
 from .sanitize import Sanitize
 from .structure import Structure
@@ -105,6 +108,12 @@ class phbuilder(User):
                 self.ph_inter = True
             else:
                 self.ph_inter = False
+
+            # Process whether the -titr flag was or wasn't set.
+            if CLI.titr is not None:
+                self.titr = True
+            else:
+                self.titr = False
 
             # Process whether the -cal flag was or wasn't set.
             if CLI.cal is not None:
@@ -223,10 +232,14 @@ class phbuilder(User):
             pKa  = []
             qqB  = []
             dvdl = []
-            for idx in range(1, 11):  # Max 10 multisites
+            # We iterate over the residue description, but we don't know how many state we have.
+            idx = 0
+            while True:
+                idx += 1
                 try:
                     # Parse pKa(s)
-                    pKa.append(float(parser.get(sect, 'pKA_{}'.format(idx))))
+                    # NOTE: we are not converting pKa values here, since there might be a dependence on pH
+                    pKa.append(parser.get(sect, 'pKA_{}'.format(idx)).lower())
 
                     # Parse qqB(s)
                     qqB.append(str2floatList(parser.get(sect, 'qqB_{}'.format(idx))))
@@ -242,7 +255,7 @@ class phbuilder(User):
             incl      = [Sanitize(val, f"incl for {groupname} in lambdagrouptypes.dat").string(Range=[2, 4], upper=True) for val in incl]
             atoms     = [Sanitize(val, f"atoms for {groupname} in lambdagrouptypes.dat").string(Range=[1, 4], upper=True) for val in atoms]
             qqA       = [Sanitize(val, f"qqA for {groupname} in lambdagrouptypes.dat").num() for val in qqA]
-            pKa       = [Sanitize(val, f"pKa for {groupname} in lambdagrouptypes.dat").num(Range=[0, 14]) for val in pKa]
+            pKa       = [Sanitize(val, f"pKa for {groupname} in lambdagrouptypes.dat").pka_string(Range=[0, 14]) for val in pKa]
 
             for array in qqB:
                 for val in array:
@@ -1054,8 +1067,13 @@ class phbuilder(User):
 
         file.write("\n; CONSTANT PH\n")
 
+        _is_titr = self.titr if hasattr(self, 'titr') else False
+
         addParam('lambda-dynamics', 'yes')
-        addParam('lambda-dynamics-simulation-ph', self.ph_ph)
+        if Type == "MD" and _is_titr:
+            addParam('lambda-dynamics-simulation-ph', 'ph')
+        else:
+            addParam('lambda-dynamics-simulation-ph', self.ph_ph)
         addParam('lambda-dynamics-lambda-particle-mass', "{:.1f}".format(5.0))  # lmass is hardcoded to 5.0 (amu).
         addParam('lambda-dynamics-tau', "{:.1f}".format(2.0))  # ltau is hardcoded to 2.0 (ps).
         addParam('lambda-dynamics-update-nst', self.ph_nstout)
@@ -1123,10 +1141,14 @@ class phbuilder(User):
             for idx in range(1, multistates + 1):
                 # When we have a multistate lambdagrouptype, one of the pKas should
                 # be equal to the simulation-pH. This is done by setting this pKa
-                # to zero in the lambdagrouptypes.dat file.
-                pKaNew = pKa[idx - 1]
-                if multistates > 1 and float(pKaNew) == 0.0:
-                    pKaNew = self.ph_ph
+                # to ph in the lambdagrouptypes.dat file.
+
+                if Type == "MD" and _is_titr:
+                    pKaNew = pKa[idx - 1]
+                else:
+                    # Do some symbol maths
+                    ph = symbols("ph")
+                    pKaNew = float(parse_expr(pKa[idx - 1], evaluate=False).subs(ph, self.ph_ph))
 
                 addParam('lambda-dynamics-group-type{}-state-{}-charges'.format(number, idx), to_string(qqB[idx - 1]))
                 addParam('lambda-dynamics-group-type{}-state-{}-reference-pka'.format(number, idx), pKaNew)
@@ -1165,7 +1187,7 @@ class phbuilder(User):
                 1,
                 [qqA],
                 [[qqB]],
-                [0],
+                ['0'],
                 [self.ph_BUF_dvdl]
             )
 
@@ -1395,16 +1417,25 @@ class phbuilder(User):
         # multistate case
         if len(pKaList) > 1:
 
+            # Do some symbol maths
+            ph = symbols("ph")
+            pKa_vals = [
+                float(
+                    parse_expr(x, evaluate=False).subs(ph, systempH)
+                ) for x in pKaList
+            ]
+
             highest = 0
-            for pKa in pKaList:
+            for pKa in pKa_vals:
+
                 if pKa <= systempH and pKa > highest:
                     highest = pKa
 
-            return pKaList.index(highest) + 1
+            return pKa_vals.index(highest) + 1
 
         #2state case
         else:
-            if systempH >= pKaList[0]:
+            if systempH >= float(pKaList[0]):
                 return 1  # if pH >= pKa, we are in deproto = 1 state.
 
             return 0  # if pH < pKa, we are in the proto = 0 state.
