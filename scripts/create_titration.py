@@ -5,6 +5,9 @@ import os
 import sys
 import numpy as np
 
+from sympy.parsing.sympy_parser import parse_expr
+from sympy import symbols
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
@@ -79,8 +82,18 @@ if __name__ == "__main__":
                         newline = line.replace(line, "lambda-dynamics-simulation-ph        = {:.2f}".format(p))
                         content += newline + "\n"
                     # change pKa to pH
-                    elif line.startswith("lambda-dynamics-group-type") and all(x in line for x in ["pka", "pH"]):
-                        newline = line.replace("pH", "{:.2f}".format(p))
+                    elif line.startswith("lambda-dynamics-group-type") and all(x in line for x in ["pka", "ph"]):
+                        ph = symbols("ph")
+                        _key = line.split("=")[0]
+                        _other = line[line.index("=") + 1:]
+                        try:
+                            _comment = _other[_other.index(";") + 1:]
+                            pKa_str = _other.split(";")[0]
+                        except ValueError:
+                            _comment = None
+                            pKa_str = _other
+                        pKaNew = float(parse_expr(pKa_str, evaluate=False).subs(ph, p))
+                        newline = f"{_key}   = {pKaNew} ;{_comment}" if _comment else f"{_key}   = {pKaNew}\n"
                         content += newline
                     else:
                         content += line

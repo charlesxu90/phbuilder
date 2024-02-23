@@ -1070,7 +1070,7 @@ class phbuilder(User):
         _is_titr = self.titr if hasattr(self, 'titr') else False
 
         addParam('lambda-dynamics', 'yes')
-        if _is_titr:
+        if Type == "MD" and _is_titr:
             addParam('lambda-dynamics-simulation-ph', 'ph')
         else:
             addParam('lambda-dynamics-simulation-ph', self.ph_ph)
@@ -1143,7 +1143,7 @@ class phbuilder(User):
                 # be equal to the simulation-pH. This is done by setting this pKa
                 # to ph in the lambdagrouptypes.dat file.
 
-                if _is_titr:
+                if Type == "MD" and _is_titr:
                     pKaNew = pKa[idx - 1]
                 else:
                     # Do some symbol maths
