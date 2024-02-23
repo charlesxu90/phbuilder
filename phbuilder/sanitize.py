@@ -91,6 +91,40 @@ class Sanitize:
 
         return self.__endbehavior()
 
+    def pka_string(self, Range: list = []):
+        """Sanitize strings that describe pka values for lambda coordinate.
+        The rule is, if <ph> not in string, then we should be within range.
+
+        Args:
+            Type (Any, optional): (list of) acceptable type(s). Defaults to None.
+            Range (list, optional): acceptable interval. Defaults to [].
+            signed (bool, optional): Signed or unsigned. Defaults to False.
+
+        Returns:
+            int: exitcode.
+        """
+
+        # Confirm whether var is a string.
+        if not isinstance(self.var, str):
+            self.__error(f'should be of type {str}')
+
+        # Check if ph in var
+        if 'ph' in self.var:
+            # Do nothing
+            return self.__endbehavior()
+
+        # Try converting to string
+        try:
+            float(self.var)
+        except ValueError:
+            self.__error('should be convertible to float or have "ph"')
+
+        # Check range.
+        if Range and (float(self.var) < Range[0] or float(self.var) > Range[1]):
+            self.__error(f'outside of acceptable interval {Range}')
+
+        return self.__endbehavior()
+
     def string(self, Range: list = [], upper: bool = False, lower: bool = False, ws: bool = True):
         """sanitize strings (str).
 
