@@ -232,13 +232,12 @@ class phbuilder(User):
             pKa  = []
             qqB  = []
             dvdl = []
-            # We iterate over the residue description, but we don't know how many state we have.
-            idx = 0
-            while True:
-                idx += 1
+            # We iterate over the residue description as we don't know how many states we have.
+            # for loop over max 100 multistates. Do not use while True to prevent potential infinite loop.
+            for idx in range(1, 101):
                 try:
-                    # Parse pKa(s)
-                    # NOTE: we are not converting pKa values here, since there might be a dependence on pH
+                    # Parse pKa(s). Note: we are not converting pKa values here
+                    # as there might be a dependence on pH.
                     pKa.append(parser.get(sect, 'pKA_{}'.format(idx)).lower())
 
                     # Parse qqB(s)
@@ -1067,10 +1066,8 @@ class phbuilder(User):
 
         file.write("\n; CONSTANT PH\n")
 
-        _is_titr = self.titr if hasattr(self, 'titr') else False
-
         addParam('lambda-dynamics', 'yes')
-        if Type == "MD" and _is_titr:
+        if Type == "MD" and self.titr:
             addParam('lambda-dynamics-simulation-ph', 'ph')
         else:
             addParam('lambda-dynamics-simulation-ph', self.ph_ph)
@@ -1143,7 +1140,7 @@ class phbuilder(User):
                 # be equal to the simulation-pH. This is done by setting this pKa
                 # to ph in the lambdagrouptypes.dat file.
 
-                if Type == "MD" and _is_titr:
+                if Type == "MD" and self.titr:
                     pKaNew = pKa[idx - 1]
                 else:
                     # Do some symbol maths

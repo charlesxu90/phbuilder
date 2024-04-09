@@ -226,13 +226,13 @@ create_titration.py -f MD.mdp -c NPT.pdb -p topol.top -n index.ndx -pH 1:10:1 -n
 
 creates directories corresponding to pH 1 to 9, with each subdirectory containing two replicates (each containing the appropriate input files for `gmx mdrun`).
 
-The minor change is at step 7, when parameters are generated, `phbuilder genparams` needs to be called with `-titr` option:
+The minor change is at step 7. When parameters are generated, `phbuilder genparams` needs to be called with the `-titr` option:
 
 ```
 phbuilder genparams -f phneutral.pdb -ph 4.0 -titr
 ```
 
-This will set ph to sting "ph" as well as all ph-dependent terms for pKa values in multisite groups (e.g. $\lambda_1$ of histidine). Those ph-dependent strings will be read by `create_titration.py` and modified according to the ph value for a particular somulation. Note, however, that ph value is still recommended to be passed as input to `phbuilder genparams`. Minimization and equilibration files will be generated for a provided ph value.
+This will set the pH value to the string "ph", as well as all pH-dependent terms for pKa values in multisite groups (e.g. $\lambda_1$ of histidine). Those pH-dependent strings will be read by `create_titration.py` and modified according to the pH value for a particular somulation. Note however that a pH value is still required to be passed as input to `phbuilder genparams`. Minimization and equilibration files will be generated for this provided pH.
 
 # Performing parameterizations
 
@@ -593,7 +593,7 @@ Generates the CpHMD-specific `.mdp` and `.ndx` files. Will write generic EM.mdp 
 | `-nstout`    | [\<int>] (500) <br /> Specify lambda coordinate output frequency. 500 is large enough for subsequent frames to be uncoupled (with a $dt = 0.002$).
 | `-dwpE`      | [\<float>] (7.5) <br /> Specify default height of bias potential barrier (kJ/mol).
 | `-inter`     | (no) <br /> Interactively set the height of the bias potential barrier (kJ/mol) for every titratable site.
-| `-titr`       | (no) <br /> Prepare files for running titrations with CpHMD: forces pH to be set to "ph" and ph-dependent pKa values to be written to MD.mdp as string. `create_titration.py` script will further modify those entries according to the currently set ph. |
+| `-titr`       | (no) <br /> Prepare files for running titrations with CpHMD: forces pH to be set to "ph" and ph-dependent pKa values to be written to MD.mdp as string. The `create_titration.py` script will further modify those entries according to the currently set ph. |
 | `-cal`       | (no) <br /> Run CpHMD simulation in calibration mode: forces on the lambda coordinates are computed, but their positions won't be updated. This is only used for parameterization purposes. |
 | `-v`         | (no) <br /> Be more verbose. |
 
