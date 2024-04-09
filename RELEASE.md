@@ -2,13 +2,14 @@
 
 ### Features
 
+* Added `-titr` option to `phbuilder genparams` for preparing parameter files for titrations.
 * Added support for pH-dependent pKa values in `phbuilder` and `create_titration.py`.
 
 ### Improvements
 
-* Added `-titr` option to `phbuilder genparams` for preparing parameter files for titrations.
 * Improve sanitization of file paths/extension checking.
 * Avoid using the terms macroscopic/microscopic, should be reference/shifted pKa.
+* When writing to index files, avoid long lines by breaking the line after 15 entries.
 * Fixed dependencies.
 
 # 1.2.4 (February 22nd, 2024)

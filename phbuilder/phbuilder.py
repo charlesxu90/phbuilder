@@ -1278,9 +1278,19 @@ class phbuilder(User):
 
         def writeTheGroup(number, atomIndexList):
             """Formatting function for writing the index block."""
+
             file.write('\n[ LAMBDA{} ]\n'.format(number))
+
+            idxPerLine = 0
+
             for index in atomIndexList:
                 file.write('{} '.format(index))
+
+                idxPerLine += 1
+                if idxPerLine == 15:
+                    file.write('\n')
+                    idxPerLine = 0
+
             file.write('\n')
 
         atomCount   = 1
