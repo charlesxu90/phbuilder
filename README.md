@@ -218,7 +218,7 @@ gmx cphmd -s MD.tpr -e MD.edr -numplot 1
 
 # Performing titrations
 
-Performing a computational titration is helpful for determining the microscopic pKas of titratable sites. After steps 1 to 9 of the basic workflow have been completed, one can use the included [create_titration.py](scripts/create_titration.py) to setup a titration. For example, the command:
+Performing a computational titration is helpful for determining the pKa shifts of titratable sites. After steps 1 to 9 of the basic workflow have been completed, one can use the included [create_titration.py](scripts/create_titration.py) to setup a titration. For example, the command:
 
 ```
 create_titration.py -f MD.mdp -c NPT.pdb -p topol.top -n index.ndx -pH 1:10:1 -nr 2
@@ -538,7 +538,7 @@ OPTIONS
 |--------------|----------------|
 | `-f`         | [\<.pdb/.gro>] (required) <br /> Specify input structure file. | 
 | `-o`         | [\<.pdb/.gro>] (phprocessed.pdb) <br /> Specify output structure file. | 
-| `-ph`        | [\<float>] <br /> Specify intended simulation pH. Will be used together with the macroscopic pKas of the titratable sites to auto set the initial lambdas. |
+| `-ph`        | [\<float>] <br /> Specify intended simulation pH. Will be used together with the reference pKas of the titratable sites to auto set the initial lambdas. |
 | `-v`         | (no) <br /> Be more verbose. |
 
 # Synopsis `phbuilder neutralize`

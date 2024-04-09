@@ -7,11 +7,9 @@
 ### Improvements
 
 * Added `-titr` option to `phbuilder genparams` for preparing parameter files for titrations.
-
-### Fixes
-
-* Fixed dependencies.
 * Improve sanitization of file paths/extension checking.
+* Avoid using the terms macroscopic/microscopic, should be reference/shifted pKa.
+* Fixed dependencies.
 
 # 1.2.4 (February 22nd, 2024)
 

@@ -51,7 +51,7 @@ def parsecmdline():
                           required=False,
                           dest='ph',
                           action='store',
-                          help='[<float>] Specify intended simulation pH. Will be used together with the macroscopic pKas of the titratable sites to auto set the initial lambdas.',
+                          help='[<float>] Specify intended simulation pH. Will be used together with the reference pKas of the titratable sites to auto set the initial lambdas.',
                           type=float)
 
     parser_1.add_argument('-v',
