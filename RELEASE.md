@@ -11,6 +11,7 @@
 ### Fixes
 
 * Fixed dependencies.
+* Improve sanitization of file paths/extension checking.
 
 # 1.2.4 (February 22nd, 2024)
 

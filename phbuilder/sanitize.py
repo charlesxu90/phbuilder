@@ -195,17 +195,20 @@ class Sanitize:
             if type(ext) != list:
                 ext = [ext]
 
-            if tail.count(' ') != 0:
-                self.__error('cannot contain whitespace')
+            # Add "." to extensions if not present.
+            for idx in range(len(ext)):
+                if ext[idx][0] != ".":
+                    ext[idx] = "." + ext[idx]
 
-            if (tail.count('.') == 0) or (tail.count('.') > 1) or (tail[-1] == '.'):
-                self.__error(f'ambiguous extension (should be {ext})')
+            # Comment this because file names can contain whitespace in linux.
+            # if tail.count(" ") != 0:
+            #     self.__error("cannot contain whitespace")
 
-            elif tail.index('.') == 0:
-                self.__error('cannot be just an extension')
+            if "." not in tail or (tail.index(".") == 0 and tail.count(".") == 1):
+                self.__error(f"does not have a file extension (should be {ext})")
 
-            elif tail[tail.index('.'):] not in ext:
-                self.__error(f'should have extension {ext}')
+            elif "." + tail.split(".")[-1] not in ext:
+                self.__error(f"should have extension {ext}")
 
         # Check absolute file path.
         if abs and not os.path.isabs(self.var):
