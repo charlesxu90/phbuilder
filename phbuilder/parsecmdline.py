@@ -197,6 +197,13 @@ def parsecmdline():
                           const=1,
                           help='(no) Interactively set the height of the bias potential barrier (kJ/mol) for every titratable site.')
 
+    parser_3.add_argument('-titr',
+                          required=False,
+                          dest='titr',
+                          action='store_const',
+                          const=1,
+                          help="(no) Prepare files for CpHMD titration. This will leave all pH-dependent pKa values as they are in lambdagrouptypes.dat. Those will be further modified by the create_titration.py script.")
+
     parser_3.add_argument('-cal',
                           required=False,
                           dest='cal',

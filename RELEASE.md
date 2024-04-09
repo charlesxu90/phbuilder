@@ -1,3 +1,17 @@
+# 1.2.5
+
+### Features
+
+* Added support for pH-dependent pKa values in `phbuilder` and `create_titration.py`.
+
+### Improvements
+
+* Added `-titr` option to `phbuilder genparams` for preparing parameter files for titrations.
+
+### Fixes
+
+* Fixed dependencies.
+
 # 1.2.4 (February 22nd, 2024)
 
 ### Improvements

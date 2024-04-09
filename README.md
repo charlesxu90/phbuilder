@@ -226,21 +226,13 @@ create_titration.py -f MD.mdp -c NPT.pdb -p topol.top -n index.ndx -pH 1:10:1 -n
 
 creates directories corresponding to pH 1 to 9, with each subdirectory containing two replicates (each containing the appropriate input files for `gmx mdrun`).
 
-**NOTE** `create_titration.py` currently requires small modifications of `MD.mdp` file. In case of multisite groups (e.g. histidine), one of the $\lambda$-coordinates (usually the first coordinate associated with the multisite group) should have pH value equal to $\text{p}K_\text{a}$ (check [manual](https://gitlab.com/gromacs-constantph/constantph/-/blob/main/manual/constantph_usage.md)). To achieve this, `create_titration.py` searches through the **.mdp** file, and if it sees pH and $\text{p}K_\text{a}$ in one line, it replaces pH with actual numeric value. This will ensure the correct set up at all pH values. To give an example:
-```
-lambda-dynamics-group-type3-state-1-reference-pka      = pH
-```
-this line will be sequentially changed to 
-```
-lambda-dynamics-group-type3-state-1-reference-pka      = 1.0
-lambda-dynamics-group-type3-state-1-reference-pka      = 2.0
-lambda-dynamics-group-type3-state-1-reference-pka      = 3.0
-...
-```
-in the corresponding folders.
+The minor change is at step 7. When parameters are generated, `phbuilder genparams` needs to be called with the `-titr` option:
 
+```
+phbuilder genparams -f phneutral.pdb -ph 4.0 -titr
+```
 
-**NOTE** This behaviour will change in the next release of the code.
+This will set the pH value to the string "ph", as well as all pH-dependent terms for pKa values in multisite groups (e.g. $\lambda_1$ of histidine). Those pH-dependent strings will be read by `create_titration.py` and modified according to the pH value for a particular somulation. Note however that a pH value is still required to be passed as input to `phbuilder genparams`. Minimization and equilibration files will be generated for this provided pH.
 
 # Performing parameterizations
 
@@ -583,7 +575,7 @@ Adds the appropriate number of ions to ensure a net-neutral system at t=0, and a
 # Synopsis `phbuilder genparams`
 
 ```
-phbuilder genparams [-h] -f FILE -ph PH [-mdp MDP] [-ndx NDX] [-nstout NSTOUT] [-dwpE DWPE] [-inter] [-cal] [-v]
+phbuilder genparams [-h] -f FILE -ph PH [-mdp MDP] [-ndx NDX] [-nstout NSTOUT] [-dwpE DWPE] [-inter] [-titr] [-cal] [-v]
 ```
 
 ### DESCRIPTION
@@ -601,6 +593,7 @@ Generates the CpHMD-specific `.mdp` and `.ndx` files. Will write generic EM.mdp 
 | `-nstout`    | [\<int>] (500) <br /> Specify lambda coordinate output frequency. 500 is large enough for subsequent frames to be uncoupled (with a $dt = 0.002$).
 | `-dwpE`      | [\<float>] (7.5) <br /> Specify default height of bias potential barrier (kJ/mol).
 | `-inter`     | (no) <br /> Interactively set the height of the bias potential barrier (kJ/mol) for every titratable site.
+| `-titr`       | (no) <br /> Prepare files for running titrations with CpHMD: forces pH to be set to "ph" and ph-dependent pKa values to be written to MD.mdp as string. The `create_titration.py` script will further modify those entries according to the currently set ph. |
 | `-cal`       | (no) <br /> Run CpHMD simulation in calibration mode: forces on the lambda coordinates are computed, but their positions won't be updated. This is only used for parameterization purposes. |
 | `-v`         | (no) <br /> Be more verbose. |
 
