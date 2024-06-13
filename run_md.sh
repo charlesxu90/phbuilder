@@ -1,3 +1,9 @@
+# Install
+git clone git@github.com:charlesxu90/phbuilder.git
+git checkout updated-temp-and-time 
+pip install -e .
+
+# Use
 echo "starting phbuilder"
 echo -e "1" > input.data
 
