@@ -209,14 +209,16 @@ def parsecmdline():
                           dest='temperature',
                           action='store',
                           default=374,
-                          help="[<float>] (374) Temperature to run MD, in Kelvin.")
+                          help="[<float>] (374) Temperature to run MD, in Kelvin.",
+                          type=float)
 
     parser_3.add_argument('-time',
                           required=False,
                           dest='time',
                           action='store',
-                          default=374,
-                          help="[<float>] (10) Time to run MD, in ns.")
+                          default=10,
+                          help="[<float>] (10) Time to run MD, in ns.",
+                          type=float)
 
     parser_3.add_argument('-v',
                           required=False,
