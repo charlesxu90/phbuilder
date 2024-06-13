@@ -111,6 +111,10 @@ class phbuilder(User):
                 self.ph_cal = True
             else:
                 self.ph_cal = False
+            
+            # Process time and temperature
+            self.md_time = Sanitize(CLI.time, 'time').num(signed=True)
+            self.md_temperature = Sanitize(CLI.temperature, 'temperature').num(signed=True)
 
         # User information.
         self.verbose("Parsed the following input from the command line:")
@@ -1340,18 +1344,18 @@ class phbuilder(User):
         gen_mdp(Type='EM', nsteps=5000, nstxout=0, posRes=self.ph_cal)
         self.update('Wrote a generic EM.mdp file (for energy minimization)...')
 
-        gen_mdp(Type='NVT', nsteps=5000, nstxout=0, posRes=self.ph_cal)
+        gen_mdp(Type='NVT', nsteps=50000, nstxout=0, posRes=self.ph_cal, temperature= self.md_temperature)
         self.update('Wrote a generic NPT.mdp file (for temperature coupling)...')
 
-        gen_mdp(Type='NPT', nsteps=5000, nstxout=0, posRes=self.ph_cal)
+        gen_mdp(Type='NPT', nsteps=50000, nstxout=0, posRes=self.ph_cal, temperature= self.md_temperature)
         self.update('Wrote a generic NVT.mdp file (for pressure coupling)...')
 
         # If no existing .mdp file is specified using the -mdp flag, write a generic one.
         if self.d_mdp is None:
             if self.ph_cal:
-                gen_mdp('MD', 500000, 25000, posRes=self.ph_cal)
+                gen_mdp('MD', 500000, 25000, posRes=self.ph_cal, temperature= self.md_temperature)
             else:
-                gen_mdp('MD', 50000000, 25000, posRes=self.ph_cal)
+                gen_mdp('MD', int(self.md_time * 5000000), 25000, posRes=self.ph_cal, temperature= self.md_temperature)
 
             self.update('Wrote a generic MD.mdp file (for production)...')
             self.warning("Although the generated .mdp files should mostly be fine, it is up to the user to verify that the (non-CpHMD part of the) generated .mdp file(s) is suitable for their particular system (e.g. you might want to use semi-isotropic pressure coupling when simulating a membrane protein etc).")
@@ -1412,4 +1416,4 @@ class phbuilder(User):
     def pleaseCite(self):
         """Print citation request.
         """
-        self.update('If this software contributed to your research, please cite https://doi.org/10.1021/acs.jcim.3c01313.')
+        self.update('If this software contributed to your research, please cite https://chemrxiv.org/engage/chemrxiv/article-details/64d4d5af69bfb8925ab380a4.')

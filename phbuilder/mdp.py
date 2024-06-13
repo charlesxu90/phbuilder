@@ -1,6 +1,6 @@
 firstLine = True  # For formatting of title.
 
-def gen_mdp(Type: str, nsteps: int, nstxout: int, posRes=False):
+def gen_mdp(Type: str, nsteps: int, nstxout: int, posRes=False, temperature=374):
     """Write a generic .mdp file.
 
     Args:
@@ -106,7 +106,7 @@ def gen_mdp(Type: str, nsteps: int, nstxout: int, posRes=False):
         addParam('tcoupl', 'v-rescale')
         addParam('tc-grps', 'SYSTEM')
         addParam('tau-t', 0.5, 'Coupling time (ps).')
-        addParam('ref-t', 300, 'Reference temperature (K).')
+        addParam('ref-t', temperature, 'Reference temperature (K).')
 
     # PRESSURE COUPLING
 

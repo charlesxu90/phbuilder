@@ -204,6 +204,20 @@ def parsecmdline():
                           const=1,
                           help="(no) Run CpHMD simulation in calibration mode: forces on the lambda coordinates are computed, but their positions won't be updated. This is only used for parameterization purposes.")
 
+    parser_3.add_argument('-temp',
+                          required=False,
+                          dest='temperature',
+                          action='store',
+                          default=374,
+                          help="[<float>] (374) Temperature to run MD, in Kelvin.")
+
+    parser_3.add_argument('-time',
+                          required=False,
+                          dest='time',
+                          action='store',
+                          default=374,
+                          help="[<float>] (10) Time to run MD, in ns.")
+
     parser_3.add_argument('-v',
                           required=False,
                           dest='verbosity',
