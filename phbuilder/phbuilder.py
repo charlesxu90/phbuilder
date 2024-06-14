@@ -1355,7 +1355,7 @@ class phbuilder(User):
             if self.ph_cal:
                 gen_mdp('MD', 500000, 25000, posRes=self.ph_cal, temperature= self.md_temperature)
             else:
-                gen_mdp('MD', int(self.md_time * 5000000), 25000, posRes=self.ph_cal, temperature= self.md_temperature)
+                gen_mdp('MD', int(self.md_time * 500000), 25000, posRes=self.ph_cal, temperature= self.md_temperature)
 
             self.update('Wrote a generic MD.mdp file (for production)...')
             self.warning("Although the generated .mdp files should mostly be fine, it is up to the user to verify that the (non-CpHMD part of the) generated .mdp file(s) is suitable for their particular system (e.g. you might want to use semi-isotropic pressure coupling when simulating a membrane protein etc).")
